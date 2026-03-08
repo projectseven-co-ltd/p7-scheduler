@@ -34,6 +34,27 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
     --font-mono: 'Fira Code', monospace;
     --radius: 8px;
   }
+  [data-lights="on"] {
+    --bg: #f5f4ef;
+    --surface: #edecea;
+    --border: rgba(0,0,0,0.1);
+    --accent: #4a5500;
+    --accent-dim: rgba(74,85,0,0.1);
+    --text: #141410;
+    --muted: #5a5a4a;
+    --error: #c0392b;
+    --success: #1a7a52;
+  }
+  .lights-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: var(--font-mono);
+    font-size: 0.6rem; letter-spacing: 0.08em;
+    cursor: pointer; transition: all .2s;
+  }
+  .lights-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #lightsFlicker { position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: rgba(255,255,230,0); }
 
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap');
 
@@ -185,6 +206,10 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
 </style>
 </head>
 <body>
+<div id="lightsFlicker"></div>
+<div style="width:100%;display:flex;justify-content:flex-end;padding:12px 16px 0;max-width:780px;margin:0 auto">
+  <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
+</div>
 <div class="brand">// schedkit</div>
 
 <div class="card" id="app">
@@ -580,6 +605,16 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
     document.getElementById('step-form').style.display = step === 'form' ? '' : 'none';
     document.getElementById('step-confirmed').style.display = step === 'confirmed' ? '' : 'none';
   }
+
+  // Lights toggle
+  (function(){
+    const btn=document.getElementById('lightsBtn'),label=document.getElementById('lightsBtnLabel'),flicker=document.getElementById('lightsFlicker');
+    let lights=localStorage.getItem('p7-lights')==='1'||(localStorage.getItem('p7-lights')===null&&window.matchMedia?.('(prefers-color-scheme: light)').matches);
+    function applyTheme(on){document.documentElement.setAttribute('data-lights',on?'on':'off');if(label)label.textContent=on?'LIGHTS OFF':'LIGHTS ON';}
+    function flickerOn(cb){let i=0,fl=[80,60,100,50,120,40,200];function s(){flicker.style.background=i%2===0?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)';i++;if(i<fl.length)setTimeout(s,fl[i-1]);else{flicker.style.background='rgba(255,255,230,0)';cb();}}s();}
+    applyTheme(lights);
+    if(btn)btn.addEventListener('click',function(){if(!lights){flickerOn(()=>{lights=true;localStorage.setItem('p7-lights','1');applyTheme(true);});}else{lights=false;localStorage.setItem('p7-lights','0');applyTheme(false);}});
+  })();
 })();
 </script>
 </body>
