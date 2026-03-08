@@ -83,3 +83,21 @@ export async function sendBookingConfirmation({ attendee_name, attendee_email, h
     console.error('Mailjet error:', e.message);
   }
 }
+
+export async function sendAccessRequest({ name, email, company, message }) {
+  try {
+    await mj.post('send', { version: 'v3.1' }).request({
+      Messages: [{
+        From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        To: [{ Email: 'jrj@p7n.net', Name: 'Jason' }],
+        ReplyTo: { Email: email, Name: name },
+        Subject: `SchedKit Access Request: ${name}${company ? ' — ' + company : ''}`,
+        TextPart: `Name: ${name}\nEmail: ${email}\nCompany: ${company || 'n/a'}\n\n${message || '(no message)'}`,
+      }],
+    });
+    console.log(`Access request from ${email}`);
+  } catch(e) {
+    console.error('Mailjet error:', e.message);
+    throw e;
+  }
+}

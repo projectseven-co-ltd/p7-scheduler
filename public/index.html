@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SchedKit — White-Label Scheduling for Agencies</title>
+<meta name="description" content="Give your clients a professional booking page without the Cal.com branding. API-first scheduling infrastructure built for agencies.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111114;
+    --border: #1e1e24;
+    --accent: #DFFF00;
+    --accent-dim: rgba(223,255,0,0.08);
+    --text: #e8e8ea;
+    --muted: #5a5a6e;
+    --font-sans: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'Fira Code', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* --- NAV --- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    background: rgba(10,10,11,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { font-family: var(--font-mono); color: var(--accent); font-size: 15px; letter-spacing: 0.05em; text-decoration: none; }
+  .nav-logo span { color: var(--muted); }
+  .nav-cta {
+    background: var(--accent); color: #0a0a0b;
+    padding: 8px 20px; border-radius: 6px;
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* --- HERO --- */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+  }
+
+  /* Grid background */
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(223,255,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(223,255,0,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: var(--accent-dim); border: 1px solid rgba(223,255,0,0.2);
+    padding: 5px 14px; border-radius: 100px; margin-bottom: 28px;
+    display: inline-block;
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.02em;
+    max-width: 820px;
+    margin-bottom: 24px;
+  }
+  h1 em { color: var(--accent); font-style: normal; }
+
+  .hero-sub {
+    font-size: clamp(15px, 2vw, 19px);
+    color: var(--muted); max-width: 520px;
+    margin-bottom: 44px; line-height: 1.7;
+  }
+
+  .hero-actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .btn-primary {
+    background: var(--accent); color: #0a0a0b;
+    padding: 14px 32px; border-radius: 8px;
+    font-weight: 700; font-size: 15px; text-decoration: none;
+    transition: opacity 0.15s; display: inline-block;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost {
+    border: 1px solid var(--border); color: var(--muted);
+    padding: 14px 28px; border-radius: 8px;
+    font-size: 15px; text-decoration: none;
+    transition: all 0.15s; display: inline-block;
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+  /* Demo URL pill */
+  .demo-pill {
+    margin-top: 48px; display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 10px 18px; border-radius: 100px;
+  }
+  .demo-pill span { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .demo-pill a { font-family: var(--font-mono); font-size: 13px; color: var(--accent); text-decoration: none; }
+  .demo-pill a:hover { text-decoration: underline; }
+  .dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* --- SECTION SHARED --- */
+  section { padding: 100px 24px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .section-label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px;
+  }
+  h2 { font-size: clamp(26px, 4vw, 42px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 16px; }
+  .section-sub { color: var(--muted); font-size: 17px; max-width: 480px; line-height: 1.7; margin-bottom: 56px; }
+
+  /* --- HOW IT WORKS --- */
+  .how { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 40px; }
+  .step { position: relative; padding-left: 0; }
+  .step-num {
+    font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+    background: var(--accent-dim); border: 1px solid rgba(223,255,0,0.2);
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .step h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .step p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* --- FEATURES --- */
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .feature {
+    background: var(--bg); padding: 32px 28px;
+    transition: background 0.2s;
+  }
+  .feature:hover { background: var(--surface); }
+  .feature-icon { font-size: 24px; margin-bottom: 14px; }
+  .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .feature p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* --- API PREVIEW --- */
+  .api-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .api-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  @media (max-width: 768px) { .api-layout { grid-template-columns: 1fr; } }
+  .code-block {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+  .code-header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-header span { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .code-dots { display: flex; gap: 6px; }
+  .code-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+  pre {
+    padding: 20px; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+    color: var(--text);
+  }
+  .k { color: var(--accent); } /* keyword */
+  .s { color: #7ec8a4; }       /* string */
+  .c { color: var(--muted); }  /* comment */
+  .n { color: #c9a4f5; }       /* number/property */
+
+  /* --- USE CASES --- */
+  .usecases { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .usecase {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 28px 24px;
+  }
+  .usecase-icon { font-size: 28px; margin-bottom: 14px; }
+  .usecase h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .usecase p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* --- CTA / REQUEST ACCESS --- */
+  .cta-section { text-align: center; padding: 120px 24px; }
+  .cta-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 64px 40px; max-width: 600px; margin: 0 auto;
+    position: relative; overflow: hidden;
+  }
+  .cta-card::before {
+    content: '';
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 1px; background: var(--accent);
+    box-shadow: 0 0 20px 2px rgba(223,255,0,0.3);
+  }
+  .cta-card h2 { margin-bottom: 12px; }
+  .cta-card p { color: var(--muted); margin-bottom: 36px; font-size: 16px; }
+
+  .request-form { display: flex; flex-direction: column; gap: 14px; max-width: 420px; margin: 0 auto; }
+  .request-form input, .request-form textarea {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 16px; border-radius: 8px;
+    font-family: var(--font-sans); font-size: 14px;
+    transition: border-color 0.15s;
+  }
+  .request-form input:focus, .request-form textarea:focus { outline: none; border-color: var(--accent); }
+  .request-form textarea { resize: vertical; min-height: 90px; }
+  .request-form button {
+    background: var(--accent); color: #0a0a0b;
+    padding: 13px; border: none; border-radius: 8px;
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .request-form button:hover { opacity: 0.88; }
+  .request-form button:disabled { opacity: 0.4; cursor: default; }
+  .form-success { color: var(--accent); font-family: var(--font-mono); font-size: 14px; margin-top: 8px; display: none; }
+  .form-error-msg { color: #ff5f5f; font-size: 13px; margin-top: 4px; display: none; }
+
+  /* --- FOOTER --- */
+  footer {
+    border-top: 1px solid var(--border); padding: 32px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+  footer .logo { font-family: var(--font-mono); color: var(--accent); font-size: 13px; }
+  footer p { font-size: 12px; color: var(--muted); }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 600px) {
+    nav { padding: 14px 20px; }
+    section { padding: 72px 20px; }
+    .cta-card { padding: 40px 24px; }
+    footer { padding: 24px 20px; flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">sched<span>kit</span></a>
+  <a href="#request" class="nav-cta">Request Access</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">White-Label Scheduling Infrastructure</div>
+  <h1>Your clients deserve a booking page <em>without</em> someone else's logo on it.</h1>
+  <p class="hero-sub">SchedKit is API-first scheduling you can resell. Give every client their own booking link. Your brand, their domain, zero Cal.com watermarks.</p>
+  <div class="hero-actions">
+    <a href="#request" class="btn-primary">Request Access</a>
+    <a href="/book/jason/30min" class="btn-ghost" target="_blank">See a live demo →</a>
+  </div>
+  <div class="demo-pill">
+    <div class="dot"></div>
+    <span>Live demo:</span>
+    <a href="/book/jason/30min" target="_blank">schedkit.net/book/jason/30min</a>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="container">
+    <div class="section-label">How it works</div>
+    <h2>Up and running in minutes</h2>
+    <p class="section-sub">No complex setup. One API key per client, their own booking link, done.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Create a user</h3>
+        <p>One API call creates a client account with their own slug and API key.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Set availability</h3>
+        <p>Define working hours and event types. Timezone-aware, buffer times included.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Share the link</h3>
+        <p>Send clients to <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">schedkit.net/book/slug/event</code> — or point their own domain at it.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3>Bookings come in</h3>
+        <p>Confirmations, cancellations, and reschedules handled automatically. Webhook on every event.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section>
+  <div class="container">
+    <div class="section-label">Features</div>
+    <h2>Everything you need, nothing you don't</h2>
+    <p class="section-sub">Built lean. No bloat, no subscriptions per seat, no mandatory integrations.</p>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🏷️</div>
+        <h3>Zero branding</h3>
+        <p>No "Powered by" anywhere. Booking pages are completely unbranded — or carry your agency's name.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3>Custom domains</h3>
+        <p>CNAME your clients' domains to SchedKit. Their booking page lives at <em>their</em> URL.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>API-first</h3>
+        <p>Every action is an API call. Integrate into your own dashboard, CRM, or workflow.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🌍</div>
+        <h3>Timezone-aware</h3>
+        <p>Slots shown in the attendee's local timezone. No confusion, no double-bookings.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔄</div>
+        <h3>Cancel & reschedule</h3>
+        <p>One-click cancel and reschedule flows built in. Attendees get email links that actually work.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🪝</div>
+        <h3>Webhooks</h3>
+        <p>Get notified on every booking, cancellation, and reschedule. Connect to anything.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📧</div>
+        <h3>Email confirmations</h3>
+        <p>Transactional emails sent on every booking. Customizable sender name and domain.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>Per-client API keys</h3>
+        <p>Each client gets their own isolated key. Full control over who can do what.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📅</div>
+        <h3>Buffer times</h3>
+        <p>Set prep and recovery time between meetings. No more back-to-back chaos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- API PREVIEW -->
+<section class="api-section">
+  <div class="container">
+    <div class="api-layout">
+      <div>
+        <div class="section-label">API-first</div>
+        <h2>Fits into your stack</h2>
+        <p class="section-sub">Provision clients, configure availability, and pull bookings from your own code. REST API, standard JSON, no SDK required.</p>
+        <a href="#request" class="btn-primary">Get API access</a>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><i></i><i></i><i></i></div>
+          <span>Create a client + event type</span>
+        </div>
+        <pre><span class="c"># 1. Create a client account</span>
+<span class="k">POST</span> /v1/users
+<span class="n">x-admin-secret:</span> <span class="s">your_secret</span>
+
+{
+  <span class="s">"name"</span>: <span class="s">"Acme Corp"</span>,
+  <span class="s">"email"</span>: <span class="s">"hello@acme.com"</span>,
+  <span class="s">"slug"</span>: <span class="s">"acme"</span>
+}
+
+<span class="c"># → Returns api_key for the client</span>
+
+<span class="k">POST</span> /v1/event-types
+<span class="n">x-api-key:</span> <span class="s">client_key</span>
+
+{
+  <span class="s">"title"</span>: <span class="s">"Discovery Call"</span>,
+  <span class="s">"slug"</span>: <span class="s">"discovery"</span>,
+  <span class="s">"duration_minutes"</span>: <span class="n">30</span>
+}
+
+<span class="c"># → Book at /book/acme/discovery</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section>
+  <div class="container">
+    <div class="section-label">Who it's for</div>
+    <h2>Built for agencies and resellers</h2>
+    <p class="section-sub">If you manage more than one client and hate paying Cal.com for each of them, this is for you.</p>
+    <div class="usecases">
+      <div class="usecase">
+        <div class="usecase-icon">🏢</div>
+        <h3>Digital agencies</h3>
+        <p>Offer branded booking pages as part of your service stack. One flat cost, unlimited clients.</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">🩺</div>
+        <h3>Healthcare & wellness</h3>
+        <p>Appointment booking for clinics, therapists, and coaches. HIPAA-friendly self-hosted option available.</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">🏗️</div>
+        <h3>SaaS builders</h3>
+        <p>Embed scheduling into your product via API. No Cal.com branding leaking into your UX.</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">📞</div>
+        <h3>Sales teams</h3>
+        <p>Every rep gets their own booking link. Shared availability, individual pages, one dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REQUEST ACCESS -->
+<section class="cta-section" id="request">
+  <div class="container">
+    <div class="cta-card">
+      <div class="section-label" style="margin-bottom:16px">Early Access</div>
+      <h2>Get in before the crowd</h2>
+      <p>SchedKit is in early access. Tell us about your use case and we'll get you set up.</p>
+      <form class="request-form" id="request-form">
+        <input type="text" id="req-name" placeholder="Your name" required>
+        <input type="email" id="req-email" placeholder="Work email" required>
+        <input type="text" id="req-company" placeholder="Company or agency name">
+        <textarea id="req-message" placeholder="How are you planning to use SchedKit? (# of clients, use case, etc.)"></textarea>
+        <button type="submit" id="req-btn">Request Access →</button>
+        <div class="form-error-msg" id="req-error"></div>
+        <div class="form-success" id="req-success">✓ Request received — we'll be in touch shortly.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="logo">// schedkit</span>
+  <p>A <a href="https://projectseven.us" style="color:var(--muted);text-decoration:none;" target="_blank">Project Seven</a> product &nbsp;·&nbsp; schedkit.net</p>
+</footer>
+
+<script>
+document.getElementById('request-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('req-btn');
+  const success = document.getElementById('req-success');
+  const error = document.getElementById('req-error');
+  const name = document.getElementById('req-name').value.trim();
+  const email = document.getElementById('req-email').value.trim();
+  const company = document.getElementById('req-company').value.trim();
+  const message = document.getElementById('req-message').value.trim();
+
+  btn.disabled = true; btn.textContent = 'Sending...';
+  error.style.display = 'none';
+
+  try {
+    const res = await fetch('/v1/request-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, company, message }),
+    });
+    if (res.ok) {
+      success.style.display = 'block';
+      btn.style.display = 'none';
+      document.getElementById('req-name').value = '';
+      document.getElementById('req-email').value = '';
+      document.getElementById('req-company').value = '';
+      document.getElementById('req-message').value = '';
+    } else {
+      throw new Error('Server error');
+    }
+  } catch(e) {
+    error.textContent = 'Something went wrong. Email us directly at hello@schedkit.net';
+    error.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Request Access →';
+  }
+});
+</script>
+</body>
+</html>
