@@ -116,6 +116,7 @@ export default async function availabilityRoutes(fastify) {
         appointment_label: etResult.list[0].appointment_label || 'meeting',
         location_type: etResult.list[0].location_type || null,
         location: etResult.list[0].location || null,
+        custom_fields: etResult.list[0].custom_fields || null,
       },
       slots
     };
