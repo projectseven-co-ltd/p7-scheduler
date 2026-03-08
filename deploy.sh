@@ -11,7 +11,7 @@ PM2="$APP_DIR/node_modules/.bin/pm2"
 cd "$APP_DIR"
 
 echo "[deploy] Installing dependencies..."
-"$NPM" ci --omit=dev
+"$NPM" ci
 
 echo "[deploy] Reloading app via pm2..."
 if "$NODE" "$PM2" list | grep -q schedkit; then
