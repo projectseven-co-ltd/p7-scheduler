@@ -229,6 +229,10 @@ tr:hover td{background:var(--surface2)}
 
     <!-- BOOKINGS -->
     <div class="section active" id="section-bookings">
+      <div class="page-header" style="margin-bottom:16px">
+        <div></div>
+        <button class="btn btn-primary" onclick="openCreateBookingModal()">+ New Booking</button>
+      </div>
       <div class="stats">
         <div class="stat"><div class="stat-label">upcoming</div><div class="stat-value" id="stat-upcoming">—</div></div>
         <div class="stat"><div class="stat-label">total</div><div class="stat-value" id="stat-total">—</div></div>
@@ -397,6 +401,73 @@ tr:hover td{background:var(--surface2)}
   </div>
 </div>
 
+<!-- CANCEL BOOKING MODAL -->
+<div class="modal-overlay" id="cancel-booking-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>Cancel Booking</h3>
+    <div id="cancel-booking-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">The attendee will receive a cancellation email. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('cancel-booking-modal')">Keep it</button>
+      <button class="btn" style="background:rgba(255,95,95,.15);color:#ff5f5f;border:1px solid rgba(255,95,95,.3)" id="cancel-confirm-btn" onclick="confirmCancelBooking()">Yes, Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE BOOKING MODAL -->
+<div class="modal-overlay" id="create-booking-modal">
+  <div class="modal" style="max-width:520px">
+    <h3 id="cb-title">New Booking</h3>
+
+    <!-- Step 1: Event type + date -->
+    <div id="cb-step1">
+      <div class="form-row" style="margin-bottom:16px">
+        <label>Event type</label>
+        <select id="cb-et" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;width:100%">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-bottom:16px">
+        <label>Date</label>
+        <input type="text" id="cb-date" placeholder="Pick a date" readonly>
+      </div>
+      <div class="form-row" id="cb-slots-row" style="display:none;margin-bottom:16px">
+        <label>Available slots</label>
+        <div id="cb-slots" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('create-booking-modal')">Cancel</button>
+        <button class="btn btn-primary" id="cb-next-btn" onclick="showCbStep2()" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Attendee details -->
+    <div id="cb-step2" style="display:none">
+      <div id="cb-selected-time" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-family:var(--font-mono);font-size:13px;color:var(--accent)"></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <label>Attendee name</label>
+        <input type="text" id="cb-name" placeholder="Jane Smith">
+      </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <label>Attendee email</label>
+        <input type="email" id="cb-email" placeholder="jane@example.com">
+      </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <label>Timezone</label>
+        <select id="cb-tz" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;width:100%"></select>
+      </div>
+      <div class="form-row" style="margin-bottom:16px">
+        <label>Notes (optional)</label>
+        <textarea id="cb-notes" rows="2" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;width:100%;resize:vertical;font-family:var(--font-sans)"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="showCbStep1()">← Back</button>
+        <button class="btn btn-primary" id="cb-confirm-btn" onclick="confirmCreateBooking()">Create Booking</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- BLACKOUT MODAL -->
 <div class="modal-overlay" id="blackout-modal">
   <div class="modal">
@@ -520,12 +591,17 @@ async function loadBookings() {
     const dateStr = start.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const timeStr = start.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
     const canReschedule = b.status === 'confirmed';
+    const canCancel = b.status === 'confirmed' || b.status === 'pending';
+    const actions = [
+      canReschedule ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openRescheduleModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Reschedule</button>` : '',
+      canCancel ? `<button class="btn" style="font-size:12px;padding:6px 12px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick='openCancelBookingModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Cancel</button>` : '',
+    ].filter(Boolean).join(' ');
     return `<tr>
       <td><strong>${esc(b.attendee_name)}</strong><br><span style="color:var(--muted);font-size:12px">${esc(b.attendee_email)}</span></td>
       <td>${dateStr}<br><span style="color:var(--muted);font-size:12px">${timeStr}</span></td>
       <td><span class="badge badge-${b.status}">${b.status}</span></td>
       <td style="color:var(--muted);font-size:12px">${esc(b.attendee_timezone || '')}</td>
-      <td>${canReschedule ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openRescheduleModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Reschedule</button>` : ''}</td>
+      <td style="white-space:nowrap">${actions}</td>
     </tr>`;
   }).join('');
 
@@ -888,6 +964,193 @@ async function confirmAdminReschedule() {
     toast('Reschedule failed', 'err');
     btn.disabled = false; btn.textContent = 'Confirm Reschedule';
   }
+}
+
+// ── Cancel Booking ────────────────────────────────
+let cancelTarget = null;
+
+function openCancelBookingModal(booking) {
+  cancelTarget = booking;
+  const start = new Date(booking.start_time);
+  document.getElementById('cancel-booking-info').innerHTML =
+    `<strong>${esc(booking.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(booking.attendee_email)}<br>
+     <span style="color:var(--accent);font-family:var(--font-mono)">${start.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+  openModal('cancel-booking-modal');
+}
+
+async function confirmCancelBooking() {
+  if (!cancelTarget) return;
+  const btn = document.getElementById('cancel-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Cancelling...';
+
+  // Use the public cancel token endpoint (POST to /v1/cancel/:token/confirm)
+  const res = await fetch(`/v1/cancel/${cancelTarget.cancel_token}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    credentials: 'include',
+  });
+
+  if (res.ok || res.status === 302 || res.redirected) {
+    closeModal('cancel-booking-modal');
+    toast('Booking cancelled — attendee notified', 'ok');
+    await loadBookings();
+  } else {
+    toast('Cancel failed — try again', 'err');
+  }
+  btn.disabled = false; btn.textContent = 'Yes, Cancel';
+}
+
+// ── Create Booking ────────────────────────────────
+let cbSlot = null;
+let cbEt = null;
+let cbFpDate = null;
+let cbFpTz = null;
+
+async function openCreateBookingModal() {
+  cbSlot = null; cbEt = null;
+  document.getElementById('cb-next-btn').disabled = true;
+  document.getElementById('cb-slots-row').style.display = 'none';
+  document.getElementById('cb-slots').innerHTML = '';
+  document.getElementById('cb-name').value = '';
+  document.getElementById('cb-email').value = '';
+  document.getElementById('cb-notes').value = '';
+  showCbStep1();
+
+  // Populate event type dropdown
+  const etSel = document.getElementById('cb-et');
+  etSel.innerHTML = '<option value="">Select...</option>';
+  const res = await apiFetch('/v1/event-types');
+  if (res?.ok) {
+    const data = await res.json();
+    (data.event_types || []).forEach(et => {
+      const opt = document.createElement('option');
+      opt.value = et.Id; opt.textContent = `${et.title} (${et.duration_minutes} min)`;
+      opt.dataset.et = JSON.stringify(et);
+      etSel.appendChild(opt);
+    });
+  }
+
+  // Populate timezone select
+  const tzSel = document.getElementById('cb-tz');
+  if (!tzSel.options.length) {
+    const zones = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['America/Chicago','America/New_York','America/Los_Angeles','UTC'];
+    const userTz = currentUser?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    zones.forEach(z => {
+      const opt = document.createElement('option');
+      opt.value = z; opt.textContent = z;
+      if (z === userTz) opt.selected = true;
+      tzSel.appendChild(opt);
+    });
+  }
+
+  // Date picker
+  if (cbFpDate) cbFpDate.destroy();
+  cbFpDate = flatpickr('#cb-date', {
+    dateFormat: 'Y-m-d', minDate: 'today', disableMobile: true,
+    onChange: async ([d], dateStr) => { if (cbEt) await loadCbSlots(dateStr); },
+  });
+
+  etSel.addEventListener('change', async () => {
+    const opt = etSel.options[etSel.selectedIndex];
+    cbEt = opt.value ? JSON.parse(opt.dataset.et) : null;
+    cbSlot = null;
+    document.getElementById('cb-next-btn').disabled = true;
+    document.getElementById('cb-slots-row').style.display = 'none';
+    if (cbEt && cbFpDate.selectedDates.length) {
+      await loadCbSlots(cbFpDate.input.value);
+    }
+  });
+
+  openModal('create-booking-modal');
+}
+
+async function loadCbSlots(dateStr) {
+  if (!cbEt || !dateStr) return;
+  const slotsEl = document.getElementById('cb-slots');
+  document.getElementById('cb-slots-row').style.display = 'block';
+  slotsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;font-family:var(--font-mono)">Loading slots...</div>';
+  cbSlot = null;
+  document.getElementById('cb-next-btn').disabled = true;
+
+  const tz = document.getElementById('cb-tz').value || currentUser?.timezone || 'UTC';
+  const res = await fetch(`/v1/slots/${currentUser.slug}/${cbEt.slug}?date=${dateStr}&timezone=${encodeURIComponent(tz)}`);
+  const data = await res.json();
+
+  if (!data.slots?.length) {
+    slotsEl.innerHTML = '<div style="color:var(--muted);font-size:13px">No availability on this day.</div>';
+    return;
+  }
+
+  slotsEl.innerHTML = '';
+  data.slots.forEach(slot => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'justify-content:flex-start;font-family:var(--font-mono);font-size:13px';
+    const localTime = new Date(slot.start).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: tz });
+    btn.textContent = localTime;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#cb-slots .btn').forEach(b => b.classList.remove('btn-primary'));
+      btn.classList.add('btn-primary');
+      cbSlot = slot;
+      document.getElementById('cb-next-btn').disabled = false;
+    });
+    slotsEl.appendChild(btn);
+  });
+}
+
+function showCbStep1() {
+  document.getElementById('cb-step1').style.display = '';
+  document.getElementById('cb-step2').style.display = 'none';
+  document.getElementById('cb-title').textContent = 'New Booking';
+}
+
+function showCbStep2() {
+  if (!cbSlot || !cbEt) return;
+  const tz = document.getElementById('cb-tz').value || 'UTC';
+  const localTime = new Date(cbSlot.start).toLocaleString('en-US', {
+    weekday:'long', month:'long', day:'numeric', year:'numeric',
+    hour:'numeric', minute:'2-digit', timeZone: tz
+  });
+  document.getElementById('cb-selected-time').textContent = `${localTime} · ${tz}`;
+  document.getElementById('cb-title').textContent = `Book: ${cbEt.title}`;
+  document.getElementById('cb-step1').style.display = 'none';
+  document.getElementById('cb-step2').style.display = '';
+}
+
+async function confirmCreateBooking() {
+  const name = document.getElementById('cb-name').value.trim();
+  const email = document.getElementById('cb-email').value.trim();
+  const tz = document.getElementById('cb-tz').value;
+  const notes = document.getElementById('cb-notes').value.trim();
+
+  if (!name || !email) { toast('Name and email are required', 'err'); return; }
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { toast('Invalid email address', 'err'); return; }
+
+  const btn = document.getElementById('cb-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+
+  const res = await fetch(`/v1/book/${currentUser.slug}/${cbEt.slug}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      start_time: cbSlot.start,
+      attendee_name: name,
+      attendee_email: email,
+      attendee_timezone: tz,
+      notes,
+    }),
+  });
+
+  if (res.ok) {
+    closeModal('create-booking-modal');
+    toast('Booking created — confirmation sent to attendee', 'ok');
+    await loadBookings();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    toast(err.error || 'Failed to create booking', 'err');
+  }
+  btn.disabled = false; btn.textContent = 'Create Booking';
 }
 
 // ── Auth ──────────────────────────────────────────
