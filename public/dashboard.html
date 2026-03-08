@@ -1186,23 +1186,21 @@ async function removeFlag(email) {
 
 // ── Organizations ──────────────────────────────────
 async function loadOrgs() {
-  // Enterprise gate — check currentUser (already loaded by init)
   const isEnterprise = !!currentUser?.enterprise;
   document.getElementById('org-enterprise-badge').style.display = isEnterprise ? '' : 'none';
-  document.getElementById('org-enterprise-notice').style.display = isEnterprise ? 'none' : '';
+  document.getElementById('org-enterprise-notice').style.display = 'none'; // hide by default; show only if no orgs and not enterprise
   document.querySelector('[onclick="openCreateOrgModal()"]').style.display = isEnterprise ? '' : 'none';
-
-  if (!isEnterprise) {
-    document.getElementById('orgs-list').innerHTML = '';
-    return;
-  }
 
   const res = await apiFetch('/v1/orgs');
   if (!res?.ok) return;
   const { orgs } = await res.json();
   const container = document.getElementById('orgs-list');
   if (!orgs.length) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">🏢</div><p>No organizations yet. Create one to get started.</p></div>';
+    if (!isEnterprise) {
+      document.getElementById('org-enterprise-notice').style.display = '';
+    } else {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">🏢</div><p>No organizations yet. Create one to get started.</p></div>';
+    }
     return;
   }
   container.innerHTML = `

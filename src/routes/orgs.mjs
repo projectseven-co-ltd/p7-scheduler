@@ -508,13 +508,19 @@ export default async function orgsRoutes(fastify) {
       const isMember = await db.find(tables.org_members, `(org_id,eq,${org.Id})~and(user_id,eq,${user.Id})`);
       if (isMember.list?.length) return reply.code(409).send({ error: 'Already a member of this org' });
     } else {
-      // Create stub user
-      const slug = nanoid(10);
+      // Create stub user — slug from email prefix, api_key generated
+      const emailPrefix = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      // Ensure slug is unique
+      let slug = emailPrefix;
+      const slugCheck = await db.find(tables.users, `(slug,eq,${slug})`);
+      if (slugCheck.list?.length) slug = `${emailPrefix}-${nanoid(4)}`;
+      const api_key = `p7s_${nanoid(32)}`;
       user = await db.create(tables.users, {
         email,
         name: '',
         slug,
         timezone: 'UTC',
+        api_key,
         active: true,
         invited: true,
       });

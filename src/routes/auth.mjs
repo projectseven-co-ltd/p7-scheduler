@@ -145,11 +145,18 @@ export default async function authRoutes(fastify) {
     preHandler: requireSession
   }, async (req, reply) => {
     const { name, email, timezone } = req.body || {};
-    const updated = await db.update(tables.users, req.user.Id, {
+    const updates = {
       ...(name && { name }),
       ...(email && { email }),
       ...(timezone && { timezone }),
-    });
+    };
+    // If user has no name yet (completing onboarding), also update slug from name
+    if (name && !req.user.name) {
+      const nameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const slugCheck = await db.find(tables.users, `(slug,eq,${nameSlug})`);
+      updates.slug = slugCheck.list?.length ? `${nameSlug}-${nanoid(4)}` : nameSlug;
+    }
+    const updated = await db.update(tables.users, req.user.Id, updates);
     return updated;
   });
 }
