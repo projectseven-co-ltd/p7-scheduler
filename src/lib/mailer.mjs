@@ -191,7 +191,7 @@ export async function sendInvite({ to, inviterName, orgName, link }) {
   }
 }
 
-
+export async function sendMagicLink({ to, name, link }) {
   try {
     await mj.post('send', { version: 'v3.1' }).request({
       Messages: [{
