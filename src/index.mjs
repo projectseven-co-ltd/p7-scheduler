@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import formbody from '@fastify/formbody';
 import { ensureSchema } from './lib/schema.mjs';
 import { meta } from './lib/noco.mjs';
 import { tables } from './lib/tables.mjs';
@@ -13,6 +14,7 @@ import bookingPageRoutes from './routes/bookingPage.mjs';
 const fastify = Fastify({ logger: true });
 
 await fastify.register(cors, { origin: true });
+await fastify.register(formbody);
 
 // Ensure NocoDB schema exists
 await ensureSchema();
