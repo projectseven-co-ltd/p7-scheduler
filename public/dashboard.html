@@ -1254,7 +1254,10 @@ async function loadOrgDetail(orgSlug) {
                     <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">/book/${esc(org.slug)}/${esc(t.slug)}/…</div>
                   </td>
                   <td><span class="badge">${t.routing === 'round_robin' ? '🔄 Round Robin' : '🎲 Random'}</span></td>
-                  <td style="text-align:right"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="openManageTeamModal('${esc(org.slug)}','${esc(t.slug)}')">Manage</button></td>
+                  <td style="text-align:right;white-space:nowrap">
+                    <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="openManageTeamModal('${esc(org.slug)}','${esc(t.slug)}')">Manage</button>
+                    <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;color:var(--red)" onclick="deleteTeam('${esc(org.slug)}','${esc(t.slug)}')">Delete</button>
+                  </td>
                 </tr>`).join('')}
               </tbody>
             </table>
@@ -1322,6 +1325,13 @@ async function removeOrgMember(orgSlug, userId) {
   const res = await apiFetch(`/v1/orgs/${orgSlug}/members/${userId}`, { method: 'DELETE' });
   if (res?.ok) { await loadOrgDetail(orgSlug); toast('Member removed', 'ok'); }
   else toast('Failed to remove member', 'err');
+}
+
+async function deleteTeam(orgSlug, teamSlug) {
+  if (!confirm(`Delete team "${teamSlug}"? This cannot be undone.`)) return;
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}`, { method: 'DELETE' });
+  if (res?.ok) { await loadOrgDetail(orgSlug); toast('Team deleted', 'ok'); }
+  else toast('Failed to delete team', 'err');
 }
 
 function openCreateTeamModal(orgSlug) {
