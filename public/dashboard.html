@@ -416,13 +416,31 @@ tr:hover td{background:var(--surface2)}
   <div class="modal">
     <h3>Reschedule Booking</h3>
     <div id="rs-booking-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
-    <div class="form-row">
-      <label>New date</label>
-      <input type="text" id="rs-date" placeholder="Pick a date" readonly>
+    <!-- Override toggle -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+      <input type="checkbox" id="rs-override" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer" onchange="toggleRsOverride()">
+      <label for="rs-override" style="font-size:13px;color:var(--muted);cursor:pointer">
+        <strong style="color:var(--text)">Override availability</strong> — allow any date &amp; time (weekends, off-hours)
+      </label>
     </div>
-    <div class="form-row" id="rs-slots-row" style="display:none">
-      <label>Available slots</label>
-      <div id="rs-slots" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
+    <!-- Normal mode: date picker + slots -->
+    <div id="rs-normal-mode">
+      <div class="form-row">
+        <label>New date</label>
+        <input type="text" id="rs-date" placeholder="Pick a date" readonly>
+      </div>
+      <div class="form-row" id="rs-slots-row" style="display:none">
+        <label>Available slots</label>
+        <div id="rs-slots" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <!-- Override mode: free datetime -->
+    <div id="rs-override-mode" style="display:none">
+      <div class="form-row">
+        <label>New date &amp; time</label>
+        <input type="datetime-local" id="rs-override-dt" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%" oninput="onOverrideDtChange()">
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-8px;font-family:var(--font-mono)">⚠️ Override ignores availability rules. The attendee will be notified of the new time.</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('reschedule-modal')">Cancel</button>
@@ -1042,6 +1060,10 @@ function openRescheduleModal(booking) {
   document.getElementById('rs-confirm-btn').disabled = true;
   document.getElementById('rs-slots-row').style.display = 'none';
   document.getElementById('rs-slots').innerHTML = '';
+  document.getElementById('rs-override').checked = false;
+  document.getElementById('rs-override-mode').style.display = 'none';
+  document.getElementById('rs-normal-mode').style.display = '';
+  document.getElementById('rs-override-dt').value = '';
 
   const start = new Date(booking.start_time);
   document.getElementById('rs-booking-info').innerHTML =
@@ -1055,6 +1077,26 @@ function openRescheduleModal(booking) {
   });
 
   openModal('reschedule-modal');
+}
+
+function toggleRsOverride() {
+  const on = document.getElementById('rs-override').checked;
+  document.getElementById('rs-normal-mode').style.display = on ? 'none' : '';
+  document.getElementById('rs-override-mode').style.display = on ? '' : 'none';
+  document.getElementById('rs-confirm-btn').disabled = true;
+  rsSelectedSlot = null;
+  if (rsFlatpickr) { rsFlatpickr.destroy(); rsFlatpickr = null; }
+  if (!on) {
+    rsFlatpickr = flatpickr('#rs-date', {
+      dateFormat: 'Y-m-d', minDate: 'today', disableMobile: true,
+      onChange: async ([d], dateStr) => { await loadRsSlots(dateStr); },
+    });
+  }
+}
+
+function onOverrideDtChange() {
+  const val = document.getElementById('rs-override-dt').value;
+  document.getElementById('rs-confirm-btn').disabled = !val;
 }
 
 async function loadRsSlots(dateStr) {
@@ -1094,18 +1136,29 @@ async function loadRsSlots(dateStr) {
 }
 
 async function confirmAdminReschedule() {
-  if (!rsBooking || !rsSelectedSlot) return;
+  const isOverride = document.getElementById('rs-override').checked;
+  let startTime;
+
+  if (isOverride) {
+    const dtVal = document.getElementById('rs-override-dt').value;
+    if (!dtVal) return;
+    startTime = new Date(dtVal).toISOString();
+  } else {
+    if (!rsBooking || !rsSelectedSlot) return;
+    startTime = rsSelectedSlot.start;
+  }
+
   const btn = document.getElementById('rs-confirm-btn');
   btn.disabled = true; btn.textContent = 'Rescheduling...';
 
   const res = await apiFetch(`/v1/bookings/${rsBooking.Id}/reschedule`, {
     method: 'POST',
-    body: JSON.stringify({ start_time: rsSelectedSlot.start }),
+    body: JSON.stringify({ start_time: startTime, override: isOverride }),
   });
 
   if (res?.ok) {
     closeModal('reschedule-modal');
-    toast('Rescheduled — attendee notified by email', 'ok');
+    toast(isOverride ? 'Rescheduled (override) — attendee notified' : 'Rescheduled — attendee notified by email', 'ok');
     await loadBookings();
   } else {
     toast('Reschedule failed', 'err');

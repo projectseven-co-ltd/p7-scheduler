@@ -83,7 +83,10 @@ export default async function bookingsRoutes(fastify) {
       params: { type: 'object', properties: { id: { type: 'string' } } },
       body: {
         type: 'object', required: ['start_time'],
-        properties: { start_time: { type: 'string', description: 'New ISO start time' } },
+        properties: {
+          start_time: { type: 'string', description: 'New ISO start time' },
+          override: { type: 'boolean', description: 'If true, bypasses availability/slot validation — allows any date/time including weekends' },
+        },
       },
     },
   }, async (req, reply) => {
@@ -122,7 +125,7 @@ export default async function bookingsRoutes(fastify) {
       });
     } catch(e) { fastify.log.error('Reschedule email failed:', e.message); }
 
-    return { ok: true, start_time: newStart.toISOString(), end_time: newEnd.toISOString() };
+    return { ok: true, start_time: newStart.toISOString(), end_time: newEnd.toISOString(), override: !!req.body.override };
   });
 
   // PUBLIC: Create booking
