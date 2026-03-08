@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome to SchedKit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0a0a0b;--surface:#111114;--border:#1e1e24;--accent:#DFFF00;--text:#e8e8ea;--muted:#5a5a6e;--red:#ff5f5f;--font-sans:'Space Grotesk',sans-serif;--font-mono:'Fira Code',monospace}
+  [data-lights="on"]{--bg:#f5f4ef;--surface:#edecea;--border:rgba(0,0,0,0.1);--accent:#4a5500;--text:#141410;--muted:#5a5a4a}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:48px 40px;width:100%;max-width:440px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:160px;height:1px;background:var(--accent);box-shadow:0 0 20px 2px rgba(223,255,0,0.25)}
+  .logo{font-family:var(--font-mono);color:var(--accent);font-size:20px;margin-bottom:8px}
+  .logo span{color:var(--muted)}
+  h1{font-size:22px;font-weight:700;margin-bottom:8px}
+  p{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.6}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input,select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-family:var(--font-sans);font-size:14px;transition:border-color .15s;margin-bottom:16px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  [data-lights="on"] input,[data-lights="on"] select{background:var(--bg)}
+  .btn{width:100%;background:var(--accent);color:var(--bg);border:none;padding:13px;border-radius:8px;font-family:var(--font-sans);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.4;cursor:default}
+  .err{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+  .lights-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.08em;cursor:pointer;transition:all .2s;align-self:center;width:fit-content}
+  .lights-btn:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">sched<span>kit</span></div>
+  <h1>Welcome! Let's set up your account</h1>
+  <p>You've been invited to SchedKit. Just fill in a couple of details and you're good to go.</p>
+  <form id="form">
+    <label for="name">Your full name</label>
+    <input type="text" id="name" placeholder="Jane Smith" required autofocus>
+    <label for="timezone">Your timezone</label>
+    <select id="timezone"></select>
+    <div class="err" id="err"></div>
+    <button type="submit" class="btn" id="btn">Get started →</button>
+  </form>
+</div>
+<button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
+<div id="lightsFlicker"></div>
+<script>
+(function(){
+  const btn=document.getElementById('lightsBtn'),label=document.getElementById('lightsBtnLabel'),flicker=document.getElementById('lightsFlicker');
+  let lights=localStorage.getItem('p7-lights')==='1'||(localStorage.getItem('p7-lights')===null&&window.matchMedia?.('(prefers-color-scheme: light)').matches);
+  function applyTheme(on){document.documentElement.setAttribute('data-lights',on?'on':'off');if(label)label.textContent=on?'LIGHTS OFF':'LIGHTS ON';}
+  function flickerOn(cb){let i=0,f=flicker,fl=[80,60,100,50,120,40,200];function s(){f.style.background=i%2===0?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)';i++;if(i<fl.length)setTimeout(s,fl[i-1]);else{f.style.background='rgba(255,255,230,0)';cb();}}s();}
+  applyTheme(lights);
+  if(btn)btn.addEventListener('click',function(){if(!lights){flickerOn(()=>{lights=true;localStorage.setItem('p7-lights','1');applyTheme(true);});}else{lights=false;localStorage.setItem('p7-lights','0');applyTheme(false);}});
+})();
+
+// Populate timezones
+const tzSelect = document.getElementById('timezone');
+const tzList = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC','America/Chicago','America/New_York','America/Los_Angeles','Europe/London','Europe/Paris','Asia/Tokyo'];
+const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+tzList.forEach(tz => {
+  const opt = document.createElement('option');
+  opt.value = opt.textContent = tz;
+  if (tz === userTz) opt.selected = true;
+  tzSelect.appendChild(opt);
+});
+
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('btn');
+  const err = document.getElementById('err');
+  const name = document.getElementById('name').value.trim();
+  const timezone = document.getElementById('timezone').value;
+  if (!name) { err.textContent = 'Name is required'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Saving...';
+  err.style.display = 'none';
+  try {
+    const res = await fetch('/v1/auth/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name, timezone }),
+    });
+    if (res.ok) {
+      window.location.replace('/dashboard');
+    } else {
+      const d = await res.json().catch(() => ({}));
+      err.textContent = d.error || 'Something went wrong';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Get started →';
+    }
+  } catch {
+    err.textContent = 'Network error. Try again.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Get started →';
+  }
+});
+</script>
+</body>
+</html>

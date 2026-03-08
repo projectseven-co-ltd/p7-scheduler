@@ -101,6 +101,11 @@ fastify.get('/dashboard', async (req, reply) => {
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/dashboard.html')));
 });
 
+fastify.get('/onboarding', async (req, reply) => {
+  const { readFileSync } = await import('fs');
+  return reply.type('text/html').send(readFileSync(join(__dirname, '../public/onboarding.html')));
+});
+
 // Health
 fastify.get('/health', {
   schema: {

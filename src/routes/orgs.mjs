@@ -4,6 +4,8 @@ import { db } from '../lib/noco.mjs';
 import { tables } from '../lib/tables.mjs';
 import { requireSession } from '../middleware/session.mjs';
 import { nanoid } from 'nanoid';
+import { sendInvite } from '../lib/mailer.mjs';
+import { addHours } from 'date-fns';
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -475,5 +477,73 @@ export default async function orgsRoutes(fastify) {
 
     await db.delete(tables.team_event_types, et.Id);
     return { ok: true };
+  });
+
+  // ── Invite ────────────────────────────────────────────────────────
+
+  fastify.post('/orgs/:org_slug/invite', {
+    preHandler: requireSession,
+    schema: {
+      body: {
+        type: 'object', required: ['email', 'role'],
+        properties: {
+          email: { type: 'string' },
+          role: { type: 'string', enum: ['admin', 'member'] },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const ctx = await requireOrgAccess(req, reply, 'admin');
+    if (!ctx) return;
+    const { org } = ctx;
+
+    const email = req.body.email.toLowerCase().trim();
+
+    // Check if user already exists
+    let user;
+    const existing = await db.find(tables.users, `(email,eq,${email})`);
+    if (existing.list?.length) {
+      user = existing.list[0];
+      // Check already a member
+      const isMember = await db.find(tables.org_members, `(org_id,eq,${org.Id})~and(user_id,eq,${user.Id})`);
+      if (isMember.list?.length) return reply.code(409).send({ error: 'Already a member of this org' });
+    } else {
+      // Create stub user
+      const slug = nanoid(10);
+      user = await db.create(tables.users, {
+        email,
+        name: '',
+        slug,
+        timezone: 'UTC',
+        active: true,
+        invited: true,
+      });
+    }
+
+    // Add to org
+    await db.create(tables.org_members, {
+      org_id: String(org.Id), user_id: String(user.Id), role: req.body.role,
+    });
+
+    // Create 24h magic link
+    const token = nanoid(40);
+    await db.create(tables.magic_links, {
+      token,
+      user_id: String(user.Id),
+      expires_at: addHours(new Date(), 24).toISOString(),
+      used: false,
+    });
+
+    const BASE_DOMAIN = process.env.BASE_DOMAIN || 'schedkit.net';
+    const link = `https://${BASE_DOMAIN}/v1/auth/verify?token=${token}`;
+
+    await sendInvite({
+      to: email,
+      inviterName: req.user.name || req.user.email,
+      orgName: org.name,
+      link,
+    });
+
+    return reply.code(201).send({ ok: true, invited: !existing.list?.length });
   });
 }

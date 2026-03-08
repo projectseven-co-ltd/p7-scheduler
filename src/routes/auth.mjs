@@ -81,9 +81,13 @@ export default async function authRoutes(fastify) {
       created_at: new Date().toISOString(),
     });
 
+    // Fetch user to check if onboarding needed
+    const user = await db.get(tables.users, link.user_id);
+    const destination = (!user?.name) ? '/onboarding' : '/dashboard';
+
     reply
       .header('Set-Cookie', `sk_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}; Secure`)
-      .redirect('/dashboard');
+      .redirect(destination);
   });
 
   // POST /v1/auth/logout

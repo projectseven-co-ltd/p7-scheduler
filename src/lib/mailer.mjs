@@ -167,7 +167,31 @@ export async function sendAccessRequest({ name, email, company, message }) {
   }
 }
 
-export async function sendMagicLink({ to, name, link }) {
+export async function sendInvite({ to, inviterName, orgName, link }) {
+  try {
+    await mj.post('send', { version: 'v3.1' }).request({
+      Messages: [{
+        From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        To: [{ Email: to }],
+        Subject: `You've been invited to join ${orgName} on SchedKit`,
+        TextPart: `Hi,\n\n${inviterName} has invited you to join ${orgName} on SchedKit.\n\nClick the link below to accept and set up your account:\n\n${link}\n\nThis link expires in 24 hours.\n\nIf you weren't expecting this, you can safely ignore it.`,
+        HTMLPart: `<!DOCTYPE html><html><body style="background:#0a0a0b;color:#e8e8ea;font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto">
+<h2 style="color:#DFFF00;font-family:monospace">SchedKit</h2>
+<p>Hi,</p>
+<p><strong>${inviterName}</strong> has invited you to join <strong>${orgName}</strong> on SchedKit.</p>
+<p>Click below to accept the invitation and set up your account. This link expires in <strong>24 hours</strong>.</p>
+<a href="${link}" style="display:inline-block;background:#DFFF00;color:#0a0a0b;padding:14px 28px;border-radius:8px;font-weight:700;text-decoration:none;margin:20px 0">Accept Invitation →</a>
+<p style="color:#5a5a6e;font-size:13px">Or copy this URL: ${link}</p>
+<p style="color:#5a5a6e;font-size:12px">If you weren't expecting this, you can safely ignore it.</p>
+</body></html>`,
+      }],
+    });
+  } catch(e) {
+    console.error('Invite email error:', e.message);
+  }
+}
+
+
   try {
     await mj.post('send', { version: 'v3.1' }).request({
       Messages: [{
