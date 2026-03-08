@@ -222,6 +222,9 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-section="blackout">
       <span class="nav-icon">🚫</span> Blackout Dates
     </button>
+    <button class="nav-item" data-section="clients">
+      <span class="nav-icon">🚨</span> Client Flags
+    </button>
     <button class="nav-item" data-section="settings">
       <span class="nav-icon">⚙️</span> Settings
     </button>
@@ -295,6 +298,16 @@ tr:hover td{background:var(--surface2)}
       </div>
       <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Block out days or time ranges when you're unavailable. Attendees won't see slots during these periods.</p>
       <div class="blackout-list" id="blackout-list"><div class="loading">loading...</div></div>
+    </div>
+
+    <!-- CLIENT FLAGS -->
+    <div class="section" id="section-clients">
+      <div class="page-header">
+        <h2>Client Flags</h2>
+        <button class="btn btn-primary" onclick="openFlagModal(null)">+ Flag a Client</button>
+      </div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Track clients with payment issues, difficult history, or safety concerns. Flags appear as warnings when they book.</p>
+      <div class="table-wrap" id="clients-table"><div class="loading">loading...</div></div>
     </div>
 
     <!-- SETTINGS -->
@@ -445,6 +458,34 @@ tr:hover td{background:var(--surface2)}
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('reschedule-modal')">Cancel</button>
       <button class="btn btn-primary" id="rs-confirm-btn" onclick="confirmAdminReschedule()" disabled>Confirm Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT FLAG MODAL -->
+<div class="modal-overlay" id="flag-modal">
+  <div class="modal" style="max-width:460px">
+    <h3 id="flag-modal-title">Flag a Client</h3>
+    <input type="hidden" id="flag-existing-id">
+    <div class="form-row">
+      <label>Client Email</label>
+      <input type="email" id="flag-email" placeholder="client@example.com">
+    </div>
+    <div class="form-row">
+      <label>Risk Level</label>
+      <select id="flag-risk">
+        <option value="caution">⚠️ Caution — watch this client</option>
+        <option value="high">🚨 High Risk — get payment first</option>
+        <option value="blocked">🚫 Blocked — refuse service</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea id="flag-notes" rows="3" placeholder="e.g. Late payments, no-shows, safety concern at location..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('flag-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFlag()">Save Flag</button>
     </div>
   </div>
 </div>
@@ -637,7 +678,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('section-' + section).classList.add('active');
-    const titles = { bookings:'Bookings','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',settings:'Settings' };
+    const titles = { bookings:'Bookings','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',settings:'Settings' };
     document.getElementById('page-title').textContent = titles[section] || section;
     loadSection(section);
   });
@@ -648,6 +689,7 @@ async function loadSection(name) {
   if (name === 'event-types') await loadEventTypes();
   if (name === 'availability') await loadAvailability();
   if (name === 'blackout') await loadBlackout();
+  if (name === 'clients') await loadClients();
 }
 
 // ── Bookings ──────────────────────────────────────
@@ -667,6 +709,15 @@ async function loadBookings() {
   // Store all bookings for toggle
   window._allBookings = bookings;
   window._showCancelled = window._showCancelled || false;
+
+  // Load flags for badge display
+  const flagRes = await apiFetch('/v1/clients');
+  window._clientFlags = {};
+  if (flagRes?.ok) {
+    const { flags } = await flagRes.json();
+    flags.forEach(f => { window._clientFlags[f.email] = f; });
+  }
+
   renderBookingsTable(bookings);
 }
 
@@ -701,9 +752,10 @@ function renderBookingsTable(bookings) {
     const actions = [
       canReschedule ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openRescheduleModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Reschedule</button>` : '',
       canCancel ? `<button class="btn" style="font-size:12px;padding:6px 12px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick='openCancelBookingModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Cancel</button>` : '',
+      `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openFlagModal(${JSON.stringify(window._clientFlags?.[b.attendee_email]||{email:b.attendee_email}).replace(/'/g,"&#39;")})'>${window._clientFlags?.[b.attendee_email] ? '🚨 Edit Flag' : '🏴 Flag'}</button>`,
     ].filter(Boolean).join(' ');
     return `<tr>
-      <td><strong>${esc(b.attendee_name)}</strong><br><span style="color:var(--muted);font-size:12px">${esc(b.attendee_email)}</span></td>
+      <td><strong>${esc(b.attendee_name)}</strong><br><span style="color:var(--muted);font-size:12px">${esc(b.attendee_email)}</span>${(() => { const f = window._clientFlags?.[b.attendee_email]; if (!f || f.risk_level === 'ok') return ''; const c = {caution:'#f5a623',high:'#ff5f5f',blocked:'#ff1744'}[f.risk_level]||'#f5a623'; const l = {caution:'⚠️ Caution',high:'🚨 High Risk',blocked:'🚫 Blocked'}[f.risk_level]||f.risk_level; return `<br><span style="font-size:11px;font-family:var(--font-mono);color:${c};cursor:pointer" title="${esc(f.notes||'')}" onclick='openFlagModal(${JSON.stringify(f).replace(/'/g,"&#39;")})'>${l}</span>`; })()}</td>
       <td>${dateStr}<br><span style="color:var(--muted);font-size:12px">${timeStr}</span></td>
       <td><span class="badge badge-${b.status}">${b.status}</span></td>
       <td style="color:var(--muted);font-size:12px">${esc(b.attendee_timezone || '')}</td>
@@ -1016,6 +1068,72 @@ async function deleteBlackout(id) {
   const res = await apiFetch(`/v1/blackout/${id}`, { method: 'DELETE' });
   if (res?.ok) { toast('Removed', 'ok'); await loadBlackout(); }
   else toast('Failed', 'err');
+}
+
+// ── Client Flags ──────────────────────────────────
+async function loadClients() {
+  const res = await apiFetch('/v1/clients');
+  if (!res?.ok) return;
+  const { flags } = await res.json();
+  const el = document.getElementById('clients-table');
+  if (!flags.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🏴</div><p>No flagged clients yet.</p></div>`;
+    return;
+  }
+  const riskColors = { caution: '#f5a623', high: '#ff5f5f', blocked: '#ff1744', ok: '#4ade80' };
+  const riskLabels = { caution: '⚠️ Caution', high: '🚨 High Risk', blocked: '🚫 Blocked', ok: '✅ Cleared' };
+  const rows = flags.map(f => `<tr>
+    <td style="font-family:var(--font-mono);font-size:13px">${esc(f.email)}</td>
+    <td><span style="font-size:12px;font-weight:600;color:${riskColors[f.risk_level]||'#f5a623'}">${riskLabels[f.risk_level]||f.risk_level}</span></td>
+    <td style="font-size:13px;color:var(--muted);max-width:260px">${esc(f.notes||'')}</td>
+    <td style="font-size:12px;color:var(--muted)">${new Date(f.CreatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick='openFlagModal(${JSON.stringify(f).replace(/'/g,"&#39;")})'>Edit</button>
+      <button class="btn" style="font-size:12px;padding:5px 10px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick="removeFlag('${esc(f.email)}')">Remove</button>
+    </td>
+  </tr>`).join('');
+  el.innerHTML = `<table>
+    <thead><tr><th>Email</th><th>Risk Level</th><th>Notes</th><th>Flagged</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function openFlagModal(flag) {
+  const isEdit = flag && flag.Id;
+  document.getElementById('flag-modal-title').textContent = isEdit ? 'Edit Client Flag' : 'Flag a Client';
+  document.getElementById('flag-existing-id').value = flag?.Id || '';
+  document.getElementById('flag-email').value = flag?.email || '';
+  document.getElementById('flag-email').readOnly = isEdit;
+  document.getElementById('flag-risk').value = flag?.risk_level || 'caution';
+  document.getElementById('flag-notes').value = flag?.notes || '';
+  openModal('flag-modal');
+}
+
+async function saveFlag() {
+  const email = document.getElementById('flag-email').value.trim();
+  const risk_level = document.getElementById('flag-risk').value;
+  const notes = document.getElementById('flag-notes').value.trim();
+  if (!email) return toast('Email required', 'err');
+
+  const res = await apiFetch(`/v1/clients/${encodeURIComponent(email)}/flag`, {
+    method: 'POST',
+    body: JSON.stringify({ risk_level, notes }),
+  });
+  if (res?.ok) {
+    closeModal('flag-modal');
+    toast('Client flag saved', 'ok');
+    await loadClients();
+    await loadBookings(); // refresh badges
+  } else {
+    toast('Failed to save flag', 'err');
+  }
+}
+
+async function removeFlag(email) {
+  if (!confirm(`Remove flag for ${email}?`)) return;
+  const res = await apiFetch(`/v1/clients/${encodeURIComponent(email)}/flag`, { method: 'DELETE' });
+  if (res?.ok) { toast('Flag removed', 'ok'); await loadClients(); await loadBookings(); }
+  else toast('Failed to remove flag', 'err');
 }
 
 // ── Settings ──────────────────────────────────────

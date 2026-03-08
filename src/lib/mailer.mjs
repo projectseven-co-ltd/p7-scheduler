@@ -9,11 +9,29 @@ const mj = Mailjet.apiConnect(
 const FROM_EMAIL = process.env.MJ_FROM_EMAIL || 'noreply@schedkit.net';
 const FROM_NAME  = process.env.MJ_FROM_NAME  || 'SchedKit';
 
-export async function sendBookingConfirmation({ attendee_name, attendee_email, host_name, event_title, start_time, timezone, cancel_url, reschedule_url }) {
+export async function sendBookingConfirmation({ attendee_name, attendee_email, host_name, host_email, event_title, start_time, timezone, cancel_url, reschedule_url, flag }) {
   const startLocal = new Date(start_time).toLocaleString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
     hour: '2-digit', minute: '2-digit', timeZone: timezone,
   });
+
+  const flagColors = { caution: '#f5a623', high: '#ff5f5f', blocked: '#ff1744' };
+  const flagLabels = {
+    caution: '⚠️ CAUTION',
+    high: '🚨 HIGH RISK — Get payment before the appointment',
+    blocked: '🚫 BLOCKED CLIENT — Consider refusing this booking',
+  };
+  const flagBanner = flag && flag.risk_level !== 'ok' ? `
+    <tr>
+      <td style="padding:0 28px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:${flagColors[flag.risk_level] || '#f5a623'}22;border:1px solid ${flagColors[flag.risk_level] || '#f5a623'};border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <p style="margin:0;font-size:13px;font-weight:700;color:${flagColors[flag.risk_level] || '#f5a623'};font-family:monospace;">${flagLabels[flag.risk_level] || flag.risk_level.toUpperCase()}</p>
+            ${flag.notes ? `<p style="margin:6px 0 0;font-size:12px;color:#e8e8ea;">${flag.notes}</p>` : ''}
+          </td></tr>
+        </table>
+      </td>
+    </tr>` : '';
 
   const html = `
 <!DOCTYPE html>
@@ -81,6 +99,53 @@ export async function sendBookingConfirmation({ attendee_name, attendee_email, h
     console.log(`Confirmation email sent to ${attendee_email}`);
   } catch(e) {
     console.error('Mailjet error:', e.message);
+  }
+
+  // Send host notification (with flag warning if applicable)
+  if (host_email) {
+    try {
+      const hostHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0b;font-family:'Helvetica Neue',Arial,sans-serif;color:#e8e8ea;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#111114;border:1px solid #1e1e24;border-radius:10px;overflow:hidden;">
+        <tr><td style="padding:12px 28px;background:#0a0a0b;border-bottom:1px solid #1e1e24;">
+          <span style="font-family:monospace;color:#DFFF00;font-size:12px;letter-spacing:0.1em;">// schedkit · new booking</span>
+        </td></tr>
+        ${flagBanner}
+        <tr><td style="padding:28px 28px 24px;">
+          <p style="font-size:13px;color:#5a5a6e;margin:0 0 8px;">NEW BOOKING</p>
+          <h2 style="margin:0 0 20px;font-size:20px;color:#e8e8ea;">${event_title}</h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;border:1px solid #1e1e24;border-radius:8px;">
+            <tr><td style="padding:14px 18px;border-bottom:1px solid #1e1e24;">
+              <p style="margin:0;font-size:11px;color:#5a5a6e;font-family:monospace;text-transform:uppercase;">Attendee</p>
+              <p style="margin:6px 0 0;font-size:14px;color:#e8e8ea;">${attendee_name} &lt;${attendee_email}&gt;</p>
+            </td></tr>
+            <tr><td style="padding:14px 18px;">
+              <p style="margin:0;font-size:11px;color:#5a5a6e;font-family:monospace;text-transform:uppercase;">When</p>
+              <p style="margin:6px 0 0;font-size:14px;font-family:monospace;color:#DFFF00;">${startLocal}</p>
+              <p style="margin:2px 0 0;font-size:12px;color:#5a5a6e;">${timezone}</p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:0 28px 24px;">
+          <a href="https://schedkit.net/dashboard" style="display:inline-block;background:#DFFF00;color:#0a0a0b;padding:12px 24px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;">View in Dashboard →</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+      await mj.post('send', { version: 'v3.1' }).request({
+        Messages: [{
+          From: { Email: FROM_EMAIL, Name: FROM_NAME },
+          To: [{ Email: host_email, Name: host_name }],
+          Subject: `${flag && flag.risk_level !== 'ok' ? `⚠️ [${flag.risk_level.toUpperCase()}] ` : ''}New booking: ${attendee_name} — ${event_title}`,
+          HTMLPart: hostHtml,
+        }],
+      });
+      console.log(`Host notification sent to ${host_email}`);
+    } catch(e) {
+      console.error('Host notification email error:', e.message);
+    }
   }
 }
 

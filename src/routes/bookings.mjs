@@ -206,15 +206,26 @@ export default async function bookingsRoutes(fastify) {
     // Send confirmation email
     const cancelUrl = `https://${process.env.BASE_DOMAIN || 'schedkit.net'}/v1/cancel/${cancel_token}`;
     const rescheduleUrl = `https://${process.env.BASE_DOMAIN || 'schedkit.net'}/v1/reschedule/${reschedule_token}`;
+
+    // Check client flag
+    let flag = null;
+    try {
+      const flagResult = await db.find(tables.client_flags,
+        `(flagged_by,eq,${user.Id})~and(email,eq,${attendee_email})`);
+      flag = flagResult.list?.[0] || null;
+    } catch(e) { /* non-fatal */ }
+
     await sendBookingConfirmation({
       attendee_name,
       attendee_email,
       host_name: user.name || username,
+      host_email: user.email,
       event_title: eventType.title,
       start_time: start.toISOString(),
       timezone: attendee_timezone,
       cancel_url: cancelUrl,
       reschedule_url: rescheduleUrl,
+      flag,
     });
 
     return reply.code(201).send({

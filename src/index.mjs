@@ -18,6 +18,7 @@ import usersRoutes from './routes/users.mjs';
 import bookingPageRoutes from './routes/bookingPage.mjs';
 import blackoutRoutes from './routes/blackout.mjs';
 import authRoutes from './routes/auth.mjs';
+import clientFlagRoutes from './routes/clientFlags.mjs';
 
 const fastify = Fastify({ logger: true });
 
@@ -81,6 +82,7 @@ await fastify.register(availabilityRoutes, { prefix: '/v1' });
 await fastify.register(bookingsRoutes, { prefix: '/v1' });
 await fastify.register(blackoutRoutes, { prefix: '/v1' });
 await fastify.register(authRoutes, { prefix: '/v1' });
+await fastify.register(clientFlagRoutes, { prefix: '/v1' });
 await fastify.register(bookingPageRoutes);
 
 // Page routes (no prefix)
