@@ -377,6 +377,26 @@ tr:hover td{background:var(--surface2)}
   </div>
 </div>
 
+<!-- RESCHEDULE MODAL -->
+<div class="modal-overlay" id="reschedule-modal">
+  <div class="modal">
+    <h3>Reschedule Booking</h3>
+    <div id="rs-booking-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
+    <div class="form-row">
+      <label>New date</label>
+      <input type="text" id="rs-date" placeholder="Pick a date" readonly>
+    </div>
+    <div class="form-row" id="rs-slots-row" style="display:none">
+      <label>Available slots</label>
+      <div id="rs-slots" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('reschedule-modal')">Cancel</button>
+      <button class="btn btn-primary" id="rs-confirm-btn" onclick="confirmAdminReschedule()" disabled>Confirm Reschedule</button>
+    </div>
+  </div>
+</div>
+
 <!-- BLACKOUT MODAL -->
 <div class="modal-overlay" id="blackout-modal">
   <div class="modal">
@@ -499,16 +519,18 @@ async function loadBookings() {
     const start = new Date(b.start_time);
     const dateStr = start.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const timeStr = start.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    const canReschedule = b.status === 'confirmed';
     return `<tr>
       <td><strong>${esc(b.attendee_name)}</strong><br><span style="color:var(--muted);font-size:12px">${esc(b.attendee_email)}</span></td>
       <td>${dateStr}<br><span style="color:var(--muted);font-size:12px">${timeStr}</span></td>
       <td><span class="badge badge-${b.status}">${b.status}</span></td>
       <td style="color:var(--muted);font-size:12px">${esc(b.attendee_timezone || '')}</td>
+      <td>${canReschedule ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openRescheduleModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Reschedule</button>` : ''}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('bookings-table').innerHTML = `<table>
-    <thead><tr><th>Attendee</th><th>Date & Time</th><th>Status</th><th>Timezone</th></tr></thead>
+    <thead><tr><th>Attendee</th><th>Date & Time</th><th>Status</th><th>Timezone</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -784,6 +806,88 @@ function revealApiKey() {
 
 function copyBookingUrl() {
   copyText(`https://schedkit.net/book/${currentUser?.slug}`);
+}
+
+// ── Admin Reschedule ──────────────────────────────
+let rsBooking = null;
+let rsSelectedSlot = null;
+let rsFlatpickr = null;
+
+function openRescheduleModal(booking) {
+  rsBooking = booking;
+  rsSelectedSlot = null;
+  document.getElementById('rs-confirm-btn').disabled = true;
+  document.getElementById('rs-slots-row').style.display = 'none';
+  document.getElementById('rs-slots').innerHTML = '';
+
+  const start = new Date(booking.start_time);
+  document.getElementById('rs-booking-info').innerHTML =
+    `<strong>${esc(booking.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(booking.attendee_email)}<br>
+     Current: <span style="color:var(--accent)">${start.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+
+  if (rsFlatpickr) rsFlatpickr.destroy();
+  rsFlatpickr = flatpickr('#rs-date', {
+    dateFormat: 'Y-m-d', minDate: 'today', disableMobile: true,
+    onChange: async ([d], dateStr) => { await loadRsSlots(dateStr); },
+  });
+
+  openModal('reschedule-modal');
+}
+
+async function loadRsSlots(dateStr) {
+  const slotsEl = document.getElementById('rs-slots');
+  const row = document.getElementById('rs-slots-row');
+  row.style.display = 'block';
+  slotsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;font-family:var(--font-mono)">Loading slots...</div>';
+  rsSelectedSlot = null;
+  document.getElementById('rs-confirm-btn').disabled = true;
+
+  // Find event type slug for this booking
+  const etRes = await apiFetch(`/v1/event-types/${rsBooking.event_type_id}`);
+  if (!etRes?.ok) { slotsEl.innerHTML = '<div style="color:var(--red)">Could not load event type</div>'; return; }
+  const et = await etRes.json();
+
+  const tz = rsBooking.attendee_timezone || currentUser?.timezone || 'UTC';
+  const res = await fetch(`/v1/slots/${currentUser.slug}/${et.slug}?date=${dateStr}&timezone=${encodeURIComponent(tz)}`);
+  const data = await res.json();
+
+  if (!data.slots?.length) { slotsEl.innerHTML = '<div style="color:var(--muted);font-size:13px">No availability on this day.</div>'; return; }
+
+  slotsEl.innerHTML = '';
+  data.slots.forEach(slot => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost';
+    btn.style.cssText = 'justify-content:flex-start;font-family:var(--font-mono);font-size:13px';
+    const localTime = new Date(slot.start).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone: tz });
+    btn.textContent = localTime;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#rs-slots .btn').forEach(b => b.classList.remove('btn-primary'));
+      btn.classList.add('btn-primary');
+      rsSelectedSlot = slot;
+      document.getElementById('rs-confirm-btn').disabled = false;
+    });
+    slotsEl.appendChild(btn);
+  });
+}
+
+async function confirmAdminReschedule() {
+  if (!rsBooking || !rsSelectedSlot) return;
+  const btn = document.getElementById('rs-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Rescheduling...';
+
+  const res = await apiFetch(`/v1/bookings/${rsBooking.Id}/reschedule`, {
+    method: 'POST',
+    body: JSON.stringify({ start_time: rsSelectedSlot.start }),
+  });
+
+  if (res?.ok) {
+    closeModal('reschedule-modal');
+    toast('Rescheduled — attendee notified by email', 'ok');
+    await loadBookings();
+  } else {
+    toast('Reschedule failed', 'err');
+    btn.disabled = false; btn.textContent = 'Confirm Reschedule';
+  }
 }
 
 // ── Auth ──────────────────────────────────────────

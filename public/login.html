@@ -24,6 +24,9 @@
   .msg{margin-top:16px;font-size:13px;text-align:center;display:none}
   .msg.ok{color:var(--accent)}
   .msg.err{color:#ff5f5f}
+  .dashboard-link{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
+  .dashboard-link a{color:var(--accent);text-decoration:none}
+  .dashboard-link a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -38,8 +41,19 @@
   </form>
   <div class="msg ok" id="ok">✓ Check your email — link expires in 15 minutes.</div>
   <div class="msg err" id="err">Something went wrong. Try again.</div>
+  <div class="dashboard-link" id="dash-link" style="display:none">
+    Already signed in? <a href="/dashboard">Go to dashboard →</a>
+  </div>
 </div>
 <script>
+// If already have a valid session, redirect to dashboard
+(async () => {
+  try {
+    const res = await fetch('/v1/auth/me', { credentials: 'include' });
+    if (res.ok) { window.location.replace('/dashboard'); return; }
+  } catch {}
+  document.getElementById('dash-link').style.display = 'block';
+})();
 document.getElementById('form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('btn');

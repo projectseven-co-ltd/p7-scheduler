@@ -108,6 +108,16 @@ export default async function availabilityRoutes(fastify) {
     if (!etResult.list?.length) return reply.code(404).send({ error: 'Event type not found' });
 
     const slots = await getSlots(user.Id, etResult.list[0], date, timezone);
-    return { date, timezone, event_type: { title: etResult.list[0].title, duration_minutes: etResult.list[0].duration_minutes }, slots };
+    return {
+      date, timezone,
+      event_type: {
+        title: etResult.list[0].title,
+        duration_minutes: etResult.list[0].duration_minutes,
+        appointment_label: etResult.list[0].appointment_label || 'meeting',
+        location_type: etResult.list[0].location_type || null,
+        location: etResult.list[0].location || null,
+      },
+      slots
+    };
   });
 }

@@ -284,7 +284,6 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
   if (RESCHEDULE_TOKEN) {
     document.getElementById('f-name').value = PREFILL_NAME;
     document.getElementById('f-email').value = PREFILL_EMAIL;
-    document.getElementById('btn-confirm').textContent = 'Confirm Reschedule';
     document.querySelector('.event-meta') && (document.querySelector('.event-meta').insertAdjacentHTML('beforeend',
       '<span style="color:#DFFF00;font-size:12px;margin-left:8px">🔄 Rescheduling</span>'));
   }
@@ -300,10 +299,14 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
         eventType = data.event_type;
         document.getElementById('event-host').textContent = USERNAME;
         document.getElementById('event-title').textContent = eventType.title;
+        const locIcon = { video:'📹', phone:'📞', in_person:'📍', other:'📌' }[eventType.location_type] || '📅';
+        const locLabel = eventType.location || (eventType.location_type === 'video' ? 'Video call' : eventType.location_type === 'phone' ? 'Phone call' : eventType.location_type === 'in_person' ? 'In person' : 'Meeting');
+        const label = eventType.appointment_label || 'meeting';
         document.getElementById('event-meta').innerHTML =
           \`<span><span class="icon">⏱</span>\${eventType.duration_minutes} min</span>
-           <span><span class="icon">📹</span>Video call</span>\`;
-        document.title = RESCHEDULE_TOKEN ? \`Reschedule: \${eventType.title}\` : \`Book: \${eventType.title}\`;
+           <span><span class="icon">\${locIcon}</span>\${locLabel}</span>\`;
+        document.title = RESCHEDULE_TOKEN ? \`Reschedule \${label}: \${eventType.title}\` : \`Book a \${label}: \${eventType.title}\`;
+        document.getElementById('btn-confirm').textContent = RESCHEDULE_TOKEN ? \`Confirm Reschedule\` : \`Confirm \${label.charAt(0).toUpperCase() + label.slice(1)}\`;
       }
     } catch(e) {
       document.getElementById('event-host').textContent = 'Could not load event';

@@ -125,3 +125,59 @@ export async function sendMagicLink({ to, name, link }) {
     throw e;
   }
 }
+
+export async function sendRescheduleNotification({ attendee_name, attendee_email, host_name, event_title, old_time, new_time, timezone, cancel_url, reschedule_url, appointment_label }) {
+  const label = appointment_label || 'meeting';
+  const oldLocal = new Date(old_time).toLocaleString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone: timezone });
+  const newLocal = new Date(new_time).toLocaleString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone: timezone });
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0b;font-family:'Helvetica Neue',Arial,sans-serif;color:#e8e8ea;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#111114;border:1px solid #1e1e24;border-radius:10px;overflow:hidden;">
+        <tr><td style="padding:12px 28px;background:#0a0a0b;border-bottom:1px solid #1e1e24;">
+          <span style="font-family:monospace;color:#DFFF00;font-size:12px;letter-spacing:0.1em;">// schedkit</span>
+        </td></tr>
+        <tr><td style="padding:36px 28px 24px;">
+          <p style="font-size:13px;color:#5a5a6e;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;">Your ${label} has been rescheduled</p>
+          <h1 style="margin:0 0 6px;font-size:22px;color:#e8e8ea;">${event_title}</h1>
+          <p style="margin:0 0 28px;font-size:14px;color:#5a5a6e;">with ${host_name}</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;border:1px solid #1e1e24;border-radius:8px;margin-bottom:28px;">
+            <tr><td style="padding:16px 20px;border-bottom:1px solid #1e1e24;">
+              <p style="margin:0;font-size:11px;color:#5a5a6e;text-transform:uppercase;letter-spacing:0.05em;font-family:monospace;">Previous time</p>
+              <p style="margin:6px 0 0;font-size:14px;color:#5a5a6e;text-decoration:line-through;font-family:monospace;">${oldLocal}</p>
+            </td></tr>
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0;font-size:11px;color:#5a5a6e;text-transform:uppercase;letter-spacing:0.05em;font-family:monospace;">New time</p>
+              <p style="margin:6px 0 0;font-size:15px;font-family:monospace;color:#DFFF00;">${newLocal}</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#5a5a6e;">${timezone}</p>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 24px;font-size:13px;color:#5a5a6e;line-height:1.6;">
+            Need to make another change?
+            <a href="${reschedule_url || '#'}" style="color:#DFFF00;">Reschedule again</a> &nbsp;·&nbsp;
+            <a href="${cancel_url}" style="color:#5a5a6e;">Cancel this booking</a>
+          </p>
+        </td></tr>
+        <tr><td style="padding:16px 28px;background:#0a0a0b;border-top:1px solid #1e1e24;">
+          <p style="margin:0;font-size:11px;color:#5a5a6e;font-family:monospace;">Powered by SchedKit</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  try {
+    await mj.post('send', { version: 'v3.1' }).request({
+      Messages: [{
+        From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        To: [{ Email: attendee_email, Name: attendee_name }],
+        Subject: `Rescheduled: ${event_title} with ${host_name}`,
+        HTMLPart: html,
+      }],
+    });
+    console.log(`Reschedule notification sent to ${attendee_email}`);
+  } catch(e) {
+    console.error('Mailjet error:', e.message);
+  }
+}

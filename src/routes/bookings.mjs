@@ -72,6 +72,59 @@ export default async function bookingsRoutes(fastify) {
     return row;
   });
 
+  // Admin reschedule — host moves a confirmed booking to a new slot
+  fastify.post('/bookings/:id/reschedule', {
+    preHandler: requireAuth,
+    schema: {
+      tags: ['Bookings'],
+      summary: 'Admin reschedule a booking',
+      description: 'Moves a confirmed booking to a new start time. Sends a reschedule notification email to the attendee.',
+      security: [{ apiKey: [] }],
+      params: { type: 'object', properties: { id: { type: 'string' } } },
+      body: {
+        type: 'object', required: ['start_time'],
+        properties: { start_time: { type: 'string', description: 'New ISO start time' } },
+      },
+    },
+  }, async (req, reply) => {
+    const booking = await db.get(tables.bookings, req.params.id);
+    if (!booking || booking.user_id != req.user.Id) return reply.code(404).send({ error: 'Not found' });
+    if (booking.status === 'cancelled') return reply.code(400).send({ error: 'Cannot reschedule a cancelled booking' });
+
+    const et = await db.get(tables.event_types, booking.event_type_id);
+    const duration = et?.duration_minutes || 30;
+    const oldStart = booking.start_time;
+    const newStart = new Date(req.body.start_time);
+    const newEnd = new Date(newStart.getTime() + duration * 60000);
+
+    await db.update(tables.bookings, booking.Id, {
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString(),
+      status: 'confirmed',
+    });
+
+    // Notify attendee
+    const BASE_DOMAIN = process.env.BASE_DOMAIN || 'schedkit.net';
+    const userResult = await db.get(tables.users, booking.user_id);
+    try {
+      const { sendRescheduleNotification } = await import('../lib/mailer.mjs');
+      await sendRescheduleNotification({
+        attendee_name: booking.attendee_name,
+        attendee_email: booking.attendee_email,
+        host_name: userResult?.name || 'your host',
+        event_title: et?.title || 'Meeting',
+        appointment_label: et?.appointment_label || 'meeting',
+        old_time: oldStart,
+        new_time: newStart.toISOString(),
+        timezone: booking.attendee_timezone || 'UTC',
+        cancel_url: `https://${BASE_DOMAIN}/v1/cancel/${booking.cancel_token}`,
+        reschedule_url: `https://${BASE_DOMAIN}/v1/reschedule/${booking.reschedule_token}`,
+      });
+    } catch(e) { fastify.log.error('Reschedule email failed:', e.message); }
+
+    return { ok: true, start_time: newStart.toISOString(), end_time: newEnd.toISOString() };
+  });
+
   // PUBLIC: Create booking
   // POST /book/:username/:event_slug
   fastify.post('/book/:username/:event_slug', async (req, reply) => {
