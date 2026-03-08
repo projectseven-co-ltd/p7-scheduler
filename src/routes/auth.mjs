@@ -87,7 +87,14 @@ export default async function authRoutes(fastify) {
   });
 
   // POST /v1/auth/logout
-  fastify.post('/auth/logout', async (req, reply) => {
+  fastify.post('/auth/logout', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Log out',
+      description: 'Clears the session cookie and deletes the server-side session.',
+      response: { 200: { type: 'object', properties: { ok: { type: 'boolean' } } } },
+    }
+  }, async (req, reply) => {
     const cookieHeader = req.headers['cookie'] || '';
     const match = cookieHeader.match(/sk_session=([^;]+)/);
     if (match) {
@@ -102,13 +109,37 @@ export default async function authRoutes(fastify) {
   });
 
   // GET /v1/auth/me — return current session user
-  fastify.get('/auth/me', { preHandler: requireSession }, async (req) => {
+  fastify.get('/auth/me', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Get current user',
+      description: 'Returns the authenticated user profile for the current session.',
+      security: [{ cookieAuth: [] }],
+    },
+    preHandler: requireSession
+  }, async (req) => {
     const { Id, name, email, slug, timezone, api_key } = req.user;
     return { Id, name, email, slug, timezone, api_key };
   });
 
   // PATCH /v1/auth/me — update profile
-  fastify.patch('/auth/me', { preHandler: requireSession }, async (req, reply) => {
+  fastify.patch('/auth/me', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Update profile',
+      description: 'Update name, email, or timezone for the current session user.',
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          email: { type: 'string' },
+          timezone: { type: 'string' },
+        }
+      },
+      security: [{ cookieAuth: [] }],
+    },
+    preHandler: requireSession
+  }, async (req, reply) => {
     const { name, email, timezone } = req.body || {};
     const updated = await db.update(tables.users, req.user.Id, {
       ...(name && { name }),
