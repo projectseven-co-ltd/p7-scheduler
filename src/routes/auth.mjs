@@ -118,8 +118,8 @@ export default async function authRoutes(fastify) {
     },
     preHandler: requireSession
   }, async (req) => {
-    const { Id, name, email, slug, timezone, api_key } = req.user;
-    return { Id, name, email, slug, timezone, api_key };
+    const { Id, name, email, slug, timezone, api_key, enterprise } = req.user;
+    return { Id, name, email, slug, timezone, api_key, enterprise: !!enterprise };
   });
 
   // PATCH /v1/auth/me — update profile
