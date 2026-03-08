@@ -8,6 +8,7 @@ import eventTypesRoutes from './routes/eventTypes.mjs';
 import availabilityRoutes from './routes/availability.mjs';
 import bookingsRoutes from './routes/bookings.mjs';
 import usersRoutes from './routes/users.mjs';
+import bookingPageRoutes from './routes/bookingPage.mjs';
 
 const fastify = Fastify({ logger: true });
 
@@ -28,6 +29,7 @@ await fastify.register(usersRoutes, { prefix: '/v1' });
 await fastify.register(eventTypesRoutes, { prefix: '/v1' });
 await fastify.register(availabilityRoutes, { prefix: '/v1' });
 await fastify.register(bookingsRoutes, { prefix: '/v1' });
+await fastify.register(bookingPageRoutes);
 
 // Health
 fastify.get('/health', () => ({ status: 'ok', service: 'p7-scheduler' }));
