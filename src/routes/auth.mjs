@@ -87,7 +87,7 @@ export default async function authRoutes(fastify) {
   });
 
   // POST /v1/auth/logout
-  fastify.post('/v1/auth/logout', async (req, reply) => {
+  fastify.post('/auth/logout', async (req, reply) => {
     const cookieHeader = req.headers['cookie'] || '';
     const match = cookieHeader.match(/sk_session=([^;]+)/);
     if (match) {
