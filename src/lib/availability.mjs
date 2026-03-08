@@ -68,19 +68,22 @@ export async function getSlots(userId, eventType, dateStr, timezone) {
 }
 
 async function isSlotFree(userId, start, end) {
-  // Check existing bookings
-  const bookings = await db.list(tables.bookings, {
-    where: `(user_id,eq,${userId})~and(status,eq,confirmed)~and(start_time,lt,${end.toISOString()})~and(end_time,gt,${start.toISOString()})`,
-    limit: 1,
-  });
-  if (bookings.list?.length) return false;
+  // NocoDB doesn't like ISO strings in where filters — use all bookings and filter in JS
+  const bookings = await db.find(tables.bookings, `(user_id,eq,${userId})~and(status,eq,confirmed)`);
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+  for (const b of bookings.list || []) {
+    const bStart = new Date(b.start_time).getTime();
+    const bEnd = new Date(b.end_time).getTime();
+    if (bStart < endMs && bEnd > startMs) return false;
+  }
 
-  // Check blocked times
-  const blocked = await db.list(tables.blocked_times, {
-    where: `(user_id,eq,${userId})~and(start_time,lt,${end.toISOString()})~and(end_time,gt,${start.toISOString()})`,
-    limit: 1,
-  });
-  if (blocked.list?.length) return false;
+  const blocked = await db.find(tables.blocked_times, `(user_id,eq,${userId})`);
+  for (const b of blocked.list || []) {
+    const bStart = new Date(b.start_time).getTime();
+    const bEnd = new Date(b.end_time).getTime();
+    if (bStart < endMs && bEnd > startMs) return false;
+  }
 
   return true;
 }
