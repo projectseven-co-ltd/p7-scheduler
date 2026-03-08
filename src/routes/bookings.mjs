@@ -5,6 +5,7 @@ import { tables } from '../lib/tables.mjs';
 import { requireApiKey } from '../middleware/auth.mjs';
 import { addMinutes, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
+import { sendBookingConfirmation } from '../lib/mailer.mjs';
 
 async function fireWebhook(url, payload) {
   if (!url) return;
@@ -103,6 +104,18 @@ export default async function bookingsRoutes(fastify) {
     await fireWebhook(eventType.webhook_url, {
       event: 'booking.created',
       booking: { uid, attendee_name, attendee_email, start_time, end_time: end.toISOString() },
+    });
+
+    // Send confirmation email
+    const cancelUrl = `https://${process.env.BASE_DOMAIN || 'schedkit.net'}/v1/cancel/${cancel_token}`;
+    await sendBookingConfirmation({
+      attendee_name,
+      attendee_email,
+      host_name: user.name || username,
+      event_title: eventType.title,
+      start_time: start.toISOString(),
+      timezone: attendee_timezone,
+      cancel_url: cancelUrl,
     });
 
     return reply.code(201).send({
