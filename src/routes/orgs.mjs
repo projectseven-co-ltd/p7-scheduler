@@ -53,6 +53,11 @@ export default async function orgsRoutes(fastify) {
       },
     },
   }, async (req, reply) => {
+    // Enterprise gate
+    if (!req.user.enterprise) {
+      return reply.code(403).send({ error: 'Organizations require an Enterprise account. Contact support to upgrade.' });
+    }
+
     const { name } = req.body;
     const slug = req.body.slug ? slugify(req.body.slug) : slugify(name);
     const api_key = nanoid(32);
@@ -263,12 +268,35 @@ export default async function orgsRoutes(fastify) {
 
   // ── Team Members ──────────────────────────────────────────────────
 
+  // List team members (with user details)
+  fastify.get('/orgs/:org_slug/teams/:team_slug/members', { preHandler: requireSession }, async (req, reply) => {
+    const ctx = await requireOrgAccess(req, reply, 'member');
+    if (!ctx) return;
+    const team = await getTeamBySlug(ctx.org.Id, req.params.team_slug);
+    if (!team) return reply.code(404).send({ error: 'Team not found' });
+
+    const tmResult = await db.find(tables.team_members, `(team_id,eq,${team.Id})`, { limit: 100 });
+    const members = tmResult.list || [];
+
+    // Enrich with user info
+    const enriched = await Promise.all(members.map(async m => {
+      const ur = await db.find(tables.users, `(Id,eq,${m.user_id})`);
+      const user = ur.list?.[0];
+      return { ...m, user: user ? { email: user.email, name: user.name } : null };
+    }));
+
+    return { members: enriched };
+  });
+
   fastify.post('/orgs/:org_slug/teams/:team_slug/members', {
     preHandler: requireSession,
     schema: {
       body: {
-        type: 'object', required: ['user_id'],
-        properties: { user_id: { type: 'string' } },
+        type: 'object',
+        properties: {
+          email: { type: 'string', description: 'Email of the user to add (preferred)' },
+          user_id: { type: 'string', description: 'User ID (fallback)' },
+        },
       },
     },
   }, async (req, reply) => {
@@ -278,11 +306,21 @@ export default async function orgsRoutes(fastify) {
     const team = await getTeamBySlug(ctx.org.Id, req.params.team_slug);
     if (!team) return reply.code(404).send({ error: 'Team not found' });
 
-    const existing = await db.find(tables.team_members, `(team_id,eq,${team.Id})~and(user_id,eq,${req.body.user_id})`);
+    // Resolve user by email or user_id
+    let targetUserId = req.body.user_id;
+    if (req.body.email) {
+      const ur = await db.find(tables.users, `(email,eq,${req.body.email})`);
+      const u = ur.list?.[0];
+      if (!u) return reply.code(404).send({ error: `No user found with email ${req.body.email}` });
+      targetUserId = String(u.Id);
+    }
+    if (!targetUserId) return reply.code(400).send({ error: 'email or user_id required' });
+
+    const existing = await db.find(tables.team_members, `(team_id,eq,${team.Id})~and(user_id,eq,${targetUserId})`);
     if (existing.list?.length) return reply.code(409).send({ error: 'Already a team member' });
 
     const tm = await db.create(tables.team_members, {
-      team_id: String(team.Id), user_id: String(req.body.user_id), active: true,
+      team_id: String(team.Id), user_id: targetUserId, active: true,
     });
     return reply.code(201).send(tm);
   });

@@ -320,8 +320,12 @@ tr:hover td{background:var(--surface2)}
     <!-- ORGS -->
     <div class="section" id="section-orgs">
       <div class="page-header">
-        <h2>Organizations</h2>
+        <h2>Organizations <span id="org-enterprise-badge" style="display:none;font-size:11px;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;vertical-align:middle">ENTERPRISE</span></h2>
         <button class="btn btn-primary" onclick="openCreateOrgModal()">+ New Org</button>
+      </div>
+      <div id="org-enterprise-notice" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-bottom:24px">
+        <p style="margin:0 0 6px;font-weight:600;color:var(--text)">🏢 Organizations require an Enterprise account</p>
+        <p style="margin:0;font-size:13px;color:var(--muted)">Contact support to enable Organizations & Teams on your account.</p>
       </div>
       <div id="orgs-list"><div class="loading">loading...</div></div>
       <div id="org-detail" style="display:none;margin-top:24px"></div>
@@ -1156,25 +1160,37 @@ async function removeFlag(email) {
 
 // ── Organizations ──────────────────────────────────
 async function loadOrgs() {
+  // Enterprise gate — check currentUser (already loaded by init)
+  const isEnterprise = !!currentUser?.enterprise;
+  document.getElementById('org-enterprise-badge').style.display = isEnterprise ? '' : 'none';
+  document.getElementById('org-enterprise-notice').style.display = isEnterprise ? 'none' : '';
+  document.querySelector('[onclick="openCreateOrgModal()"]').style.display = isEnterprise ? '' : 'none';
+
+  if (!isEnterprise) {
+    document.getElementById('orgs-list').innerHTML = '';
+    return;
+  }
+
   const res = await apiFetch('/v1/orgs');
   if (!res?.ok) return;
   const { orgs } = await res.json();
   const container = document.getElementById('orgs-list');
   if (!orgs.length) {
-    container.innerHTML = '<div class="loading">No organizations yet. Create one to get started.</div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🏢</div><p>No organizations yet. Create one to get started.</p></div>';
     return;
   }
   container.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Slug</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Slug</th><th>API Key</th><th></th></tr></thead>
         <tbody>
           ${orgs.map(o => `
             <tr>
-              <td><strong>${o.name}</strong></td>
-              <td><code>${o.slug}</code></td>
+              <td><strong>${esc(o.name)}</strong></td>
+              <td><span style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">${esc(o.slug)}</span></td>
+              <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">${o.api_key?.slice(0,12)}…</span></td>
               <td style="text-align:right">
-                <button class="btn-sm" onclick="loadOrgDetail('${o.slug}')">Manage →</button>
+                <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="loadOrgDetail('${esc(o.slug)}')">Manage →</button>
               </td>
             </tr>
           `).join('')}
@@ -1190,50 +1206,61 @@ async function loadOrgDetail(orgSlug) {
   const panel = document.getElementById('org-detail');
   panel.style.display = '';
   panel.innerHTML = `
-    <div class="table-wrap" style="padding:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3 style="font-size:18px">${org.name} <span style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${org.slug}</span></h3>
-        <button class="btn-sm" onclick="document.getElementById('org-detail').style.display='none'">✕ Close</button>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <h3 style="font-size:18px;margin:0 0 4px">${esc(org.name)}</h3>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">${esc(org.slug)}</span>
+        </div>
+        <button class="btn btn-ghost" style="font-size:12px" onclick="document.getElementById('org-detail').style.display='none'">✕ Close</button>
       </div>
 
-      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px">API KEY</div>
-      <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:20px;word-break:break-all">${org.api_key}</div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Org API Key</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText('${org.api_key}');toast('Copied','ok')" title="Click to copy">${org.api_key}</div>
+      </div>
 
-      <h4 style="margin-bottom:10px">Members</h4>
-      <table style="margin-bottom:24px">
-        <thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>
-        <tbody>
-          ${members.map(m => `
-            <tr>
-              <td>${m.user?.email || m.user_id}</td>
-              <td><span class="badge">${m.role}</span></td>
-              <td style="text-align:right">
-                ${m.role !== 'owner' ? `<button class="btn-sm btn-danger" onclick="removeOrgMember('${orgSlug}','${m.user_id}')">Remove</button>` : ''}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <button class="btn-sm" onclick="openAddMemberModal('${orgSlug}')">+ Add Member</button>
-
-      <h4 style="margin:24px 0 10px">Teams</h4>
-      <div id="teams-list-${orgSlug}">
-        ${teams.length ? `
-          <table style="margin-bottom:16px">
-            <thead><tr><th>Name</th><th>Routing</th><th></th></tr></thead>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <h4 style="margin:0">Members</h4>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openAddMemberModal('${esc(org.slug)}')">+ Add Member</button>
+          </div>
+          <table>
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th></th></tr></thead>
             <tbody>
-              ${teams.map(t => `
-                <tr>
-                  <td>${t.name}</td>
-                  <td><span class="badge">${t.routing}</span></td>
-                  <td style="text-align:right"><button class="btn-sm" onclick="openManageTeamModal('${orgSlug}','${t.slug}')">Manage</button></td>
-                </tr>
-              `).join('')}
+              ${members.map(m => `<tr>
+                <td style="font-size:13px">${esc(m.user?.email || m.user_id)}</td>
+                <td style="font-size:13px;color:var(--muted)">${esc(m.user?.name || '—')}</td>
+                <td><span class="badge">${m.role}</span></td>
+                <td>${m.role !== 'owner' ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="removeOrgMember('${esc(org.slug)}','${m.user_id}')">Remove</button>` : ''}</td>
+              </tr>`).join('')}
             </tbody>
           </table>
-        ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:12px">No teams yet.</p>'}
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <h4 style="margin:0">Teams</h4>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openCreateTeamModal('${esc(org.slug)}')">+ New Team</button>
+          </div>
+          ${teams.length ? `
+            <table>
+              <thead><tr><th>Name</th><th>Routing</th><th></th></tr></thead>
+              <tbody>
+                ${teams.map(t => `<tr>
+                  <td>
+                    <strong>${esc(t.name)}</strong>
+                    <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">/book/${esc(org.slug)}/${esc(t.slug)}/…</div>
+                  </td>
+                  <td><span class="badge">${t.routing === 'round_robin' ? '🔄 Round Robin' : '🎲 Random'}</span></td>
+                  <td style="text-align:right"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="openManageTeamModal('${esc(org.slug)}','${esc(t.slug)}')">Manage</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          ` : '<p style="color:var(--muted);font-size:13px">No teams yet.</p>'}
+        </div>
       </div>
-      <button class="btn-sm" onclick="openCreateTeamModal('${orgSlug}')">+ New Team</button>
     </div>`;
 }
 
@@ -1329,56 +1356,85 @@ async function saveTeam(orgSlug) {
 }
 
 async function openManageTeamModal(orgSlug, teamSlug) {
-  const [orgRes, etRes] = await Promise.all([
+  const [orgRes, etRes, tmRes] = await Promise.all([
     apiFetch(`/v1/orgs/${orgSlug}`),
     apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/event-types`),
+    apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members`),
   ]);
   const orgData = orgRes?.ok ? await orgRes.json() : {};
   const team = (orgData.teams || []).find(t => t.slug === teamSlug);
   const etData = etRes?.ok ? await etRes.json() : { event_types: [] };
+  const tmData = tmRes?.ok ? await tmRes.json() : { members: [] };
+  const members = tmData.members || [];
 
   showOrgModal(`
-    <h3 style="margin-bottom:4px">Manage Team: ${teamSlug}</h3>
-    <p style="color:var(--muted);font-size:12px;font-family:var(--font-mono);margin-bottom:20px">routing: ${team?.routing || '—'}</p>
-
-    <h4 style="margin-bottom:10px">Add Team Member</h4>
-    <div class="form-row" style="display:flex;gap:8px">
-      <input type="text" id="mo-tm-uid" placeholder="User ID" style="flex:1">
-      <button class="btn-sm" onclick="addTeamMember('${orgSlug}','${teamSlug}')">Add</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h3>Manage Team: ${esc(team?.name || teamSlug)}</h3>
+      <span class="badge" style="font-size:11px">${team?.routing === 'round_robin' ? '🔄 Round Robin' : '🎲 Random'}</span>
     </div>
-    <div id="mo-tm-err" class="form-error" style="display:none;margin-bottom:12px"></div>
+    <p style="color:var(--muted);font-size:12px;font-family:var(--font-mono);margin-bottom:20px">Booking URL: <a href="/book/${orgSlug}/${teamSlug}" target="_blank" style="color:var(--accent)">/book/${orgSlug}/${teamSlug}/&lt;event-slug&gt;</a></p>
 
-    <h4 style="margin:20px 0 10px">Event Types</h4>
-    ${etData.event_types.length ? `
-      <table style="margin-bottom:12px">
-        <thead><tr><th>Title</th><th>Duration</th><th>Booking URL</th><th></th></tr></thead>
+    <h4 style="margin-bottom:10px">Team Members</h4>
+    ${members.length ? `
+      <table style="margin-bottom:8px">
+        <thead><tr><th>Email</th><th>Name</th><th>Active</th><th></th></tr></thead>
         <tbody>
-          ${etData.event_types.map(et => `
-            <tr>
-              <td>${et.title}</td>
-              <td>${et.duration_minutes}m</td>
-              <td><a href="/book/${orgSlug}/${teamSlug}/${et.slug}" target="_blank" style="color:var(--accent);font-size:12px">/book/${orgSlug}/${teamSlug}/${et.slug}</a></td>
-              <td><button class="btn-sm btn-danger" onclick="deleteTeamET('${orgSlug}','${teamSlug}','${et.slug}')">Delete</button></td>
-            </tr>
-          `).join('')}
+          ${members.map(m => `<tr>
+            <td style="font-size:13px">${esc(m.user?.email || m.user_id)}</td>
+            <td style="font-size:13px;color:var(--muted)">${esc(m.user?.name || '—')}</td>
+            <td><input type="checkbox" style="accent-color:var(--accent)" ${m.active ? 'checked' : ''} onchange="toggleTeamMember('${orgSlug}','${teamSlug}','${m.user_id}',this.checked)"></td>
+            <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="removeTeamMember('${orgSlug}','${teamSlug}','${m.user_id}')">Remove</button></td>
+          </tr>`).join('')}
         </tbody>
       </table>
-    ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:12px">No event types yet.</p>'}
-    <button class="btn-sm" onclick="openCreateTeamETModal('${orgSlug}','${teamSlug}')">+ New Event Type</button>
+    ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:8px">No members yet.</p>'}
+    <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+      <input type="email" id="mo-tm-email" placeholder="member@email.com" style="flex:1">
+      <button class="btn btn-primary" style="font-size:13px;padding:8px 14px;white-space:nowrap" onclick="addTeamMember('${orgSlug}','${teamSlug}')">+ Add Member</button>
+    </div>
+    <div id="mo-tm-err" style="display:none;color:var(--red);font-size:12px;margin-top:-14px;margin-bottom:10px"></div>
 
-    <div style="margin-top:20px">
+    <h4 style="margin-bottom:10px">Event Types</h4>
+    ${etData.event_types?.length ? `
+      <table style="margin-bottom:10px">
+        <thead><tr><th>Title</th><th>Duration</th><th>URL</th><th></th></tr></thead>
+        <tbody>
+          ${etData.event_types.map(et => `<tr>
+            <td>${esc(et.title)}</td>
+            <td style="font-family:var(--font-mono);font-size:12px">${et.duration_minutes}m</td>
+            <td><a href="/book/${orgSlug}/${teamSlug}/${et.slug}" target="_blank" style="color:var(--accent);font-size:12px;font-family:var(--font-mono)">${et.slug}</a></td>
+            <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="deleteTeamET('${orgSlug}','${teamSlug}','${et.slug}')">Delete</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:10px">No event types yet.</p>'}
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="openCreateTeamETModal('${orgSlug}','${teamSlug}')">+ New Event Type</button>
       <button class="btn btn-ghost" onclick="closeOrgModal()">Close</button>
     </div>
   `);
 }
 
 async function addTeamMember(orgSlug, teamSlug) {
-  const userId = document.getElementById('mo-tm-uid').value.trim();
-  if (!userId) { showModalErr('mo-tm-err', 'User ID required'); return; }
-  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId }) });
-  if (!res?.ok) { const d = await res.json(); showModalErr('mo-tm-err', d.error || 'Failed'); return; }
+  const email = document.getElementById('mo-tm-email').value.trim();
+  const errEl = document.getElementById('mo-tm-err');
+  if (!email) { errEl.textContent = 'Email required'; errEl.style.display = ''; return; }
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members`, { method: 'POST', body: JSON.stringify({ email }) });
+  if (!res?.ok) { const d = await res.json(); errEl.textContent = d.error || 'Failed'; errEl.style.display = ''; return; }
   toast('Team member added', 'ok');
-  document.getElementById('mo-tm-uid').value = '';
+  openManageTeamModal(orgSlug, teamSlug);
+}
+
+async function toggleTeamMember(orgSlug, teamSlug, userId, active) {
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ active }) });
+  if (!res?.ok) { toast('Failed to update member', 'err'); openManageTeamModal(orgSlug, teamSlug); }
+}
+
+async function removeTeamMember(orgSlug, teamSlug, userId) {
+  if (!confirm('Remove this team member?')) return;
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members/${userId}`, { method: 'DELETE' });
+  if (res?.ok) { toast('Member removed', 'ok'); openManageTeamModal(orgSlug, teamSlug); }
+  else toast('Failed', 'err');
 }
 
 async function deleteTeamET(orgSlug, teamSlug, etSlug) {
