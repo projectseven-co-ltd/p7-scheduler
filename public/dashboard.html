@@ -1154,9 +1154,6 @@ async function removeFlag(email) {
   else toast('Failed to remove flag', 'err');
 }
 
-else toast('Failed to remove flag', 'err');
-}
-
 // ── Organizations ──────────────────────────────────
 async function loadOrgs() {
   const res = await apiFetch('/v1/orgs');
