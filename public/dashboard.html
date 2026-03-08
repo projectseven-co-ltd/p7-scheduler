@@ -252,8 +252,11 @@ tr:hover td{background:var(--surface2)}
     <!-- BOOKINGS -->
     <div class="section active" id="section-bookings">
       <div class="page-header" style="margin-bottom:16px">
-        <div></div>
-        <button class="btn btn-primary" onclick="openCreateBookingModal()">+ New Booking</button>
+        <h2>Bookings</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost" id="toggle-cancelled-btn" onclick="toggleCancelled()" style="font-size:12px;padding:6px 14px">Show Cancelled</button>
+          <button class="btn btn-primary" onclick="openCreateBookingModal()">+ New Booking</button>
+        </div>
       </div>
       <div class="stats">
         <div class="stat"><div class="stat-label">upcoming</div><div class="stat-value" id="stat-upcoming">—</div></div>
@@ -643,12 +646,35 @@ async function loadBookings() {
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-cancelled').textContent = cancelled.length;
 
-  if (!bookings.length) {
+  // Store all bookings for toggle
+  window._allBookings = bookings;
+  window._showCancelled = window._showCancelled || false;
+  renderBookingsTable(bookings);
+}
+
+function toggleCancelled() {
+  window._showCancelled = !window._showCancelled;
+  const btn = document.getElementById('toggle-cancelled-btn');
+  btn.textContent = window._showCancelled ? 'Hide Cancelled' : 'Show Cancelled';
+  btn.style.color = window._showCancelled ? 'var(--accent)' : '';
+  btn.style.borderColor = window._showCancelled ? 'var(--accent)' : '';
+  renderBookingsTable(window._allBookings);
+}
+
+function renderBookingsTable(bookings) {
+  if (!bookings?.length) {
     document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>No bookings yet. Share your booking link to get started.</p></div>`;
     return;
   }
 
-  const rows = bookings.map(b => {
+  const visible = window._showCancelled ? bookings : bookings.filter(b => b.status !== 'cancelled');
+
+  if (!visible.length) {
+    document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>No active bookings. <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;display:inline" onclick="toggleCancelled()">Show cancelled</button></p></div>`;
+    return;
+  }
+
+  const rows = visible.map(b => {
     const start = new Date(b.start_time);
     const dateStr = start.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const timeStr = start.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
