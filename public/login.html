@@ -63,6 +63,7 @@
   if(btn)btn.addEventListener('click',function(){localStorage.setItem('p7-lights-manual','1');if(!lights){flickerOn(()=>{lights=true;localStorage.setItem('p7-lights','1');applyTheme(true);});}else{lights=false;localStorage.setItem('p7-lights','0');applyTheme(false);}});
 })();
 </script>
+<script>
 // If already have a valid session, redirect to dashboard
 (async () => {
   try {
