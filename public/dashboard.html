@@ -1227,6 +1227,12 @@ async function loadOrgDetail(orgSlug) {
   const res = await apiFetch(`/v1/orgs/${orgSlug}`);
   if (!res?.ok) return;
   const { org, members, teams } = await res.json();
+
+  // Determine current user's role in this org
+  const myMembership = members.find(m => String(m.user_id) === String(currentUser?.Id));
+  const myRole = myMembership?.role || 'member';
+  const isAdmin = myRole === 'admin' || myRole === 'owner';
+
   const panel = document.getElementById('org-detail');
   panel.style.display = '';
   panel.innerHTML = `
@@ -1239,25 +1245,33 @@ async function loadOrgDetail(orgSlug) {
         <button class="btn btn-ghost" style="font-size:12px" onclick="document.getElementById('org-detail').style.display='none'">✕ Close</button>
       </div>
 
-      <div style="margin-bottom:20px">
+      ${isAdmin ? `<div style="margin-bottom:20px">
         <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Org API Key</div>
         <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText('${org.api_key}');toast('Copied','ok')" title="Click to copy">${org.api_key}</div>
-      </div>
+      </div>` : ''}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <h4 style="margin:0">Members</h4>
-            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openInviteMemberModal('${esc(org.slug)}')">+ Invite Member</button>
+            ${isAdmin ? `<button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openInviteMemberModal('${esc(org.slug)}')">+ Invite Member</button>` : ''}
           </div>
           <table>
-            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th></th></tr></thead>
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th>${isAdmin ? '<th></th>' : ''}</tr></thead>
             <tbody>
               ${members.map(m => `<tr>
                 <td style="font-size:13px">${esc(m.user?.email || m.user_id)}</td>
                 <td style="font-size:13px;color:var(--muted)">${esc(m.user?.name || '—')}</td>
-                <td><span class="badge">${m.role}</span></td>
-                <td>${m.role !== 'owner' ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="removeOrgMember('${esc(org.slug)}','${m.user_id}')">Remove</button>` : ''}</td>
+                <td>
+                  ${isAdmin && m.role !== 'owner' ? `
+                    <select style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer"
+                      onchange="changeOrgMemberRole('${esc(org.slug)}','${m.user_id}',this.value)">
+                      <option value="member" ${m.role==='member'?'selected':''}>member</option>
+                      <option value="admin" ${m.role==='admin'?'selected':''}>admin</option>
+                    </select>
+                  ` : `<span class="badge">${m.role}</span>`}
+                </td>
+                ${isAdmin ? `<td>${m.role !== 'owner' ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="removeOrgMember('${esc(org.slug)}','${m.user_id}')">Remove</button>` : ''}</td>` : ''}
               </tr>`).join('')}
             </tbody>
           </table>
@@ -1266,7 +1280,7 @@ async function loadOrgDetail(orgSlug) {
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <h4 style="margin:0">Teams</h4>
-            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openCreateTeamModal('${esc(org.slug)}')">+ New Team</button>
+            ${isAdmin ? `<button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openCreateTeamModal('${esc(org.slug)}')">+ New Team</button>` : ''}
           </div>
           ${teams.length ? `
             <table>
@@ -1280,7 +1294,7 @@ async function loadOrgDetail(orgSlug) {
                   <td><span class="badge">${t.routing === 'round_robin' ? '🔄 Round Robin' : '🎲 Random'}</span></td>
                   <td style="text-align:right;white-space:nowrap">
                     <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="openManageTeamModal('${esc(org.slug)}','${esc(t.slug)}')">Manage</button>
-                    <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;color:var(--red)" onclick="deleteTeam('${esc(org.slug)}','${esc(t.slug)}')">Delete</button>
+                    ${isAdmin ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;color:var(--red)" onclick="deleteTeam('${esc(org.slug)}','${esc(t.slug)}')">Delete</button>` : ''}
                   </td>
                 </tr>`).join('')}
               </tbody>
@@ -1349,6 +1363,12 @@ async function saveOrgMember(orgSlug) {
   closeOrgModal();
   await loadOrgDetail(orgSlug);
   toast(data.invited ? "Invite sent — they'll get an email to set up their account" : 'Member added', 'ok');
+}
+
+async function changeOrgMemberRole(orgSlug, userId, role) {
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) });
+  if (!res?.ok) { toast('Failed to update role', 'err'); await loadOrgDetail(orgSlug); return; }
+  toast('Role updated', 'ok');
 }
 
 async function removeOrgMember(orgSlug, userId) {
