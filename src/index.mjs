@@ -19,6 +19,9 @@ import bookingPageRoutes from './routes/bookingPage.mjs';
 import blackoutRoutes from './routes/blackout.mjs';
 import authRoutes from './routes/auth.mjs';
 import clientFlagRoutes from './routes/clientFlags.mjs';
+import orgsRoutes from './routes/orgs.mjs';
+import teamSlotsRoutes from './routes/teamSlots.mjs';
+import teamBookingPageRoutes from './routes/teamBookingPage.mjs';
 
 const fastify = Fastify({ logger: true });
 
@@ -83,7 +86,10 @@ await fastify.register(bookingsRoutes, { prefix: '/v1' });
 await fastify.register(blackoutRoutes, { prefix: '/v1' });
 await fastify.register(authRoutes, { prefix: '/v1' });
 await fastify.register(clientFlagRoutes, { prefix: '/v1' });
+await fastify.register(orgsRoutes, { prefix: '/v1' });
+await fastify.register(teamSlotsRoutes, { prefix: '/v1' });
 await fastify.register(bookingPageRoutes);
+await fastify.register(teamBookingPageRoutes);
 
 // Page routes (no prefix)
 fastify.get('/login', async (req, reply) => {

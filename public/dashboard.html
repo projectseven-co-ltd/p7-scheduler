@@ -134,6 +134,10 @@ tr:hover td{background:var(--surface2)}
 .btn-ghost:hover{border-color:var(--muted);color:var(--text)}
 .btn-danger{background:rgba(255,95,95,.1);border:1px solid rgba(255,95,95,.2);color:var(--red)}
 .btn-danger:hover{background:rgba(255,95,95,.2)}
+.btn-sm{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--font-sans)}
+.btn-sm:hover{border-color:var(--muted);color:var(--accent)}
+.btn-sm.btn-danger{background:rgba(255,95,95,.08);border-color:rgba(255,95,95,.2);color:var(--red)}
+.form-error{color:var(--red);font-size:12px;margin-top:4px}
 .btn:hover{opacity:.88}
 .btn:disabled{opacity:.4;cursor:default}
 
@@ -225,6 +229,9 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-item" data-section="clients">
       <span class="nav-icon">🚨</span> Client Flags
     </button>
+    <button class="nav-item" data-section="orgs">
+      <span class="nav-icon">🏢</span> Organizations
+    </button>
     <button class="nav-item" data-section="settings">
       <span class="nav-icon">⚙️</span> Settings
     </button>
@@ -308,6 +315,16 @@ tr:hover td{background:var(--surface2)}
       </div>
       <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Track clients with payment issues, difficult history, or safety concerns. Flags appear as warnings when they book.</p>
       <div class="table-wrap" id="clients-table"><div class="loading">loading...</div></div>
+    </div>
+
+    <!-- ORGS -->
+    <div class="section" id="section-orgs">
+      <div class="page-header">
+        <h2>Organizations</h2>
+        <button class="btn-primary" onclick="openCreateOrgModal()">+ New Org</button>
+      </div>
+      <div id="orgs-list"><div class="loading">loading...</div></div>
+      <div id="org-detail" style="display:none;margin-top:24px"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -678,7 +695,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('section-' + section).classList.add('active');
-    const titles = { bookings:'Bookings','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',settings:'Settings' };
+    const titles = { bookings:'Bookings','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',orgs:'Organizations',settings:'Settings' };
     document.getElementById('page-title').textContent = titles[section] || section;
     loadSection(section);
   });
@@ -690,6 +707,7 @@ async function loadSection(name) {
   if (name === 'availability') await loadAvailability();
   if (name === 'blackout') await loadBlackout();
   if (name === 'clients') await loadClients();
+  if (name === 'orgs') await loadOrgs();
 }
 
 // ── Bookings ──────────────────────────────────────
@@ -1134,6 +1152,299 @@ async function removeFlag(email) {
   const res = await apiFetch(`/v1/clients/${encodeURIComponent(email)}/flag`, { method: 'DELETE' });
   if (res?.ok) { toast('Flag removed', 'ok'); await loadClients(); await loadBookings(); }
   else toast('Failed to remove flag', 'err');
+}
+
+else toast('Failed to remove flag', 'err');
+}
+
+// ── Organizations ──────────────────────────────────
+async function loadOrgs() {
+  const res = await apiFetch('/v1/orgs');
+  if (!res?.ok) return;
+  const { orgs } = await res.json();
+  const container = document.getElementById('orgs-list');
+  if (!orgs.length) {
+    container.innerHTML = '<div class="loading">No organizations yet. Create one to get started.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Slug</th><th></th></tr></thead>
+        <tbody>
+          ${orgs.map(o => `
+            <tr>
+              <td><strong>${o.name}</strong></td>
+              <td><code>${o.slug}</code></td>
+              <td style="text-align:right">
+                <button class="btn-sm" onclick="loadOrgDetail('${o.slug}')">Manage →</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function loadOrgDetail(orgSlug) {
+  const res = await apiFetch(`/v1/orgs/${orgSlug}`);
+  if (!res?.ok) return;
+  const { org, members, teams } = await res.json();
+  const panel = document.getElementById('org-detail');
+  panel.style.display = '';
+  panel.innerHTML = `
+    <div class="table-wrap" style="padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:18px">${org.name} <span style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">${org.slug}</span></h3>
+        <button class="btn-sm" onclick="document.getElementById('org-detail').style.display='none'">✕ Close</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px">API KEY</div>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:20px;word-break:break-all">${org.api_key}</div>
+
+      <h4 style="margin-bottom:10px">Members</h4>
+      <table style="margin-bottom:24px">
+        <thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>
+        <tbody>
+          ${members.map(m => `
+            <tr>
+              <td>${m.user?.email || m.user_id}</td>
+              <td><span class="badge">${m.role}</span></td>
+              <td style="text-align:right">
+                ${m.role !== 'owner' ? `<button class="btn-sm btn-danger" onclick="removeOrgMember('${orgSlug}','${m.user_id}')">Remove</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <button class="btn-sm" onclick="openAddMemberModal('${orgSlug}')">+ Add Member</button>
+
+      <h4 style="margin:24px 0 10px">Teams</h4>
+      <div id="teams-list-${orgSlug}">
+        ${teams.length ? `
+          <table style="margin-bottom:16px">
+            <thead><tr><th>Name</th><th>Routing</th><th></th></tr></thead>
+            <tbody>
+              ${teams.map(t => `
+                <tr>
+                  <td>${t.name}</td>
+                  <td><span class="badge">${t.routing}</span></td>
+                  <td style="text-align:right"><button class="btn-sm" onclick="openManageTeamModal('${orgSlug}','${t.slug}')">Manage</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:12px">No teams yet.</p>'}
+      </div>
+      <button class="btn-sm" onclick="openCreateTeamModal('${orgSlug}')">+ New Team</button>
+    </div>`;
+}
+
+function openCreateOrgModal() {
+  showOrgModal(`
+    <h3 style="margin-bottom:20px">Create Organization</h3>
+    <div class="form-row"><label>Name</label><input type="text" id="mo-org-name" placeholder="Acme Inc"></div>
+    <div class="form-row"><label>Slug (optional)</label><input type="text" id="mo-org-slug" placeholder="acme-inc"></div>
+    <div id="mo-org-err" class="form-error" style="display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-primary" onclick="saveOrg()">Create</button>
+      <button class="btn-ghost" onclick="closeOrgModal()">Cancel</button>
+    </div>
+  `);
+}
+
+async function saveOrg() {
+  const name = document.getElementById('mo-org-name').value.trim();
+  const slug = document.getElementById('mo-org-slug').value.trim();
+  if (!name) { showModalErr('mo-org-err', 'Name is required'); return; }
+  const res = await apiFetch('/v1/orgs', { method: 'POST', body: JSON.stringify({ name, slug: slug || undefined }) });
+  if (!res?.ok) { const d = await res.json(); showModalErr('mo-org-err', d.error || 'Failed'); return; }
+  closeOrgModal();
+  await loadOrgs();
+  toast('Organization created', 'ok');
+}
+
+function openAddMemberModal(orgSlug) {
+  showOrgModal(`
+    <h3 style="margin-bottom:20px">Add Member</h3>
+    <div class="form-row"><label>Email</label><input type="email" id="mo-mem-email"></div>
+    <div class="form-row"><label>Role</label>
+      <select id="mo-mem-role">
+        <option value="member">Member</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div id="mo-mem-err" class="form-error" style="display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-primary" onclick="saveOrgMember('${orgSlug}')">Add</button>
+      <button class="btn-ghost" onclick="closeOrgModal()">Cancel</button>
+    </div>
+  `);
+}
+
+async function saveOrgMember(orgSlug) {
+  const email = document.getElementById('mo-mem-email').value.trim();
+  const role = document.getElementById('mo-mem-role').value;
+  if (!email) { showModalErr('mo-mem-err', 'Email required'); return; }
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/members`, { method: 'POST', body: JSON.stringify({ email, role }) });
+  if (!res?.ok) { const d = await res.json(); showModalErr('mo-mem-err', d.error || 'Failed'); return; }
+  closeOrgModal();
+  await loadOrgDetail(orgSlug);
+  toast('Member added', 'ok');
+}
+
+async function removeOrgMember(orgSlug, userId) {
+  if (!confirm('Remove this member?')) return;
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/members/${userId}`, { method: 'DELETE' });
+  if (res?.ok) { await loadOrgDetail(orgSlug); toast('Member removed', 'ok'); }
+  else toast('Failed to remove member', 'err');
+}
+
+function openCreateTeamModal(orgSlug) {
+  showOrgModal(`
+    <h3 style="margin-bottom:20px">Create Team</h3>
+    <div class="form-row"><label>Name</label><input type="text" id="mo-team-name"></div>
+    <div class="form-row"><label>Slug (optional)</label><input type="text" id="mo-team-slug"></div>
+    <div class="form-row"><label>Routing</label>
+      <select id="mo-team-routing">
+        <option value="round_robin">Round Robin</option>
+        <option value="random">Random</option>
+      </select>
+    </div>
+    <div id="mo-team-err" class="form-error" style="display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-primary" onclick="saveTeam('${orgSlug}')">Create</button>
+      <button class="btn-ghost" onclick="closeOrgModal()">Cancel</button>
+    </div>
+  `);
+}
+
+async function saveTeam(orgSlug) {
+  const name = document.getElementById('mo-team-name').value.trim();
+  const slug = document.getElementById('mo-team-slug').value.trim();
+  const routing = document.getElementById('mo-team-routing').value;
+  if (!name) { showModalErr('mo-team-err', 'Name required'); return; }
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams`, { method: 'POST', body: JSON.stringify({ name, slug: slug || undefined, routing }) });
+  if (!res?.ok) { const d = await res.json(); showModalErr('mo-team-err', d.error || 'Failed'); return; }
+  closeOrgModal();
+  await loadOrgDetail(orgSlug);
+  toast('Team created', 'ok');
+}
+
+async function openManageTeamModal(orgSlug, teamSlug) {
+  const [orgRes, etRes] = await Promise.all([
+    apiFetch(`/v1/orgs/${orgSlug}`),
+    apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/event-types`),
+  ]);
+  const orgData = orgRes?.ok ? await orgRes.json() : {};
+  const team = (orgData.teams || []).find(t => t.slug === teamSlug);
+  const etData = etRes?.ok ? await etRes.json() : { event_types: [] };
+
+  showOrgModal(`
+    <h3 style="margin-bottom:4px">Manage Team: ${teamSlug}</h3>
+    <p style="color:var(--muted);font-size:12px;font-family:var(--font-mono);margin-bottom:20px">routing: ${team?.routing || '—'}</p>
+
+    <h4 style="margin-bottom:10px">Add Team Member</h4>
+    <div class="form-row" style="display:flex;gap:8px">
+      <input type="text" id="mo-tm-uid" placeholder="User ID" style="flex:1">
+      <button class="btn-sm" onclick="addTeamMember('${orgSlug}','${teamSlug}')">Add</button>
+    </div>
+    <div id="mo-tm-err" class="form-error" style="display:none;margin-bottom:12px"></div>
+
+    <h4 style="margin:20px 0 10px">Event Types</h4>
+    ${etData.event_types.length ? `
+      <table style="margin-bottom:12px">
+        <thead><tr><th>Title</th><th>Duration</th><th>Booking URL</th><th></th></tr></thead>
+        <tbody>
+          ${etData.event_types.map(et => `
+            <tr>
+              <td>${et.title}</td>
+              <td>${et.duration_minutes}m</td>
+              <td><a href="/book/${orgSlug}/${teamSlug}/${et.slug}" target="_blank" style="color:var(--accent);font-size:12px">/book/${orgSlug}/${teamSlug}/${et.slug}</a></td>
+              <td><button class="btn-sm btn-danger" onclick="deleteTeamET('${orgSlug}','${teamSlug}','${et.slug}')">Delete</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<p style="color:var(--muted);font-size:13px;margin-bottom:12px">No event types yet.</p>'}
+    <button class="btn-sm" onclick="openCreateTeamETModal('${orgSlug}','${teamSlug}')">+ New Event Type</button>
+
+    <div style="margin-top:20px">
+      <button class="btn-ghost" onclick="closeOrgModal()">Close</button>
+    </div>
+  `);
+}
+
+async function addTeamMember(orgSlug, teamSlug) {
+  const userId = document.getElementById('mo-tm-uid').value.trim();
+  if (!userId) { showModalErr('mo-tm-err', 'User ID required'); return; }
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+  if (!res?.ok) { const d = await res.json(); showModalErr('mo-tm-err', d.error || 'Failed'); return; }
+  toast('Team member added', 'ok');
+  document.getElementById('mo-tm-uid').value = '';
+}
+
+async function deleteTeamET(orgSlug, teamSlug, etSlug) {
+  if (!confirm('Delete this event type?')) return;
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/event-types/${etSlug}`, { method: 'DELETE' });
+  if (res?.ok) { toast('Event type deleted', 'ok'); openManageTeamModal(orgSlug, teamSlug); }
+  else toast('Failed to delete', 'err');
+}
+
+function openCreateTeamETModal(orgSlug, teamSlug) {
+  showOrgModal(`
+    <h3 style="margin-bottom:20px">New Team Event Type</h3>
+    <div class="form-row"><label>Title</label><input type="text" id="mo-et-title" placeholder="30-Minute Meeting"></div>
+    <div class="form-row"><label>Slug (optional)</label><input type="text" id="mo-et-slug"></div>
+    <div class="form-row"><label>Duration (minutes)</label><input type="number" id="mo-et-duration" value="30" min="5"></div>
+    <div class="form-row"><label>Location (optional)</label><input type="text" id="mo-et-location" placeholder="Zoom, Phone, etc."></div>
+    <div class="form-row"><label>Description (optional)</label><textarea id="mo-et-desc" style="min-height:60px"></textarea></div>
+    <div id="mo-et-err" class="form-error" style="display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-primary" onclick="saveTeamET('${orgSlug}','${teamSlug}')">Create</button>
+      <button class="btn-ghost" onclick="openManageTeamModal('${orgSlug}','${teamSlug}')">Cancel</button>
+    </div>
+  `);
+}
+
+async function saveTeamET(orgSlug, teamSlug) {
+  const title = document.getElementById('mo-et-title').value.trim();
+  const slug = document.getElementById('mo-et-slug').value.trim();
+  const duration_minutes = parseInt(document.getElementById('mo-et-duration').value) || 30;
+  const location = document.getElementById('mo-et-location').value.trim();
+  const description = document.getElementById('mo-et-desc').value.trim();
+  if (!title) { showModalErr('mo-et-err', 'Title required'); return; }
+  const res = await apiFetch(`/v1/orgs/${orgSlug}/teams/${teamSlug}/event-types`, {
+    method: 'POST',
+    body: JSON.stringify({ title, slug: slug || undefined, duration_minutes, location: location || undefined, description: description || undefined }),
+  });
+  if (!res?.ok) { const d = await res.json(); showModalErr('mo-et-err', d.error || 'Failed'); return; }
+  toast('Event type created', 'ok');
+  openManageTeamModal(orgSlug, teamSlug);
+}
+
+function showOrgModal(html) {
+  let overlay = document.getElementById('modal-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal" id="modal-content"></div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeOrgModal(); });
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('modal-content').innerHTML = html;
+  overlay.style.display = 'flex';
+}
+
+function closeOrgModal() {
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function showModalErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = ''; }
 }
 
 // ── Settings ──────────────────────────────────────
