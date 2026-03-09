@@ -44,6 +44,7 @@ await fastify.register(swagger, {
       securitySchemes: {
         apiKey: { type: 'apiKey', in: 'header', name: 'x-api-key' },
         adminSecret: { type: 'apiKey', in: 'header', name: 'x-admin-secret' },
+        cookieAuth: { type: 'apiKey', in: 'cookie', name: 'sk_session' },
       },
     },
   },
