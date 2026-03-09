@@ -14,21 +14,17 @@ export default async function calendarRoutes(fastify) {
     return reply.redirect(getAuthUrl(statePayload));
   });
 
-  // POST /v1/auth/google/exchange — called by google-callback.html with the code+state
-  fastify.post('/auth/google/exchange', {
-    preHandler: requireSession,
-    schema: { body: { type: 'object', required: ['code', 'state'], properties: { code: { type: 'string' }, state: { type: 'string' } } } },
-  }, async (req, reply) => {
-    const { code, state } = req.body;
+  // GET /v1/auth/google/callback — server-side OAuth callback (no session cookie needed)
+  fastify.get('/auth/google/callback', async (req, reply) => {
+    const { code, state, error } = req.query;
+    if (error) return reply.redirect(`/dashboard?cal_error=${error}`);
+    if (!code || !state) return reply.redirect('/dashboard?cal_error=missing_params');
+
     let userId;
     try {
       const payload = JSON.parse(Buffer.from(state, 'base64url').toString());
       userId = payload.userId;
-    } catch { return reply.code(400).send({ error: 'invalid_state' }); }
-
-    if (String(userId) !== String(req.user.Id)) {
-      return reply.code(403).send({ error: 'state_mismatch' });
-    }
+    } catch { return reply.redirect('/dashboard?cal_error=invalid_state'); }
 
     try {
       const tokens = await exchangeCode(code);
@@ -49,10 +45,10 @@ export default async function calendarRoutes(fastify) {
         refresh_token: tokens.refresh_token || existing.list?.[0]?.refresh_token || '',
         expires_at: expiresAt, calendar_email: calendarEmail,
       });
-      return { ok: true, calendar_email: calendarEmail };
+      return reply.redirect('/dashboard?cal_connected=1');
     } catch(e) {
-      console.error('Google exchange error:', e.message);
-      return reply.code(500).send({ error: 'token_exchange' });
+      console.error('Google callback error:', e.message);
+      return reply.redirect('/dashboard?cal_error=token_exchange');
     }
   });
 
