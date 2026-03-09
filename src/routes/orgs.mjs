@@ -105,7 +105,11 @@ export default async function orgsRoutes(fastify) {
       })
     );
 
-    return { org, members, teams: teamsResult.list || [] };
+    const { api_key, ...orgSafe } = org;
+    // Only expose api_key to org owner
+    const isOwner = String(org.owner_user_id) === String(req.user.Id);
+
+    return { org: isOwner ? org : orgSafe, members, teams: teamsResult.list || [] };
   });
 
   fastify.patch('/orgs/:org_slug', {
