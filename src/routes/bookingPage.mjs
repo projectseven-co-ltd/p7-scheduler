@@ -71,7 +71,7 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
   }
 
   /* Header */
-  .brand { font-family: var(--font-mono); color: var(--accent); font-size: 13px; letter-spacing: 0.1em; margin-bottom: 40px; opacity: 0.7; }
+  .brand { margin-bottom: 40px; opacity: 0.7; display: flex; justify-content: center; }
 
   /* Card */
   .card {
@@ -210,7 +210,7 @@ function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
 <div style="width:100%;display:flex;justify-content:flex-end;padding:12px 16px 0;max-width:780px;margin:0 auto">
   <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
 </div>
-<div class="brand">// schedkit</div>
+<div class="brand"><svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg></div>
 
 <div class="card" id="app">
   <div class="event-header" id="event-header">
