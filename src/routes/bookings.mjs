@@ -1,5 +1,6 @@
 // src/routes/bookings.js
 
+import { isSlotBusy, createCalendarEvent, deleteCalendarEvent } from '../lib/googleCalendar.mjs';
 import { db } from '../lib/noco.mjs';
 import { tables } from '../lib/tables.mjs';
 import { requireApiKey } from '../middleware/auth.mjs';
@@ -164,6 +165,12 @@ export default async function bookingsRoutes(fastify) {
     const start = parseISO(start_time);
     const end = addMinutes(start, eventType.duration_minutes);
 
+    // Google Calendar busy check (non-blocking if no calendar connected)
+    const busy = await isSlotBusy(user.Id, start.toISOString(), end.toISOString());
+    if (busy) {
+      return reply.code(409).send({ error: 'Time slot no longer available' });
+    }
+
     // Conflict check — NocoDB doesn't support ISO datetimes in where filters, filter in JS
     const existing = await db.find(tables.bookings, `(user_id,eq,${user.Id})~and(status,eq,confirmed)`);
     const startMs = start.getTime(), endMs = end.getTime();
@@ -202,6 +209,22 @@ export default async function bookingsRoutes(fastify) {
       event: 'booking.created',
       booking: { uid, attendee_name, attendee_email, start_time, end_time: end.toISOString() },
     });
+
+    // Create Google Calendar event (non-blocking)
+    try {
+      const gcalEvent = await createCalendarEvent(user.Id, {
+        title: `${eventType.title} with ${attendee_name}`,
+        description: notes || '',
+        startIso: start.toISOString(),
+        endIso: end.toISOString(),
+        attendeeEmail: attendee_email,
+        attendeeName: attendee_name,
+        location: eventType.location || '',
+      });
+      if (gcalEvent?.id) {
+        await db.update(tables.bookings, booking.Id, { google_event_id: gcalEvent.id });
+      }
+    } catch (e) { fastify.log.error('Google Calendar event creation failed:', e.message); }
 
     // Send confirmation email
     const cancelUrl = `https://${process.env.BASE_DOMAIN || 'schedkit.net'}/v1/cancel/${cancel_token}`;
@@ -248,6 +271,11 @@ export default async function bookingsRoutes(fastify) {
     await db.update(tables.bookings, booking.Id, { status: 'cancelled' });
     const et = await db.get(tables.event_types, booking.event_type_id);
     const user = await db.get(tables.users, booking.user_id);
+
+    // Delete Google Calendar event if exists
+    if (booking.google_event_id && user?.Id) {
+      try { await deleteCalendarEvent(user.Id, booking.google_event_id); } catch(e) { /* non-fatal */ }
+    }
     await fireWebhook(et?.webhook_url, { event: 'booking.cancelled', booking: { uid: booking.uid } });
     try {
       await sendCancellationEmail({
