@@ -216,8 +216,24 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .chip-icon { width: 28px; height: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
 .event-desc { font-size: 13px; color: var(--text2); line-height: 1.65; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 4px; }
 .sidebar-footer { margin-top: auto; padding-top: 32px; }
-.lights-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; cursor: pointer; transition: all .2s; }
-.lights-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lights-btn { display: inline-flex; align-items: center; gap: 7px; padding: 4px 4px; border: none; background: transparent; color: var(--muted); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; cursor: pointer; transition: color .2s; }
+.lights-btn:hover { color: var(--accent); }
+.phosphor-dot { width: 7px; height: 7px; border-radius: 50%; background: #DFFF00; box-shadow: 0 0 4px #DFFF00, 0 0 10px rgba(223,255,0,0.5); flex-shrink: 0; animation: phosphor-pulse 2.4s ease-in-out infinite; }
+[data-lights="on"] .phosphor-dot { background: #3d4700; box-shadow: 0 0 4px #3d4700, 0 0 10px rgba(61,71,0,0.4); }
+@keyframes phosphor-pulse { 0%,100%{opacity:1;box-shadow:0 0 4px #DFFF00,0 0 10px rgba(223,255,0,0.5)} 50%{opacity:0.45;box-shadow:0 0 2px #DFFF00,0 0 4px rgba(223,255,0,0.2)} }
+.confirm-pane { padding: 48px 36px; display: flex; flex-direction: column; align-items: flex-start; }
+.confirm-check { width: 54px; height: 54px; border-radius: 50%; background: var(--accent); color: #0a0a0b; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; margin-bottom: 18px; }
+.confirm-headline { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.confirm-sub { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+.confirm-detail { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r); overflow: hidden; width: 100%; max-width: 480px; margin-bottom: 16px; }
+.confirm-row { display: flex; gap: 12px; align-items: flex-start; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.confirm-row-lbl { font-size: 10px; color: var(--text2); font-family: var(--font-mono); margin-bottom: 1px; }
+.confirm-row-val { font-size: 13px; font-weight: 600; }
+.confirm-uid { font-size: 11px; font-family: var(--font-mono); color: var(--muted); margin-top: 4px; }
+.btn-cancel-bkg { background: none; border: none; color: var(--muted); font-size: 12px; font-family: var(--font-sans); cursor: pointer; text-decoration: underline; margin-top: 14px; transition: color 0.15s; }
+.btn-cancel-bkg:hover { color: var(--error); }
 .cal-pane { display: flex; flex-direction: column; padding: 36px 32px; overflow-y: auto; }
 .pane-heading { font-size: 11px; font-family: var(--font-mono); color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 24px; }
 .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -309,7 +325,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="event-chips" id="event-chips"></div>
     <div class="event-desc" id="event-desc" style="display:none"></div>
     <div class="sidebar-footer">
-      <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
+      <button class="lights-btn" id="lightsBtn"><span class="phosphor-dot"></span><span id="lightsBtnLabel">LIGHTS ON</span></button>
     </div>
   </aside>
   <div class="divider"></div>
@@ -357,12 +373,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <button class="btn-confirm" id="btn-confirm">Confirm Booking</button>
     </div>
     <div id="state-confirmed" style="display:none">
-      <div class="confirm-wrap">
-        <div class="confirm-check">✓</div>
-        <div class="confirm-headline">You're booked!</div>
-        <div class="confirm-sub">A confirmation has been sent to <strong id="confirm-email"></strong></div>
+      <div class="confirm-pane">
+        <div class="confirm-check" id="confirm-icon">✓</div>
+        <div class="confirm-headline" id="confirm-headline">You&#39;re booked!</div>
+        <div class="confirm-sub" id="confirm-sub">Confirmation sent to <strong id="confirm-email"></strong></div>
         <div class="confirm-detail" id="confirm-detail"></div>
         <div class="confirm-uid" id="confirm-uid"></div>
+        <button class="btn-cancel-bkg" id="btn-cancel-bkg" style="display:none">Cancel this booking</button>
       </div>
     </div>
   </section>
@@ -515,15 +532,33 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       const data = await res.json();
       if (!res.ok) { showError(data.error || 'Failed. Please try again.'); btn.disabled = false; btn.textContent = 'Confirm Booking'; return; }
       const startLocal = new Date(data.start_time).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone });
-      document.getElementById('confirm-email').textContent = emailVal;
-      document.getElementById('confirm-detail').innerHTML = \`
-        <div class="confirm-detail-row"><div class="confirm-detail-icon">📅</div><div><div class="confirm-detail-label">Date & Time</div><div class="confirm-detail-val">\${startLocal}</div></div></div>
-        <div class="confirm-detail-row"><div class="confirm-detail-icon">🌍</div><div><div class="confirm-detail-label">Timezone</div><div class="confirm-detail-val">\${timezone}</div></div></div>
-        <div class="confirm-detail-row"><div class="confirm-detail-icon">👥</div><div><div class="confirm-detail-label">Team</div><div class="confirm-detail-val">\${data.assigned_to ? 'With ' + data.assigned_to : TEAM_SLUG}</div></div></div>
-      \`;
+      document.getElementById('confirm-detail').innerHTML =
+        '<div class="confirm-row"><div class="confirm-row-icon">📅</div><div><div class="confirm-row-lbl">Date &amp; Time</div><div class="confirm-row-val">' + startLocal + '</div></div></div>' +
+        '<div class="confirm-row"><div class="confirm-row-icon">🌍</div><div><div class="confirm-row-lbl">Timezone</div><div class="confirm-row-val">' + timezone + '</div></div></div>' +
+        '<div class="confirm-row"><div class="confirm-row-icon">👥</div><div><div class="confirm-row-lbl">Team</div><div class="confirm-row-val">' + (data.assigned_to ? 'With ' + data.assigned_to : TEAM_SLUG) + '</div></div></div>';
       document.getElementById('confirm-uid').textContent = 'Booking ID: ' + data.uid;
+      if (data.status === 'pending') {
+        document.getElementById('confirm-icon').textContent = '⏳';
+        document.getElementById('confirm-headline').textContent = 'Request received!';
+        document.getElementById('confirm-sub').innerHTML = 'Your request is awaiting confirmation. You will be emailed at <strong>' + emailVal + '</strong> once confirmed.';
+      } else {
+        document.getElementById('confirm-email').textContent = emailVal;
+        if (data.cancel_url) {
+          const cancelBtn = document.getElementById('btn-cancel-bkg');
+          cancelBtn.style.display = '';
+          cancelBtn._cancelUrl = data.cancel_url;
+        }
+      }
       showState('confirmed');
     } catch(e) { showError('Network error. Please try again.'); btn.disabled = false; btn.textContent = 'Confirm Booking'; }
+  });
+
+  document.getElementById('btn-cancel-bkg').addEventListener('click', async function() {
+    if (!this._cancelUrl || !confirm('Cancel this booking?')) return;
+    try {
+      await fetch(this._cancelUrl, { method: 'POST' });
+      document.getElementById('state-confirmed').innerHTML = '<div style="padding:48px 36px;color:var(--text2);font-family:var(--font-mono);font-size:13px">Booking cancelled.</div>';
+    } catch(e) {}
   });
 
   function showError(msg) { const el = document.getElementById('form-error'); el.textContent = msg; el.style.display = 'block'; }
