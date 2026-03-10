@@ -31,8 +31,11 @@
   [data-lights="on"] .nav-cta { color: #f5f4ef; }
   [data-lights="on"] .request-form button { color: #f5f4ef; }
   [data-lights="on"] .hero::before { background-image: linear-gradient(rgba(74,85,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(74,85,0,0.04) 1px, transparent 1px); }
-  .lights-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; cursor: pointer; transition: all .2s; white-space: nowrap; }
+  .lights-btn { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; cursor: pointer; transition: all .2s; white-space: nowrap; }
   .lights-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .phosphor-dot { width: 7px; height: 7px; border-radius: 50%; background: #DFFF00; box-shadow: 0 0 4px #DFFF00, 0 0 10px rgba(223,255,0,0.5); flex-shrink: 0; animation: phosphor-pulse 2.4s ease-in-out infinite; }
+  [data-lights="on"] .phosphor-dot { background: #3d4700; box-shadow: 0 0 4px #3d4700, 0 0 10px rgba(61,71,0,0.4); }
+  @keyframes phosphor-pulse { 0%,100%{opacity:1;box-shadow:0 0 4px #DFFF00,0 0 10px rgba(223,255,0,0.5)} 50%{opacity:0.45;box-shadow:0 0 2px #DFFF00,0 0 4px rgba(223,255,0,0.2)} }
   #lightsFlicker { position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: rgba(255,255,230,0); }
 
   html { scroll-behavior: smooth; }
@@ -278,8 +281,8 @@
 <nav>
   <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg>sched<span>kit</span></a>
   <div style="display:flex;align-items:center;gap:12px">
-    <a href="https://schedkit.net/api/docs" target="_blank" style="font-family:var(--font-mono);font-size:13px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:8px;transition:color 0.15s,border-color 0.15s" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">API_</a>
-    <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
+    <a href="https://schedkit.net/docs" target="_blank" style="font-family:var(--font-mono);font-size:13px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:8px;transition:color 0.15s,border-color 0.15s" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">API_</a>
+    <button class="lights-btn" id="lightsBtn"><span class="phosphor-dot"></span><span id="lightsBtnLabel">LIGHTS ON</span></button>
     <a href="#request" class="nav-cta">Request Access</a>
   </div>
 </nav>
