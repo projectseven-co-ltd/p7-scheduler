@@ -1,7 +1,8 @@
 // Serves the public booking page UI
 // GET /book/:username/:event_slug
 
-import { db, tables } from '../lib/noco.mjs';
+import { db } from '../lib/noco.mjs';
+import { tables } from '../lib/tables.mjs';
 
 export default async function bookingPageRoutes(fastify) {
   fastify.get('/book/:username/:event_slug', async (req, reply) => {
