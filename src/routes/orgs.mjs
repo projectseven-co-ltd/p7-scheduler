@@ -7,6 +7,9 @@ import { nanoid } from 'nanoid';
 import { sendInvite } from '../lib/mailer.mjs';
 import { addHours } from 'date-fns';
 
+const TAG = 'Organizations';
+const SEC = [{ apiKey: [] }];
+
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
@@ -49,13 +52,17 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Create an organization', security: SEC,
+      description: 'Create a new organization. Requires an Enterprise account. The creator is automatically added as `owner`.',
       body: {
         type: 'object', required: ['name'],
-        properties: { name: { type: 'string' }, slug: { type: 'string' } },
+        properties: {
+          name: { type: 'string', description: 'Display name for the org' },
+          slug: { type: 'string', description: 'URL-safe slug (auto-generated from name if omitted)' },
+        },
       },
     },
   }, async (req, reply) => {
-    // Enterprise gate
     if (!req.user.enterprise) {
       return reply.code(403).send({ error: 'Organizations require an Enterprise account. Contact support to upgrade.' });
     }
@@ -64,7 +71,6 @@ export default async function orgsRoutes(fastify) {
     const slug = req.body.slug ? slugify(req.body.slug) : slugify(name);
     const api_key = nanoid(32);
 
-    // Check slug uniqueness
     const existing = await db.find(tables.organizations, `(slug,eq,${slug})`);
     if (existing.list?.length) return reply.code(409).send({ error: 'Slug already taken' });
 
@@ -79,7 +85,13 @@ export default async function orgsRoutes(fastify) {
     return reply.code(201).send(org);
   });
 
-  fastify.get('/orgs', { preHandler: requireSession }, async (req) => {
+  fastify.get('/orgs', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'List your organizations', security: SEC,
+      description: 'Returns all organizations the authenticated user is a member of.',
+    },
+  }, async (req) => {
     const memberships = await db.find(tables.org_members, `(user_id,eq,${req.user.Id})`);
     const orgs = await Promise.all(
       (memberships.list || []).map(m => db.get(tables.organizations, m.org_id))
@@ -87,7 +99,14 @@ export default async function orgsRoutes(fastify) {
     return { orgs: orgs.filter(Boolean) };
   });
 
-  fastify.get('/orgs/:org_slug', { preHandler: requireSession }, async (req, reply) => {
+  fastify.get('/orgs/:org_slug', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Get an organization', security: SEC,
+      description: 'Returns org details, members, and teams. `api_key` is only included for the org owner.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply);
     if (!ctx) return;
     const { org } = ctx;
@@ -97,7 +116,6 @@ export default async function orgsRoutes(fastify) {
       db.find(tables.teams, `(org_id,eq,${org.Id})`),
     ]);
 
-    // Enrich members with user info
     const members = await Promise.all(
       (membersResult.list || []).map(async m => {
         const user = await db.get(tables.users, m.user_id);
@@ -106,7 +124,6 @@ export default async function orgsRoutes(fastify) {
     );
 
     const { api_key, ...orgSafe } = org;
-    // Only expose api_key to org owner
     const isOwner = String(org.owner_user_id) === String(req.user.Id);
 
     return { org: isOwner ? org : orgSafe, members, teams: teamsResult.list || [] };
@@ -115,9 +132,15 @@ export default async function orgsRoutes(fastify) {
   fastify.patch('/orgs/:org_slug', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Update an organization', security: SEC,
+      description: 'Update the org name or slug. Requires `admin` role.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
       body: {
         type: 'object',
-        properties: { name: { type: 'string' }, slug: { type: 'string' } },
+        properties: {
+          name: { type: 'string' },
+          slug: { type: 'string' },
+        },
       },
     },
   }, async (req, reply) => {
@@ -133,7 +156,14 @@ export default async function orgsRoutes(fastify) {
     return updated;
   });
 
-  fastify.delete('/orgs/:org_slug', { preHandler: requireSession }, async (req, reply) => {
+  fastify.delete('/orgs/:org_slug', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Delete an organization', security: SEC,
+      description: 'Permanently deletes the org. Requires `owner` role.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'owner');
     if (!ctx) return;
     await db.delete(tables.organizations, ctx.org.Id);
@@ -145,9 +175,15 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs/:org_slug/members', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Add a member to an org', security: SEC,
+      description: 'Add an existing SchedKit user to the org by email. Requires `admin` role.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
       body: {
         type: 'object', required: ['email', 'role'],
-        properties: { email: { type: 'string' }, role: { type: 'string', enum: ['admin', 'member'] } },
+        properties: {
+          email: { type: 'string' },
+          role: { type: 'string', enum: ['admin', 'member'] },
+        },
       },
     },
   }, async (req, reply) => {
@@ -159,7 +195,6 @@ export default async function orgsRoutes(fastify) {
     if (!userResult.list?.length) return reply.code(404).send({ error: 'User not found' });
     const user = userResult.list[0];
 
-    // Check already a member
     const existing = await db.find(tables.org_members, `(org_id,eq,${org.Id})~and(user_id,eq,${user.Id})`);
     if (existing.list?.length) return reply.code(409).send({ error: 'Already a member' });
 
@@ -172,6 +207,9 @@ export default async function orgsRoutes(fastify) {
   fastify.patch('/orgs/:org_slug/members/:user_id', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Update a member\'s role', security: SEC,
+      description: 'Change the role of an org member. Requires `admin`.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, user_id: { type: 'string' } } },
       body: {
         type: 'object', required: ['role'],
         properties: { role: { type: 'string', enum: ['admin', 'member'] } },
@@ -189,7 +227,14 @@ export default async function orgsRoutes(fastify) {
     return updated;
   });
 
-  fastify.delete('/orgs/:org_slug/members/:user_id', { preHandler: requireSession }, async (req, reply) => {
+  fastify.delete('/orgs/:org_slug/members/:user_id', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Remove a member from an org', security: SEC,
+      description: 'Removes the user from the org. Requires `admin`.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, user_id: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'admin');
     if (!ctx) return;
     const { org } = ctx;
@@ -206,12 +251,15 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs/:org_slug/teams', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Create a team', security: SEC,
+      description: 'Create a team within an org. `routing` controls how bookings are assigned to members: `round_robin` rotates in order, `random` picks randomly.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
       body: {
         type: 'object', required: ['name', 'routing'],
         properties: {
           name: { type: 'string' },
-          slug: { type: 'string' },
-          routing: { type: 'string', enum: ['round_robin', 'random'] },
+          slug: { type: 'string', description: 'URL-safe slug (auto-generated from name if omitted)' },
+          routing: { type: 'string', enum: ['round_robin', 'random'], description: '`round_robin` rotates assignments; `random` picks any available member' },
         },
       },
     },
@@ -227,7 +275,13 @@ export default async function orgsRoutes(fastify) {
     return reply.code(201).send(team);
   });
 
-  fastify.get('/orgs/:org_slug/teams', { preHandler: requireSession }, async (req, reply) => {
+  fastify.get('/orgs/:org_slug/teams', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'List teams in an org', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply);
     if (!ctx) return;
     const r = await db.find(tables.teams, `(org_id,eq,${ctx.org.Id})`);
@@ -237,6 +291,8 @@ export default async function orgsRoutes(fastify) {
   fastify.patch('/orgs/:org_slug/teams/:team_slug', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Update a team', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
       body: {
         type: 'object',
         properties: {
@@ -261,7 +317,13 @@ export default async function orgsRoutes(fastify) {
     return db.update(tables.teams, team.Id, updates);
   });
 
-  fastify.delete('/orgs/:org_slug/teams/:team_slug', { preHandler: requireSession }, async (req, reply) => {
+  fastify.delete('/orgs/:org_slug/teams/:team_slug', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Delete a team', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'admin');
     if (!ctx) return;
 
@@ -274,8 +336,14 @@ export default async function orgsRoutes(fastify) {
 
   // ── Team Members ──────────────────────────────────────────────────
 
-  // List team members (with user details)
-  fastify.get('/orgs/:org_slug/teams/:team_slug/members', { preHandler: requireSession }, async (req, reply) => {
+  fastify.get('/orgs/:org_slug/teams/:team_slug/members', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'List team members', security: SEC,
+      description: 'Returns team members enriched with user name and email.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'member');
     if (!ctx) return;
     const team = await getTeamBySlug(ctx.org.Id, req.params.team_slug);
@@ -284,7 +352,6 @@ export default async function orgsRoutes(fastify) {
     const tmResult = await db.find(tables.team_members, `(team_id,eq,${team.Id})`, { limit: 100 });
     const members = tmResult.list || [];
 
-    // Enrich with user info
     const enriched = await Promise.all(members.map(async m => {
       const ur = await db.find(tables.users, `(Id,eq,${m.user_id})`);
       const user = ur.list?.[0];
@@ -297,6 +364,9 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs/:org_slug/teams/:team_slug/members', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Add a member to a team', security: SEC,
+      description: 'Add an org member to a team. Provide `email` (preferred) or `user_id`.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
       body: {
         type: 'object',
         properties: {
@@ -312,7 +382,6 @@ export default async function orgsRoutes(fastify) {
     const team = await getTeamBySlug(ctx.org.Id, req.params.team_slug);
     if (!team) return reply.code(404).send({ error: 'Team not found' });
 
-    // Resolve user by email or user_id
     let targetUserId = req.body.user_id;
     if (req.body.email) {
       const ur = await db.find(tables.users, `(email,eq,${req.body.email})`);
@@ -334,6 +403,9 @@ export default async function orgsRoutes(fastify) {
   fastify.patch('/orgs/:org_slug/teams/:team_slug/members/:user_id', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Enable or disable a team member', security: SEC,
+      description: 'Toggle a team member\'s `active` status. Inactive members are excluded from booking assignment.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, user_id: { type: 'string' } } },
       body: {
         type: 'object', required: ['active'],
         properties: { active: { type: 'boolean' } },
@@ -352,7 +424,13 @@ export default async function orgsRoutes(fastify) {
     return db.update(tables.team_members, tmr.list[0].Id, { active: req.body.active });
   });
 
-  fastify.delete('/orgs/:org_slug/teams/:team_slug/members/:user_id', { preHandler: requireSession }, async (req, reply) => {
+  fastify.delete('/orgs/:org_slug/teams/:team_slug/members/:user_id', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Remove a member from a team', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, user_id: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'admin');
     if (!ctx) return;
 
@@ -371,22 +449,24 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs/:org_slug/teams/:team_slug/event-types', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Create a team event type', security: SEC,
+      description: 'Create a bookable event type for a team. The public booking URL is `/book/:org_slug/:team_slug/:slug`. Bookings are auto-assigned to a team member based on the team\'s `routing` setting.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
       body: {
         type: 'object', required: ['title', 'duration_minutes'],
         properties: {
           title: { type: 'string' },
-          slug: { type: 'string' },
+          slug: { type: 'string', description: 'URL slug (auto-generated from title if omitted)' },
           duration_minutes: { type: 'integer' },
-          buffer_before: { type: 'integer' },
-          buffer_after: { type: 'integer' },
-          buffer_minutes: { type: 'integer' },
+          buffer_before: { type: 'integer', description: 'Buffer before event (minutes)' },
+          buffer_after: { type: 'integer', description: 'Buffer after event (minutes)' },
           location: { type: 'string' },
-          location_type: { type: 'string' },
+          location_type: { type: 'string', enum: ['video', 'phone', 'in_person', 'other'] },
           description: { type: 'string' },
-          appointment_label: { type: 'string' },
-          min_notice_minutes: { type: 'integer' },
+          appointment_label: { type: 'string', default: 'meeting' },
+          min_notice_minutes: { type: 'integer', description: 'Minimum advance notice required to book' },
           webhook_url: { type: 'string' },
-          custom_fields: { type: 'string' },
+          custom_fields: { type: 'string', description: 'JSON array of custom field definitions' },
         },
       },
     },
@@ -416,7 +496,13 @@ export default async function orgsRoutes(fastify) {
     return reply.code(201).send(et);
   });
 
-  fastify.get('/orgs/:org_slug/teams/:team_slug/event-types', { preHandler: requireSession }, async (req, reply) => {
+  fastify.get('/orgs/:org_slug/teams/:team_slug/event-types', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'List team event types', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply);
     if (!ctx) return;
 
@@ -430,6 +516,8 @@ export default async function orgsRoutes(fastify) {
   fastify.patch('/orgs/:org_slug/teams/:team_slug/event-types/:et_slug', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Update a team event type', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, et_slug: { type: 'string' } } },
       body: {
         type: 'object',
         properties: {
@@ -438,9 +526,8 @@ export default async function orgsRoutes(fastify) {
           duration_minutes: { type: 'integer' },
           buffer_before: { type: 'integer' },
           buffer_after: { type: 'integer' },
-          buffer_minutes: { type: 'integer' },
           location: { type: 'string' },
-          location_type: { type: 'string' },
+          location_type: { type: 'string', enum: ['video', 'phone', 'in_person', 'other'] },
           description: { type: 'string' },
           appointment_label: { type: 'string' },
           min_notice_minutes: { type: 'integer' },
@@ -460,7 +547,7 @@ export default async function orgsRoutes(fastify) {
     if (!et) return reply.code(404).send({ error: 'Event type not found' });
 
     const updates = {};
-    const fields = ['title', 'slug', 'duration_minutes', 'buffer_before', 'buffer_after', 'buffer_minutes',
+    const fields = ['title', 'slug', 'duration_minutes', 'buffer_before', 'buffer_after',
       'location', 'location_type', 'description', 'appointment_label', 'min_notice_minutes', 'webhook_url', 'custom_fields'];
     for (const f of fields) {
       if (req.body[f] !== undefined) updates[f] = f === 'slug' ? slugify(req.body[f]) : req.body[f];
@@ -469,7 +556,13 @@ export default async function orgsRoutes(fastify) {
     return db.update(tables.team_event_types, et.Id, updates);
   });
 
-  fastify.delete('/orgs/:org_slug/teams/:team_slug/event-types/:et_slug', { preHandler: requireSession }, async (req, reply) => {
+  fastify.delete('/orgs/:org_slug/teams/:team_slug/event-types/:et_slug', {
+    preHandler: requireSession,
+    schema: {
+      tags: [TAG], summary: 'Delete a team event type', security: SEC,
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, et_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const ctx = await requireOrgAccess(req, reply, 'admin');
     if (!ctx) return;
 
@@ -488,6 +581,9 @@ export default async function orgsRoutes(fastify) {
   fastify.post('/orgs/:org_slug/invite', {
     preHandler: requireSession,
     schema: {
+      tags: [TAG], summary: 'Invite a user to an org', security: SEC,
+      description: 'Send an email invite to join the org. If the email is not yet registered, a stub user is created and a 24-hour magic-link login is included in the invite email.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' } } },
       body: {
         type: 'object', required: ['email', 'role'],
         properties: {
@@ -503,39 +599,27 @@ export default async function orgsRoutes(fastify) {
 
     const email = req.body.email.toLowerCase().trim();
 
-    // Check if user already exists
     let user;
     const existing = await db.find(tables.users, `(email,eq,${email})`);
     if (existing.list?.length) {
       user = existing.list[0];
-      // Check already a member
       const isMember = await db.find(tables.org_members, `(org_id,eq,${org.Id})~and(user_id,eq,${user.Id})`);
       if (isMember.list?.length) return reply.code(409).send({ error: 'Already a member of this org' });
     } else {
-      // Create stub user — slug from email prefix, api_key generated
       const emailPrefix = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      // Ensure slug is unique
       let slug = emailPrefix;
       const slugCheck = await db.find(tables.users, `(slug,eq,${slug})`);
       if (slugCheck.list?.length) slug = `${emailPrefix}-${nanoid(4)}`;
       const api_key = `p7s_${nanoid(32)}`;
       user = await db.create(tables.users, {
-        email,
-        name: '',
-        slug,
-        timezone: 'UTC',
-        api_key,
-        active: true,
-        invited: true,
+        email, name: '', slug, timezone: 'UTC', api_key, active: true, invited: true,
       });
     }
 
-    // Add to org
     await db.create(tables.org_members, {
       org_id: String(org.Id), user_id: String(user.Id), role: req.body.role,
     });
 
-    // Create 24h magic link
     const token = nanoid(40);
     await db.create(tables.magic_links, {
       token,
