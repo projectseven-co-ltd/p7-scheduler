@@ -12,6 +12,7 @@ const TABLES = [
       { title: 'api_key', uidt: 'SingleLineText' },
       { title: 'timezone', uidt: 'SingleLineText' },
       { title: 'active', uidt: 'Checkbox' },
+      { title: 'plan', uidt: 'SingleLineText' },   // 'free' | 'pro' | 'team'
       { title: 'created_at', uidt: 'DateTime' },
     ],
   },

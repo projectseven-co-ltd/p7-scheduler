@@ -1,16 +1,31 @@
 // Serves the public booking page UI
 // GET /book/:username/:event_slug
 
+import { db, tables } from '../lib/noco.mjs';
+
 export default async function bookingPageRoutes(fastify) {
   fastify.get('/book/:username/:event_slug', async (req, reply) => {
     const { username, event_slug } = req.params;
-    const { reschedule, name, email, tz } = req.query;
-    const html = buildPage(username, event_slug, { reschedule, name, email, tz });
+    const { reschedule, name, email, tz, nobranding } = req.query;
+
+    // Only hide branding if requested AND the user is on a paid plan
+    let hideBranding = false;
+    if (nobranding === '1') {
+      try {
+        const result = await db.find(tables.users, `(slug,eq,${username})`);
+        const user = result?.list?.[0];
+        if (user && user.plan && user.plan !== 'free') {
+          hideBranding = true;
+        }
+      } catch { /* fail open — show branding */ }
+    }
+
+    const html = buildPage(username, event_slug, { reschedule, name, email, tz, hideBranding });
     reply.type('text/html').send(html);
   });
 }
 
-function buildPage(username, eventSlug, { reschedule, name, email, tz } = {}) {
+function buildPage(username, eventSlug, { reschedule, name, email, tz, hideBranding = false } = {}) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -713,7 +728,7 @@ html, body {
     </div>
 
     <!-- FOOTER -->
-    <div class="card-footer">
+    <div class="card-footer" ${hideBranding ? 'style="display:none"' : ''}>
       <div style="display:flex;align-items:center;gap:16px;">
         <a class="brand-link" href="https://schedkit.net" target="_blank">
           <svg width="14" height="14" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#DFFF00"/><line x1="128" y1="96" x2="208" y2="416" stroke="#0A0A0B" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#0A0A0B" stroke-width="72" stroke-linecap="round"/></svg>
