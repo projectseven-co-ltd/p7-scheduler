@@ -9,13 +9,35 @@ import { nanoid } from 'nanoid';
 export default async function calendarRoutes(fastify) {
 
   // GET /v1/auth/google/connect — redirect to Google OAuth
-  fastify.get('/auth/google/connect', { preHandler: requireSession }, async (req, reply) => {
+  fastify.get('/auth/google/connect', {
+    preHandler: requireSession,
+    schema: {
+      tags: ['Calendar'],
+      summary: 'Connect Google Calendar',
+      security: [{ cookieAuth: [] }],
+      description: 'Redirects to Google OAuth to authorize calendar access. After authorization, Google redirects back to `/v1/auth/google/callback` and the connection is saved. Visit this URL in the browser — do not call it as an API endpoint.',
+    },
+  }, async (req, reply) => {
     const statePayload = Buffer.from(JSON.stringify({ userId: req.user.Id, nonce: nanoid(16) })).toString('base64url');
     return reply.redirect(getAuthUrl(statePayload));
   });
 
-  // GET /v1/auth/google/callback — server-side OAuth callback (no session cookie needed)
-  fastify.get('/auth/google/callback', async (req, reply) => {
+  // GET /v1/auth/google/callback — server-side OAuth callback
+  fastify.get('/auth/google/callback', {
+    schema: {
+      tags: ['Calendar'],
+      summary: 'Google OAuth callback (internal)',
+      description: 'Internal callback URL used by Google after OAuth authorization. Not called directly — Google redirects here after the user grants calendar access.',
+      querystring: {
+        type: 'object',
+        properties: {
+          code: { type: 'string' },
+          state: { type: 'string' },
+          error: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { code, state, error } = req.query;
     if (error) return reply.redirect(`/dashboard?cal_error=${error}`);
     if (!code || !state) return reply.redirect('/dashboard?cal_error=missing_params');
@@ -53,7 +75,25 @@ export default async function calendarRoutes(fastify) {
   });
 
   // GET /v1/calendar/status
-  fastify.get('/calendar/status', { preHandler: requireSession }, async (req) => {
+  fastify.get('/calendar/status', {
+    preHandler: requireSession,
+    schema: {
+      tags: ['Calendar'],
+      summary: 'Get calendar connection status',
+      security: [{ apiKey: [] }],
+      description: 'Returns whether the authenticated user has a Google Calendar connected, and if so, which Google account email is linked.',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            connected: { type: 'boolean' },
+            provider: { type: 'string', description: 'Always `google` when connected' },
+            calendar_email: { type: 'string', description: 'Google account email linked to the calendar' },
+          },
+        },
+      },
+    },
+  }, async (req) => {
     const result = await db.find(tables.calendar_connections, `(user_id,eq,${req.user.Id})~and(provider,eq,google)`);
     const conn = result.list?.[0];
     if (!conn) return { connected: false };
@@ -61,7 +101,18 @@ export default async function calendarRoutes(fastify) {
   });
 
   // DELETE /v1/calendar/disconnect
-  fastify.delete('/calendar/disconnect', { preHandler: requireSession }, async (req) => {
+  fastify.delete('/calendar/disconnect', {
+    preHandler: requireSession,
+    schema: {
+      tags: ['Calendar'],
+      summary: 'Disconnect Google Calendar',
+      security: [{ apiKey: [] }],
+      description: 'Removes the Google Calendar connection for the authenticated user. New bookings will no longer be checked against or synced to Google Calendar.',
+      response: {
+        200: { type: 'object', properties: { ok: { type: 'boolean' } } },
+      },
+    },
+  }, async (req) => {
     const result = await db.find(tables.calendar_connections, `(user_id,eq,${req.user.Id})~and(provider,eq,google)`);
     if (result.list?.length) await db.delete(tables.calendar_connections, result.list[0].Id);
     return { ok: true };

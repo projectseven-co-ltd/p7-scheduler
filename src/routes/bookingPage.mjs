@@ -5,7 +5,14 @@ import { db } from '../lib/noco.mjs';
 import { tables } from '../lib/tables.mjs';
 
 export default async function bookingPageRoutes(fastify) {
-  fastify.get('/book/:username/:event_slug', async (req, reply) => {
+  fastify.get('/book/:username/:event_slug', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Individual booking page',
+      description: 'Returns the HTML booking page for an individual host\'s event type. Open in a browser — not an API endpoint.',
+      params: { type: 'object', properties: { username: { type: 'string' }, event_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const { username, event_slug } = req.params;
     const { reschedule, name, email, tz, nobranding } = req.query;
 

@@ -133,7 +133,25 @@ export default async function bookingsRoutes(fastify) {
 
   // PUBLIC: Create booking
   // POST /book/:username/:event_slug
-  fastify.post('/book/:username/:event_slug', async (req, reply) => {
+  fastify.post('/book/:username/:event_slug', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Create a booking',
+      description: 'Submit a booking for an individual host\'s event type. Returns booking confirmation including `cancel_url` and `reschedule_url`. If the event type has `requires_confirmation: true`, status will be `pending` until the host confirms.',
+      params: { type: 'object', properties: { username: { type: 'string' }, event_slug: { type: 'string' } } },
+      body: {
+        type: 'object', required: ['start_time', 'attendee_name', 'attendee_email'],
+        properties: {
+          start_time: { type: 'string', description: 'ISO 8601 datetime from the `/v1/slots` response' },
+          attendee_name: { type: 'string' },
+          attendee_email: { type: 'string', format: 'email' },
+          attendee_timezone: { type: 'string', default: 'UTC' },
+          notes: { type: 'string' },
+          custom_responses: { type: 'object', description: 'Answers to custom fields defined on the event type' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { username, event_slug } = req.params;
     const { start_time, attendee_name, attendee_email, attendee_timezone = 'UTC', notes, custom_responses } = req.body;
 
@@ -313,7 +331,14 @@ export default async function bookingsRoutes(fastify) {
 
   // PUBLIC: Cancel booking (POST — API)
   // API: Cancel booking by token (used by API clients)
-  fastify.post('/cancel/:token', async (req, reply) => {
+  fastify.post('/cancel/:token', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Cancel a booking (via token)',
+      description: 'Cancel a booking using the `cancel_token` from the booking confirmation. Sends cancellation emails to both attendee and host.',
+      params: { type: 'object', properties: { token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const result = await db.find(tables.bookings, `(cancel_token,eq,${req.params.token})`);
     if (!result.list?.length) return reply.code(404).send({ error: 'Invalid token' });
     const booking = result.list[0];
@@ -340,7 +365,14 @@ export default async function bookingsRoutes(fastify) {
   });
 
   // PUBLIC: Cancel booking (GET — "Are you sure?" page)
-  fastify.get('/cancel/:token', async (req, reply) => {
+  fastify.get('/cancel/:token', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Cancel confirmation page',
+      description: 'Returns an HTML confirmation page for cancelling a booking. Linked from cancellation emails.',
+      params: { type: 'object', properties: { token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const result = await db.find(tables.bookings, `(cancel_token,eq,${req.params.token})`);
     if (!result.list?.length) return reply.type('text/html').send(resultPage('⚠️', 'Invalid or expired cancellation link.', null));
     const booking = result.list[0];
@@ -350,7 +382,14 @@ export default async function bookingsRoutes(fastify) {
   });
 
   // PUBLIC: Cancel booking (POST — confirmed)
-  fastify.post('/cancel/:token/confirm', async (req, reply) => {
+  fastify.post('/cancel/:token/confirm', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Confirm cancellation',
+      description: 'Confirms the cancellation after the attendee clicks "Yes, cancel" on the cancel confirmation page.',
+      params: { type: 'object', properties: { token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const result = await db.find(tables.bookings, `(cancel_token,eq,${req.params.token})`);
     if (!result.list?.length) return reply.type('text/html').send(resultPage('⚠️', 'Invalid or expired cancellation link.', null));
     const booking = result.list[0];
@@ -371,7 +410,14 @@ export default async function bookingsRoutes(fastify) {
   });
 
   // PUBLIC: Reschedule (GET — shows booking page with context)
-  fastify.get('/reschedule/:token', async (req, reply) => {
+  fastify.get('/reschedule/:token', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Reschedule page',
+      description: 'Returns an HTML page for rescheduling a booking. Linked from booking confirmation and cancellation emails.',
+      params: { type: 'object', properties: { token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const result = await db.find(tables.bookings, `(reschedule_token,eq,${req.params.token})`);
     if (!result.list?.length) return reply.type('text/html').send(resultPage('⚠️', 'Invalid or expired reschedule link.', null));
     const booking = result.list[0];
@@ -386,7 +432,21 @@ export default async function bookingsRoutes(fastify) {
   });
 
   // PUBLIC: Reschedule (POST — cancel old, create new)
-  fastify.post('/reschedule/:token', async (req, reply) => {
+  fastify.post('/reschedule/:token', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Submit reschedule',
+      description: 'Cancels the existing booking and creates a new one at the requested time.',
+      params: { type: 'object', properties: { token: { type: 'string' } } },
+      body: {
+        type: 'object', required: ['start_time'],
+        properties: {
+          start_time: { type: 'string', description: 'New ISO 8601 start time' },
+          attendee_timezone: { type: 'string', default: 'UTC' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { start_time, attendee_timezone = 'UTC' } = req.body;
     if (!start_time) return reply.code(400).send({ error: 'start_time required' });
 
@@ -486,7 +546,14 @@ function shell(title, body) {
 async function registerConfirmDeclineRoutes(fastify) {
   const BASE = `https://${process.env.BASE_DOMAIN || 'schedkit.net'}`;
 
-  fastify.get('/bookings/:confirm_token/confirm', async (req, reply) => {
+  fastify.get('/bookings/:confirm_token/confirm', {
+    schema: {
+      tags: ['Bookings'],
+      summary: 'Confirm a pending booking (host)',
+      description: 'One-click confirm link sent to the host when a booking requires confirmation. Sets status to `confirmed` and notifies the attendee.',
+      params: { type: 'object', properties: { confirm_token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const { confirm_token } = req.params;
     const result = await db.find(tables.bookings, `(confirm_token,eq,${confirm_token})`);
     const booking = result.list?.[0];
@@ -524,7 +591,14 @@ async function registerConfirmDeclineRoutes(fastify) {
     `));
   });
 
-  fastify.get('/bookings/:confirm_token/decline', async (req, reply) => {
+  fastify.get('/bookings/:confirm_token/decline', {
+    schema: {
+      tags: ['Bookings'],
+      summary: 'Decline a pending booking (host)',
+      description: 'One-click decline link sent to the host when a booking requires confirmation. Sets status to `declined` and notifies the attendee.',
+      params: { type: 'object', properties: { confirm_token: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const { confirm_token } = req.params;
     const result = await db.find(tables.bookings, `(confirm_token,eq,${confirm_token})`);
     const booking = result.list?.[0];

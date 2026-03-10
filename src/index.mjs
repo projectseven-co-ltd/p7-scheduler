@@ -114,20 +114,20 @@ await fastify.register(calendarRoutes, { prefix: '/v1' });
 await fastify.register(notificationRoutes, { prefix: '/v1' });
 
 // Page routes (no prefix)
-fastify.get('/login', async (req, reply) => {
+fastify.get('/login', { schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/login.html')));
 });
-fastify.get('/google-callback', async (req, reply) => {
+fastify.get('/google-callback', { schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/google-callback.html')));
 });
-fastify.get('/dashboard', async (req, reply) => {
+fastify.get('/dashboard', { schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/dashboard.html')));
 });
 
-fastify.get('/onboarding', async (req, reply) => {
+fastify.get('/onboarding', { schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/onboarding.html')));
 });

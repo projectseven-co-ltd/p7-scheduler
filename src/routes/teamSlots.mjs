@@ -65,7 +65,21 @@ function slotsForWindow(dateStr, startTime, endTime, durationMins, tz) {
 }
 
 export default async function teamSlotsRoutes(fastify) {
-  fastify.get('/slots/:org_slug/:team_slug/:event_slug', async (req, reply) => {
+  fastify.get('/slots/:org_slug/:team_slug/:event_slug', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Get available slots for a team event',
+      description: 'Returns available time slots for a team event type on a given date. Used by the team booking page. Slots respect each team member\'s availability; at least one member must be free for a slot to appear.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, event_slug: { type: 'string' } } },
+      querystring: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'YYYY-MM-DD' },
+          timezone: { type: 'string', description: 'IANA timezone (e.g. America/Chicago)' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { org_slug, team_slug, event_slug } = req.params;
     const { date, timezone = 'UTC' } = req.query;
 

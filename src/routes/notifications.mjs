@@ -3,8 +3,25 @@
 import { requireSession } from '../middleware/session.mjs';
 
 export default async function notificationRoutes(fastify) {
-  // POST /v1/notifications/test — send a test ntfy notification
-  fastify.post('/notifications/test', { preHandler: requireSession }, async (req, reply) => {
+
+  fastify.post('/notifications/test', {
+    preHandler: requireSession,
+    schema: {
+      tags: ['Notifications'],
+      summary: 'Send a test notification',
+      security: [{ apiKey: [] }],
+      description: 'Sends a test push notification to the specified ntfy.sh topic. Use this to verify your ntfy topic is configured correctly.',
+      body: {
+        type: 'object', required: ['topic'],
+        properties: {
+          topic: { type: 'string', description: 'ntfy.sh topic name or full URL (e.g. `my-topic` or `https://ntfy.sh/my-topic`)' },
+        },
+      },
+      response: {
+        200: { type: 'object', properties: { ok: { type: 'boolean' } } },
+      },
+    },
+  }, async (req, reply) => {
     const { topic } = req.body || {};
     if (!topic) return reply.code(400).send({ error: 'topic required' });
 

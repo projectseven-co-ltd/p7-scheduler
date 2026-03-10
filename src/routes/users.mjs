@@ -1,4 +1,4 @@
-// src/routes/users.js — User management (admin-like, secured by master secret)
+// src/routes/users.js — User management (admin-only, secured by master secret)
 
 import { db } from '../lib/noco.mjs';
 import { tables } from '../lib/tables.mjs';
@@ -12,8 +12,26 @@ function requireSecret(req, reply, done) {
 }
 
 export default async function usersRoutes(fastify) {
+
   // Create user
-  fastify.post('/users', { preHandler: requireSecret }, async (req, reply) => {
+  fastify.post('/users', {
+    preHandler: requireSecret,
+    schema: {
+      tags: ['Users'],
+      summary: 'Create a user (admin)',
+      security: [{ adminSecret: [] }],
+      description: 'Create a new SchedKit user account. Requires the `x-admin-secret` header. Returns the new user including their generated `api_key`.',
+      body: {
+        type: 'object', required: ['name', 'email', 'slug'],
+        properties: {
+          name: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          slug: { type: 'string', description: 'URL-safe username used in public booking links (`/book/:slug/:event`)' },
+          timezone: { type: 'string', default: 'UTC' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { name, email, slug, timezone = 'UTC' } = req.body;
     if (!name || !email || !slug) {
       return reply.code(400).send({ error: 'name, email, slug required' });
@@ -32,13 +50,41 @@ export default async function usersRoutes(fastify) {
   });
 
   // List users
-  fastify.get('/users', { preHandler: requireSecret }, async () => {
+  fastify.get('/users', {
+    preHandler: requireSecret,
+    schema: {
+      tags: ['Users'],
+      summary: 'List all users (admin)',
+      security: [{ adminSecret: [] }],
+      description: 'Returns all users. Requires the `x-admin-secret` header.',
+    },
+  }, async () => {
     const result = await db.list(tables.users, { limit: 100 });
     return { users: result.list || [] };
   });
 
   // Get user profile (public)
-  fastify.get('/u/:slug', async (req, reply) => {
+  fastify.get('/u/:slug', {
+    schema: {
+      tags: ['Users'],
+      summary: 'Get a public user profile',
+      description: 'Returns the public profile for a user by slug. Used by the booking page to display the host name and timezone.',
+      params: {
+        type: 'object',
+        properties: { slug: { type: 'string', description: 'User\'s URL slug' } },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            slug: { type: 'string' },
+            timezone: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const result = await db.find(tables.users, `(slug,eq,${req.params.slug})`);
     if (!result.list?.length) return reply.code(404).send({ error: 'Not found' });
     const u = result.list[0];

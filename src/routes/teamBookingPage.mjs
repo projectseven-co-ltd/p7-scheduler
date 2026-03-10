@@ -26,13 +26,37 @@ async function memberHasAvailability(userId, startISO, durationMins) {
 export default async function teamBookingPageRoutes(fastify) {
 
   // Public booking page
-  fastify.get('/book/:org_slug/:team_slug/:event_slug', async (req, reply) => {
+  fastify.get('/book/:org_slug/:team_slug/:event_slug', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Team booking page',
+      description: 'Returns the HTML booking page for a team event type. Open in a browser — not an API endpoint.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, event_slug: { type: 'string' } } },
+    },
+  }, async (req, reply) => {
     const { org_slug, team_slug, event_slug } = req.params;
     return reply.type('text/html').send(buildTeamPage(org_slug, team_slug, event_slug));
   });
 
   // Create team booking
-  fastify.post('/v1/book/:org_slug/:team_slug/:event_slug', async (req, reply) => {
+  fastify.post('/v1/book/:org_slug/:team_slug/:event_slug', {
+    schema: {
+      tags: ['Public'],
+      summary: 'Create a team booking',
+      description: 'Submit a booking for a team event type. A team member is auto-assigned based on the team\'s routing setting (`round_robin` or `random`). Returns booking confirmation including `cancel_url` and `assigned_to`.',
+      params: { type: 'object', properties: { org_slug: { type: 'string' }, team_slug: { type: 'string' }, event_slug: { type: 'string' } } },
+      body: {
+        type: 'object', required: ['start_time', 'attendee_name', 'attendee_email'],
+        properties: {
+          start_time: { type: 'string', description: 'ISO 8601 datetime from the `/v1/slots` response' },
+          attendee_name: { type: 'string' },
+          attendee_email: { type: 'string', format: 'email' },
+          attendee_timezone: { type: 'string', default: 'UTC' },
+          notes: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const { org_slug, team_slug, event_slug } = req.params;
     const { start_time, attendee_name, attendee_email, attendee_timezone = 'UTC', notes } = req.body || {};
 
