@@ -169,7 +169,7 @@ fastify.post('/v1/request-access', {
   try {
     // 1. Save to NocoDB leads table
     const { nocoRequest } = await import('./lib/noco.mjs');
-    await nocoRequest('POST', `/api/v1/db/data/noco/${process.env.NOCO_BASE_ID}/leads`, {
+    await nocoRequest('POST', `/api/v1/db/data/noco/${process.env.NOCO_BASE_ID}/m7cck1nc79fliq7`, {
       name, email,
       company: company || '',
       message: message || '',
