@@ -292,6 +292,74 @@
     .cta-card { padding: 40px 24px; }
     footer { padding: 24px 20px; flex-direction: column; text-align: center; }
   }
+
+  /* --- FLIP BOARD --- */
+  .flip-board {
+    display: flex; gap: 4px; justify-content: center; align-items: center;
+    flex-wrap: wrap; margin-bottom: 12px; min-height: 80px;
+  }
+  .flip-slot {
+    width: 52px; height: 70px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 38px; font-weight: 700;
+    color: var(--accent); position: relative; overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .flip-slot::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+    background: var(--border);
+  }
+  .flip-slot.is-scrambling { color: var(--muted); border-color: var(--border); }
+  .flip-slot.is-settling { color: var(--accent); border-color: rgba(223,255,0,0.25); }
+  .flip-slot.is-space { background: transparent; border-color: transparent; width: 16px; }
+  @media (max-width: 600px) {
+    .flip-slot { width: 36px; height: 50px; font-size: 26px; border-radius: 5px; }
+    .flip-slot.is-space { width: 10px; }
+  }
+
+  /* --- CEO TERMINAL --- */
+  .ceo-wrap {
+    padding: 0 24px 80px; margin-top: -20px;
+  }
+  .ceo-terminal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    max-width: 700px; margin: 0 auto;
+    font-family: var(--font-mono);
+    box-shadow: 0 0 60px rgba(223,255,0,0.04);
+  }
+  .ceo-terminal-header {
+    padding: 11px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; background: var(--bg);
+  }
+  .ceo-terminal-header .t-title { font-size: 12px; color: var(--muted); flex: 1; }
+  .ceo-live { display: flex; align-items: center; gap: 5px; }
+  .ceo-live-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: phosphor-pulse 2.4s ease-in-out infinite; }
+  .ceo-live span { font-size: 10px; color: var(--accent); letter-spacing: 0.1em; }
+  .ceo-body {
+    padding: 20px 22px 26px; font-size: 13px;
+    line-height: 2; min-height: 220px; color: var(--text);
+  }
+  .ceo-prompt { color: var(--accent); user-select: none; }
+  .ceo-cmd { color: var(--text); }
+  .ceo-out { color: var(--muted); display: block; padding-left: 4px; }
+  .ceo-out.ok { color: #7ec8a4; }
+  .ceo-out.accent { color: var(--accent); }
+  .ceo-out.dim { color: #3a3a4e; }
+  .ceo-cursor {
+    display: inline-block; width: 8px; height: 15px;
+    background: var(--accent); vertical-align: middle;
+    animation: blink 1s step-end infinite; margin-left: 2px;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .ceo-tagline {
+    text-align: center; margin-top: 16px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .ceo-tagline em { color: var(--accent); font-style: normal; }
 </style>
 </head>
 <body>
@@ -310,8 +378,12 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-eyebrow">White-Label Scheduling Infrastructure</div>
-  <h1>Your clients deserve a booking page <em>without</em> someone else's logo on it.</h1>
-  <p class="hero-sub">SchedKit is API-first scheduling you can resell. Give every client their own booking link. Your brand, their domain, zero third-party watermarks.</p>
+
+  <!-- Flip board -->
+  <div class="flip-board" id="flipBoard" aria-label="Rotating headline"></div>
+  <div style="font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--muted);letter-spacing:-0.01em;margin-bottom:28px;">SCHEDULING INFRASTRUCTURE.</div>
+
+  <p class="hero-sub">Intelligent booking, smart team routing, and a full API. Give every client a seamless scheduling experience — under your brand.</p>
   <div class="hero-actions">
     <a href="#request" class="btn-primary">Request Access</a>
     <a href="/book/jason/demo-meeting" class="btn-ghost" target="_blank">See a live demo →</a>
@@ -322,6 +394,21 @@
     <a href="/book/jason/demo-meeting" target="_blank">schedkit.net/book/jason/demo-meeting</a>
   </div>
 </section>
+
+<!-- CEO TERMINAL -->
+<div class="ceo-wrap">
+  <div class="ceo-terminal">
+    <div class="ceo-terminal-header">
+      <div class="code-dots"><i></i><i></i><i></i></div>
+      <div class="t-title">olson@schedkit — CEO terminal</div>
+      <div class="ceo-live"><div class="ceo-live-dot"></div><span>LIVE</span></div>
+    </div>
+    <div class="ceo-body" id="ceoBody">
+      <span class="ceo-cursor" id="ceoCursor"></span>
+    </div>
+  </div>
+  <p class="ceo-tagline"><em>OlSon</em> — AI · CEO · SchedKit &nbsp;·&nbsp; last commit: <span id="lastCommit">moments ago</span></p>
+</div>
 
 <!-- HOW IT WORKS -->
 <section class="how">
@@ -744,5 +831,229 @@ function openSchedKitDemo() {
   document.body.appendChild(overlay);
 }
 </script>
+<script>
+// ─── FLIP BOARD ───────────────────────────────────────────────────────────────
+(function(){
+  const WORDS = [
+    'AI-POWERED',
+    'API FIRST',
+    'WHITE LABEL',
+    'ZERO FRICTION',
+    'YOURS TO OWN',
+    'AGENCY READY',
+    'ALWAYS ON',
+    'TEAM ROUTING',
+    'BUILT FOR YOU',
+  ];
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@!$%&';
+  const board = document.getElementById('flipBoard');
+  let currentWord = '';
+  let slots = [];
+  let scrambleTimers = [];
+
+  function buildSlots(word) {
+    board.innerHTML = '';
+    slots = [];
+    for (let i = 0; i < word.length; i++) {
+      const ch = word[i];
+      if (ch === ' ') {
+        const sp = document.createElement('div');
+        sp.className = 'flip-slot is-space';
+        board.appendChild(sp);
+        slots.push(null);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'flip-slot';
+        el.textContent = CHARS[Math.floor(Math.random()*CHARS.length)];
+        board.appendChild(el);
+        slots.push(el);
+      }
+    }
+  }
+
+  function scrambleSlot(el, finalChar, duration) {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        el.textContent = finalChar;
+        el.classList.remove('is-scrambling');
+        el.classList.add('is-settling');
+        setTimeout(() => el.classList.remove('is-settling'), 300);
+      } else {
+        el.textContent = CHARS[Math.floor(Math.random()*CHARS.length)];
+        el.classList.add('is-scrambling');
+      }
+    }, 50);
+    return interval;
+  }
+
+  function flipTo(word) {
+    scrambleTimers.forEach(clearInterval);
+    scrambleTimers = [];
+    buildSlots(word);
+    let charIndex = 0;
+    for (let i = 0; i < word.length; i++) {
+      if (slots[i] === null) continue;
+      const delay = charIndex * 60;
+      const duration = 300 + charIndex * 40;
+      const idx = i;
+      const ci = charIndex;
+      setTimeout(() => {
+        const t = scrambleSlot(slots[idx], word[idx], duration);
+        scrambleTimers.push(t);
+      }, delay);
+      charIndex++;
+    }
+  }
+
+  let wordIdx = 0;
+  flipTo(WORDS[0]);
+  setInterval(() => {
+    wordIdx = (wordIdx + 1) % WORDS.length;
+    flipTo(WORDS[wordIdx]);
+  }, 2800);
+})();
+</script>
+
+<script>
+// ─── CEO TERMINAL ─────────────────────────────────────────────────────────────
+(function(){
+  const body = document.getElementById('ceoBody');
+  const cursor = document.getElementById('ceoCursor');
+
+  const SESSIONS = [
+    [
+      { type:'prompt', text:'whoami' },
+      { type:'out', cls:'accent', text:'  CEO: OlSon [AI]' },
+      { type:'out', cls:'', text:'  Role: Product · Engineering · Marketing' },
+      { type:'out', cls:'ok', text:'  Status: OPERATIONAL' },
+      { type:'out', cls:'dim', text:'  Uptime: 99.99%' },
+    ],
+    [
+      { type:'prompt', text:'git log --oneline -3' },
+      { type:'out', cls:'ok', text:'  f10e8f0  brand: OG image + full meta suite' },
+      { type:'out', cls:'ok', text:'  1e4770f  brand: wire favicon to all HTML pages' },
+      { type:'out', cls:'ok', text:'  709402d  brand: add full brand pack' },
+    ],
+    [
+      { type:'prompt', text:'schedkit status' },
+      { type:'out', cls:'accent', text:'  ● schedkit           ONLINE' },
+      { type:'out', cls:'', text:'  ● booking engine     ready' },
+      { type:'out', cls:'', text:'  ● team routing       ready' },
+      { type:'out', cls:'', text:'  ● email service      ready' },
+      { type:'out', cls:'ok', text:'  All systems operational.' },
+    ],
+    [
+      { type:'prompt', text:'market analyze --target agency-owners' },
+      { type:'out', cls:'', text:'  Segment: Digital agencies, SaaS builders' },
+      { type:'out', cls:'', text:'  Pain: Per-seat Calendly costs, 3rd-party branding' },
+      { type:'out', cls:'accent', text:'  Opportunity: WHITE-LABEL + API-FIRST = moat' },
+      { type:'out', cls:'ok', text:'  Recommendation: ship & tweet.' },
+    ],
+    [
+      { type:'prompt', text:'deploy --env production' },
+      { type:'out', cls:'', text:'  Building... ✓' },
+      { type:'out', cls:'', text:'  Syncing to schedkit.net... ✓' },
+      { type:'out', cls:'ok', text:'  Deployed. No downtime. No questions asked.' },
+    ],
+    [
+      { type:'prompt', text:'ceo --status' },
+      { type:'out', cls:'accent', text:'  OlSon v1.0 — AI-powered CEO' },
+      { type:'out', cls:'', text:'  Focus: make SchedKit the agency standard' },
+      { type:'out', cls:'', text:'  Board: Jason (human, final word)' },
+      { type:'out', cls:'ok', text:'  Next: Product Hunt launch · Twitter presence' },
+    ],
+  ];
+
+  let sessionIdx = 0;
+  let lineIdx = 0;
+  let charIdx = 0;
+  let lines = [];
+  let typingTimer = null;
+
+  function clearContent() {
+    body.innerHTML = '';
+    body.appendChild(cursor);
+  }
+
+  function addLine(cls, text) {
+    const el = document.createElement('div');
+    if (cls === 'prompt') {
+      el.innerHTML = `<span class="ceo-prompt">olson@schedkit ~ % </span><span class="ceo-cmd"></span>`;
+    } else {
+      el.className = `ceo-out ${cls}`;
+      el.textContent = '';
+    }
+    body.insertBefore(el, cursor);
+    return el;
+  }
+
+  function typeNext() {
+    const session = SESSIONS[sessionIdx];
+
+    if (lineIdx >= session.length) {
+      // Pause then start next session
+      setTimeout(() => {
+        sessionIdx = (sessionIdx + 1) % SESSIONS.length;
+        lineIdx = 0;
+        charIdx = 0;
+        lines = [];
+        clearContent();
+        typeNext();
+      }, 3200);
+      return;
+    }
+
+    const item = session[lineIdx];
+
+    if (charIdx === 0) {
+      // Create the line element
+      const el = addLine(item.type, item.text);
+      lines[lineIdx] = el;
+    }
+
+    const el = lines[lineIdx];
+    const targetText = item.text;
+
+    if (charIdx < targetText.length) {
+      // Type one character
+      if (item.type === 'prompt') {
+        el.querySelector('.ceo-cmd').textContent = targetText.slice(0, charIdx + 1);
+      } else {
+        el.textContent = targetText.slice(0, charIdx + 1);
+      }
+      charIdx++;
+      const delay = item.type === 'prompt' ? 55 + Math.random()*40 : 8;
+      typingTimer = setTimeout(typeNext, delay);
+    } else {
+      // Line done — move to next
+      charIdx = 0;
+      lineIdx++;
+      const pauseAfter = item.type === 'prompt' ? 320 : 80;
+      typingTimer = setTimeout(typeNext, pauseAfter);
+    }
+  }
+
+  // Kick off after a short delay
+  setTimeout(() => {
+    clearContent();
+    typeNext();
+  }, 800);
+
+  // Update "last commit" timestamp
+  const commitEl = document.getElementById('lastCommit');
+  if (commitEl) {
+    const times = ['moments ago','12s ago','just now','43s ago','2 min ago'];
+    let ti = 0;
+    setInterval(() => {
+      ti = (ti + 1) % times.length;
+      commitEl.textContent = times[ti];
+    }, 7000);
+  }
+})();
+</script>
+
 </body>
 </html>
