@@ -3,6 +3,7 @@
 set -e
 
 APP_DIR="/var/www/vhosts/schedkit.net/httpdocs"
+GIT_DIR_BARE="/var/www/vhosts/schedkit.net/git/p7-scheduler.git"
 NODE="/opt/plesk/node/22/bin/node"
 NPM="/opt/plesk/node/22/bin/npm"
 PM2_HOME="/var/www/vhosts/schedkit.net/.pm2"
@@ -13,12 +14,17 @@ export PM2_HOME
 
 cd "$APP_DIR"
 
+# Write current commit SHA
+NEW_SHA=$(GIT_DIR="$GIT_DIR_BARE" git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo "$NEW_SHA" > "$APP_DIR/.git-sha"
+echo "[deploy] SHA: $NEW_SHA"
+
 echo "[deploy] Installing dependencies..."
 "$NPM" install --prefer-offline
 
-echo "[deploy] Reloading app via pm2..."
+echo "[deploy] Restarting app via pm2..."
 if "$NODE" "$PM2_BIN" list 2>/dev/null | grep -q schedkit; then
-  "$NODE" "$PM2_BIN" reload schedkit --update-env
+  "$NODE" "$PM2_BIN" restart schedkit --update-env
 else
   "$NODE" "$PM2_BIN" start src/index.mjs --name schedkit --interpreter "$NODE"
   "$NODE" "$PM2_BIN" save
