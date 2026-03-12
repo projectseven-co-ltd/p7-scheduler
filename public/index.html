@@ -196,6 +196,8 @@
   .feature-icon { font-size: 24px; margin-bottom: 14px; }
   .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
   .feature p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .feature-coming { opacity: 0.6; }
+  .feature-coming-badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; text-transform: uppercase; margin-bottom: 10px; }
 
   /* --- API PREVIEW --- */
   .api-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -487,8 +489,8 @@
 <section>
   <div class="container">
     <div class="section-label">Features</div>
-    <h2>Everything you need, nothing you don't</h2>
-    <p class="section-sub">Built lean. No bloat, no subscriptions per seat, no mandatory integrations.</p>
+    <h2>Signal anything. Coordinate everything.</h2>
+    <p class="section-sub">Scheduling, ticketing, alerts, and physical device control — one API, any device, physical or digital.</p>
     <div class="features-grid">
       <div class="feature">
         <div class="feature-icon">🏷️</div>
@@ -564,6 +566,24 @@
         <div class="feature-icon">🏢</div>
         <h3>Organizations</h3>
         <p>Manage multiple teams under one org. Owner, admin, and member roles. Each org gets its own API key for isolated access.</p>
+      </div>
+      <div class="feature feature-coming">
+        <div class="feature-coming-badge">Coming Soon</div>
+        <div class="feature-icon">🚨</div>
+        <h3>Alerts API</h3>
+        <p>Fire emergency, warning, or info alerts to any device or channel. NOAA weather alerts, sensor triggers, webhooks — anything can be a signal.</p>
+      </div>
+      <div class="feature feature-coming">
+        <div class="feature-coming-badge">Coming Soon</div>
+        <div class="feature-icon">🎫</div>
+        <h3>Ticketing</h3>
+        <p>Structured requests that need a response. Support tickets, work orders, intake forms — same actors, same escalation, same API.</p>
+      </div>
+      <div class="feature feature-coming">
+        <div class="feature-coming-badge">Coming Soon</div>
+        <div class="feature-icon">🔌</div>
+        <h3>Physical device control</h3>
+        <p>ESP32 devices as first-class API clients. Relay triggers for pumps, fans, doors, valves. LED alerts. Real-world response to digital signals.</p>
       </div>
     </div>
   </div>
