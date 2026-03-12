@@ -720,6 +720,22 @@ html, body {
       document.getElementById('card-body').style.display = 'none';
       document.getElementById('form-pane').style.display = 'none';
       document.getElementById('confirm-pane').style.display = '';
+
+      // Notify parent frame (embed SDK)
+      try {
+        window.parent.postMessage({
+          type: 'schedkit:booked',
+          data: {
+            uid: data.uid,
+            start_time: data.start_time,
+            attendee_name: nameVal,
+            attendee_email: emailVal,
+            attendee_timezone: timezone,
+            status: data.status || 'confirmed',
+            requires_confirmation: data.status === 'pending',
+          }
+        }, '*');
+      } catch(_) {}
     } catch(e) { showError('Network error. Please try again.'); btn.disabled = false; btn.textContent = 'Confirm Booking'; }
   });
 
