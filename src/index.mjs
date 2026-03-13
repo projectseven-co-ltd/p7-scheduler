@@ -28,6 +28,7 @@ import teamSlotsRoutes from './routes/teamSlots.mjs';
 import teamBookingPageRoutes from './routes/teamBookingPage.mjs';
 import calendarRoutes from './routes/calendar.mjs';
 import notificationRoutes from './routes/notifications.mjs';
+import ticketsRoutes from './routes/tickets.mjs';
 
 const fastify = Fastify({ logger: true });
 
@@ -54,6 +55,7 @@ await fastify.register(swagger, {
       { name: 'Organizations', description: 'Multi-user org and team management. Invite members, create shared team event types.' },
       { name: 'Calendar', description: 'Google Calendar OAuth connection for two-way sync.' },
       { name: 'Users', description: 'User profile and API key management.' },
+      { name: 'Tickets', description: 'Support ticket management. Create, update, and track tickets by status and priority.' },
     ],
     servers: [{ url: 'https://schedkit.net', description: 'Production' }],
     components: {
@@ -115,6 +117,7 @@ await fastify.register(bookingPageRoutes);
 await fastify.register(teamBookingPageRoutes);
 await fastify.register(calendarRoutes, { prefix: '/v1' });
 await fastify.register(notificationRoutes, { prefix: '/v1' });
+await fastify.register(ticketsRoutes, { prefix: '/v1' });
 
 // Page routes (no prefix)
 fastify.get('/login', { schema: { hide: true } }, async (req, reply) => {
