@@ -716,6 +716,10 @@ body::after {
 
   async function selectIncident(id) {
     selectedId = id;
+    // Reset join button state
+    const btn = document.getElementById('join-btn');
+    btn.textContent = '⚡ JOIN INCIDENT';
+    btn.disabled = false;
     document.querySelectorAll('.incident-card').forEach(el => {
       el.classList.toggle('selected', el.dataset.id === id);
     });
@@ -778,8 +782,8 @@ body::after {
     const btn = document.getElementById('join-btn');
     btn.disabled = true;
     try {
-      const res = await fetch('/v1/incidents/' + selectedId + '/join', {
-        method: 'POST', credentials: 'include'
+      const res = await fetch('/v1/incidents/' + selectedId + '/join?api_key=' + _apiKey, {
+        method: 'POST'
       });
       if (res.ok) {
         btn.textContent = '✓ JOINED';
@@ -922,10 +926,15 @@ body::after {
       incidentMarkers.size === 0 ? 'block' : 'none';
   }
 
-  function fitMapToMarkers() {
+  function fitMapToMarkers(animate = false) {
     if (!leafletMap || incidentMarkers.size === 0) return;
     const group = L.featureGroup([...incidentMarkers.values()]);
-    leafletMap.fitBounds(group.getBounds().pad(0.3));
+    const bounds = group.getBounds().pad(0.3);
+    if (animate) {
+      leafletMap.flyToBounds(bounds, { duration: 1.4, easeLinearity: 0.1 });
+    } else {
+      leafletMap.fitBounds(bounds);
+    }
   }
 
   function updateResponderDot(user_id, lat, lng) {
@@ -965,7 +974,7 @@ body::after {
     if (type === 'incident.created') {
       incidents.unshift(payload);
       renderList();
-      if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); fitMapToMarkers(); checkGeoEmpty(); }
+      if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); fitMapToMarkers(true); checkGeoEmpty(); }
     } else if (type === 'incident.updated' || type === 'incident.breached') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
@@ -977,7 +986,7 @@ body::after {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
       renderList();
-      if (mapInitialized) { removeIncidentMarker(payload.Id); fitMapToMarkers(); }
+      if (mapInitialized) { removeIncidentMarker(payload.Id); fitMapToMarkers(true); }
     } else if (type === 'reply.added' && String(payload.ticket_id) === selectedId) {
       const replies = repliesCache[selectedId] || [];
       replies.push(payload.reply);
