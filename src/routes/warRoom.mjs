@@ -25,9 +25,10 @@ export default async function warRoomRoutes(fastify) {
     try {
       const result = await db.find(tables.tickets,
         '(status,eq,open)~or(status,eq,in_progress)');
-      incidents = (result?.list || []).sort((a, b) =>
-        new Date(b.CreatedAt || b.created_at) - new Date(a.CreatedAt || a.created_at));
-    } catch {}
+      const raw = result?.list ?? result?.tickets ?? (Array.isArray(result) ? result : []);
+      incidents = raw.sort((a, b) =>
+        new Date(b.CreatedAt || b.created_at || 0) - new Date(a.CreatedAt || a.created_at || 0));
+    } catch (e) { fastify.log.error('warroom load error: ' + e.message); }
 
     const html = buildWarRoom(incidents, apiKey);
     return reply.type('text/html').send(html);
