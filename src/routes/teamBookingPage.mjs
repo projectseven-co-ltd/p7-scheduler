@@ -515,7 +515,7 @@ html, body {
       <div class="confirm-detail" id="confirm-detail"></div>
       <div class="confirm-uid" id="confirm-uid"></div>
       <button class="btn-cancel-bkg" id="btn-cancel-bkg" style="display:none">Cancel this booking</button>
-      <a href="/" style="display:inline-block;margin-top:20px;background:var(--accent);color:#0a0a0b;text-decoration:none;padding:12px 28px;border-radius:8px;font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:0.05em;text-align:center;width:100%;box-sizing:border-box;">DONE →</a>
+      <a href="/dashboard" style="display:inline-block;margin-top:20px;background:var(--accent);color:#0a0a0b;text-decoration:none;padding:12px 28px;border-radius:8px;font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:0.05em;text-align:center;width:100%;box-sizing:border-box;">DONE →</a>
     </div>
 
     <!-- FOOTER -->
