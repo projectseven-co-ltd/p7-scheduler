@@ -965,7 +965,7 @@ body::after {
     if (type === 'incident.created') {
       incidents.unshift(payload);
       renderList();
-      if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); checkGeoEmpty(); }
+      if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); fitMapToMarkers(); checkGeoEmpty(); }
     } else if (type === 'incident.updated' || type === 'incident.breached') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
@@ -977,7 +977,7 @@ body::after {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
       renderList();
-      if (mapInitialized) removeIncidentMarker(payload.Id);
+      if (mapInitialized) { removeIncidentMarker(payload.Id); fitMapToMarkers(); }
     } else if (type === 'reply.added' && String(payload.ticket_id) === selectedId) {
       const replies = repliesCache[selectedId] || [];
       replies.push(payload.reply);
