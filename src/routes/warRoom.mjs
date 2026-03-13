@@ -489,8 +489,8 @@ body::after {
 }
 .leaflet-popup-tip { background: #111114 !important; }
 .leaflet-popup-content { margin: 12px 16px !important; }
-.map-popup-title { color: #DFFF00; font-weight: bold; margin-bottom: 6px; font-size: 13px; }
-.map-popup-row { color: #555568; font-size: 10px; margin-bottom: 3px; }
+.map-popup-title { color: #DFFF00; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+.map-popup-row { color: #aaaacc; font-size: 12px; margin-bottom: 4px; }
 .map-popup-row span { color: #e8e8ea; }
 .map-popup-btn {
   display: block;
@@ -498,9 +498,9 @@ body::after {
   background: #DFFF00;
   color: #0a0a0b;
   border: none;
-  padding: 5px 12px;
+  padding: 8px 14px;
   font-family: 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   letter-spacing: 2px;
   cursor: pointer;
@@ -888,7 +888,7 @@ body::after {
       '<div class="map-popup-row">SLA: <span style="color:' + (SLA_COLORS[sc]||'#00ff88') + '">' + slaText + '</span></div>' +
       '<div class="map-popup-row">STATUS: <span>' + (inc.status||'').toUpperCase() + '</span></div>' +
       (inc.location_name ? '<div class="map-popup-row">LOC: <span>' + escHtml(inc.location_name) + '</span></div>' : '') +
-      '<a href="/v1/incidents/war-room#inc-' + inc.Id + '" class="map-popup-btn" onclick="switchTab(&quot;list&quot;)">OPEN INCIDENT</a>';
+      '<a class="map-popup-btn" onclick="switchTab(&quot;list&quot;);selectIncident(&quot;' + inc.Id + '&quot;);return false;" href="#">OPEN INCIDENT</a>';
   }
 
   function addIncidentMarker(inc) {
