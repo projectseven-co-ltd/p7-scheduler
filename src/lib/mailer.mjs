@@ -189,6 +189,19 @@ export async function sendAccessRequest({ name, email, company, message }) {
   } catch(e) { console.error('Access request email error:', e.message); throw e; }
 }
 
+
+export async function sendWelcome({ name, email }) {
+  try {
+    await mj.post('send', { version: 'v3.1' }).request({
+      Messages: [{
+        From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        To: [{ Email: email, Name: name }],
+        Subject: 'Welcome to SchedKit',
+        HTMLPart: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#0a0a0b;font-family:'Helvetica Neue',Arial,sans-serif;color:#e8e8ea;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;padding:40px 0;"><tr><td align="center"><table width="560" cellpadding="0" cellspacing="0" style="background:#111114;border:1px solid #1e1e24;border-radius:10px;overflow:hidden;"><tr><td style="padding:16px 28px;background:#0a0a0b;border-bottom:1px solid #1e1e24;"><span style="color:#DFFF00;font-family:monospace;font-size:18px;font-weight:bold;">SCHEDKIT</span></td></tr><tr><td style="padding:32px 28px;"><p style="margin:0 0 16px;font-size:18px;font-weight:600;color:#e8e8ea;">Welcome, ${name}.</p><p style="margin:0 0 24px;font-size:14px;color:#aaa;line-height:1.6;">Your account is ready. Head to your dashboard to set up your first event type and start taking bookings.</p><a href="https://schedkit.net/dashboard" style="display:inline-block;background:#DFFF00;color:#0a0a0b;text-decoration:none;padding:12px 24px;border-radius:6px;font-family:monospace;font-size:13px;font-weight:700;letter-spacing:0.05em;">OPEN DASHBOARD →</a></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #1e1e24;font-size:12px;color:#5a5a6e;">SchedKit · <a href="https://schedkit.net/docs" style="color:#5a5a6e;">docs</a> · reply to this email anytime</td></tr></table></td></tr></table></body></html>`,
+      }],
+    });
+  } catch(e) { console.error('Welcome email error:', e.message); throw e; }
+}
 // ── Org invite ────────────────────────────────────────────────────────────────
 export async function sendInvite({ to, inviterName, orgName, link }) {
   const html = emailWrap(`
