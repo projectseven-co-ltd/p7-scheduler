@@ -36,8 +36,8 @@ export default async function warRoomRoutes(fastify) {
 }
 
 function buildWarRoom(incidents, apiKey = '') {
-  const incidentsJson = JSON.stringify(incidents);
-  const apiKeyJson = JSON.stringify(apiKey);
+  const incidentsJson = JSON.stringify(incidents).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+  const apiKeyJson = JSON.stringify(apiKey || '');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -570,10 +570,13 @@ body::after {
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="wr-data" type="application/json">${incidentsJson}</script>
+<script id="wr-key" type="application/json">${apiKeyJson}</script>
 <script>
 (function() {
   const SLA_HOURS = { urgent: 1, high: 4, normal: 24, low: 48 };
-  let incidents = ${incidentsJson};
+  let incidents = JSON.parse(document.getElementById('wr-data').textContent);
+  const _apiKey = JSON.parse(document.getElementById('wr-key').textContent);
   let selectedId = null;
   let repliesCache = {};
 
@@ -944,7 +947,7 @@ body::after {
   function connectSSE() {
     status.textContent = '● CONNECTING';
     status.className = '';
-    const es = new EventSource('/v1/incidents/stream?api_key=' + ${apiKeyJson}, { withCredentials: true });
+    const es = new EventSource('/v1/incidents/stream?api_key=' + _apiKey, { withCredentials: true });
     es.onopen = () => { status.textContent = '● LIVE'; status.className = 'connected'; };
     es.onerror = () => {
       status.textContent = '● DISCONNECTED';
