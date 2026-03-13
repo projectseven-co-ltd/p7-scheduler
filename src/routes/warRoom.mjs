@@ -884,7 +884,7 @@ body::after {
       '<div class="map-popup-row">SLA: <span style="color:' + (SLA_COLORS[sc]||'#00ff88') + '">' + slaText + '</span></div>' +
       '<div class="map-popup-row">STATUS: <span>' + (inc.status||'').toUpperCase() + '</span></div>' +
       (inc.location_name ? '<div class="map-popup-row">LOC: <span>' + escHtml(inc.location_name) + '</span></div>' : '') +
-      '<a href="/v1/incidents/war-room#inc-' + inc.Id + '" class="map-popup-btn" onclick="switchTab(\'list\')">OPEN INCIDENT</a>';
+      '<a href="/v1/incidents/war-room#inc-' + inc.Id + '" class="map-popup-btn" onclick="switchTab(&quot;list&quot;)">OPEN INCIDENT</a>';
   }
 
   function addIncidentMarker(inc) {
