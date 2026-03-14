@@ -143,6 +143,10 @@ fastify.get('/dashboard', { schema: { hide: true } }, async (req, reply) => {
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/dashboard.html')));
 });
 
+fastify.get('/olson', { schema: { hide: true } }, async (req, reply) => {
+  return reply.type('text/html').send(readFileSync(join(__dirname, '../public/olson.html')));
+});
+
 fastify.get('/onboarding', { schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/onboarding.html')));
