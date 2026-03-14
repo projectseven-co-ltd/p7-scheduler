@@ -85,13 +85,14 @@ function ghostBtn(url, text) {
   return `<a href="${url}" style="display:inline-block;background:#1a1a1f;color:#e8e8ea;padding:12px 22px;border-radius:8px;font-size:13px;text-decoration:none;border:1px solid #2e2e3a;">${text}</a>`;
 }
 
-async function send(to_email, to_name, subject, html) {
+async function send(to_email, to_name, subject, html, text) {
   await mj.post('send', { version: 'v3.1' }).request({
     Messages: [{
       From: { Email: FROM_EMAIL, Name: FROM_NAME },
       To: [{ Email: to_email, Name: to_name || to_email }],
       Subject: subject,
       HTMLPart: html,
+      ...(text ? { TextPart: text } : {}),
     }],
   });
 }
@@ -229,20 +230,21 @@ export async function sendMagicLink({ to, name, link, code }) {
   const html = emailWrap(`
     ${statusLine('LOGIN LINK', '#DFFF00')}
     ${heading('Your login link')}
-    ${subheading('Click below to log in to your SchedKit dashboard. This link expires in <strong style="color:#e8e8ea;">15 minutes</strong> and can only be used once.')}
+    ${subheading('Use the code below in the SchedKit app, or tap the button to log in in your browser. This link expires in <strong style="color:#e8e8ea;">15 minutes</strong> and can only be used once.')}
+    <div style="background:#0a0a0b;border:1px solid #2a3410;border-radius:12px;padding:20px 20px 18px;margin:0 0 22px;text-align:center;">
+      <p style="margin:0 0 8px;font-size:11px;color:#5a5a6e;text-transform:uppercase;letter-spacing:0.08em;font-family:monospace;">Login code</p>
+      <div style="font-family:monospace;font-size:32px;font-weight:700;letter-spacing:0.24em;color:#DFFF00;line-height:1;">${code}</div>
+      <p style="margin:12px 0 0;font-size:12px;color:#5a5a6e;line-height:1.5;">Using the iPhone app? Enter this code directly in SchedKit.</p>
+    </div>
     ${primaryBtn(link, 'Log in to Dashboard →')}
     <br><br>
-    <div style="background:#0a0a0b;border:1px solid #1e1e24;border-radius:10px;padding:18px 20px;margin:0 0 20px;">
-      <p style="margin:0 0 8px;font-size:11px;color:#5a5a6e;text-transform:uppercase;letter-spacing:0.08em;font-family:monospace;">Using the iPhone app?</p>
-      <p style="margin:0 0 10px;font-size:13px;color:#5a5a6e;line-height:1.6;">If the email link opens outside the SchedKit app, enter this code inside the app instead:</p>
-      <div style="font-family:monospace;font-size:28px;font-weight:700;letter-spacing:0.24em;color:#DFFF00;">${code}</div>
-    </div>
     ${note(`Or copy this URL: <a href="${link}" style="color:#5a5a6e;word-break:break-all;">${link}</a>`)}
     <br><br>
     ${note("If you didn't request this, you can safely ignore it.")}
   `);
+  const text = `Your SchedKit login code: ${code}\n\nUse this code in the SchedKit app, or open this link in your browser:\n${link}\n\nThis code and link expire in 15 minutes. If you didn't request this, you can safely ignore it.`;
   try {
-    await send(to, name, 'Your SchedKit login link', html);
+    await send(to, name, `Your SchedKit login code: ${code}`, html, text);
   } catch(e) { console.error('Magic link email error:', e.message); throw e; }
 }
 
