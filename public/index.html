@@ -81,6 +81,7 @@
   .nav-logo span { color: var(--muted); }
   .nav-beta { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #0a0a0b; background: var(--accent); padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
   [data-lights="on"] .nav-beta { color: var(--accent); background: transparent; border: 1px solid var(--accent); }
+  .nav-controls { display: flex; align-items: center; gap: 12px; }
   .nav-link {
     font-family: var(--font-mono);
     font-size: 13px;
@@ -393,8 +394,25 @@
 
   /* --- RESPONSIVE --- */
   @media (max-width: 600px) {
-    nav { padding: 14px 20px; }
+    nav { padding: 12px 14px; gap: 10px; }
+    .nav-logo { font-size: 13px; gap: 8px; min-width: 0; }
+    .nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .nav-beta { display: none; }
+    .nav-controls { gap: 8px; margin-left: auto; }
+    .lights-btn { padding: 4px; }
+    #lightsBtnLabel { display: none; }
+    .nav-secondary { display: none; }
+    .nav-link,
+    .nav-cta {
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      white-space: nowrap;
+    }
+    .nav-link { min-width: auto; }
     section { padding: 72px 20px; }
+    .hero-actions { flex-direction: column; width: 100%; }
+    .hero-actions a { width: 100%; max-width: 320px; }
     .cta-card { padding: 40px 24px; }
     footer { padding: 24px 20px; flex-direction: column; text-align: center; }
   }
@@ -473,10 +491,10 @@
 <!-- NAV -->
 <nav>
   <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg>sched<span>kit</span><span class="nav-beta">beta</span></a>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div class="nav-controls">
     <button class="lights-btn" id="lightsBtn"><span class="phosphor-dot"></span><span id="lightsBtnLabel">LIGHTS ON</span></button>
-    <a href="https://schedkit.net/docs" target="_blank" class="nav-link">API_</a>
-    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="https://schedkit.net/docs" target="_blank" class="nav-link nav-secondary">API_</a>
+    <a href="#pricing" class="nav-link nav-secondary">Pricing</a>
     <a href="/dashboard" class="nav-link">Dashboard</a>
     <a href="#request-access" class="nav-cta">Get Started</a>
   </div>
