@@ -225,13 +225,18 @@ export async function sendInvite({ to, inviterName, orgName, link }) {
 }
 
 // ── Magic link (login) ────────────────────────────────────────────────────────
-export async function sendMagicLink({ to, name, link }) {
+export async function sendMagicLink({ to, name, link, code }) {
   const html = emailWrap(`
     ${statusLine('LOGIN LINK', '#DFFF00')}
     ${heading('Your login link')}
     ${subheading('Click below to log in to your SchedKit dashboard. This link expires in <strong style="color:#e8e8ea;">15 minutes</strong> and can only be used once.')}
     ${primaryBtn(link, 'Log in to Dashboard →')}
     <br><br>
+    <div style="background:#0a0a0b;border:1px solid #1e1e24;border-radius:10px;padding:18px 20px;margin:0 0 20px;">
+      <p style="margin:0 0 8px;font-size:11px;color:#5a5a6e;text-transform:uppercase;letter-spacing:0.08em;font-family:monospace;">Using the iPhone app?</p>
+      <p style="margin:0 0 10px;font-size:13px;color:#5a5a6e;line-height:1.6;">If the email link opens outside the SchedKit app, enter this code inside the app instead:</p>
+      <div style="font-family:monospace;font-size:28px;font-weight:700;letter-spacing:0.24em;color:#DFFF00;">${code}</div>
+    </div>
     ${note(`Or copy this URL: <a href="${link}" style="color:#5a5a6e;word-break:break-all;">${link}</a>`)}
     <br><br>
     ${note("If you didn't request this, you can safely ignore it.")}

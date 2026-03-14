@@ -464,8 +464,12 @@
   .ceo-live span { font-size: 10px; color: var(--accent); letter-spacing: 0.1em; }
   .ceo-body {
     padding: 20px 22px 26px; font-size: 13px;
-    line-height: 2; min-height: 220px; color: var(--text);
+    line-height: 2; height: 252px; color: var(--text);
+    overflow: auto; overscroll-behavior: contain; position: relative;
+    scrollbar-width: none; -ms-overflow-style: none;
+    mask-image: linear-gradient(to bottom, black 0%, black 84%, transparent 100%);
   }
+  .ceo-body::-webkit-scrollbar { display: none; }
   .ceo-prompt { color: var(--accent); user-select: none; }
   .ceo-cmd { color: var(--text); }
   .ceo-out { color: var(--muted); display: block; padding-left: 4px; }
@@ -1189,6 +1193,11 @@ function openSchedKitDemo() {
   function clearContent() {
     body.innerHTML = '';
     body.appendChild(cursor);
+    body.scrollTop = 0;
+  }
+
+  function scrollTerminal() {
+    body.scrollTop = body.scrollHeight;
   }
 
   function addLine(cls, text) {
@@ -1200,6 +1209,7 @@ function openSchedKitDemo() {
       el.textContent = '';
     }
     body.insertBefore(el, cursor);
+    scrollTerminal();
     return el;
   }
 
@@ -1237,6 +1247,7 @@ function openSchedKitDemo() {
       } else {
         el.textContent = targetText.slice(0, charIdx + 1);
       }
+      scrollTerminal();
       charIdx++;
       const delay = item.type === 'prompt' ? 60 + Math.random()*45 : 18 + Math.random()*12;
       typingTimer = setTimeout(typeNext, delay);

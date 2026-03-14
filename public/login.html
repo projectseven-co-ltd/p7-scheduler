@@ -43,11 +43,16 @@
 <div class="card">
   <div class="logo" style="display:flex;align-items:center;gap:10px;"><svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg> sched<span>kit</span></div>
   <h1>Sign in</h1>
-  <p>Enter your email and we'll send you a magic link. No password needed.</p>
+  <p id="introCopy">Enter your email and we'll send you a magic link. On iPhone, you can also enter the 6-digit code from the email directly in the app.</p>
   <form id="form">
     <label for="email">Email address</label>
-    <input type="email" id="email" placeholder="you@example.com" required autofocus>
+    <input type="email" id="email" placeholder="you@example.com" required autofocus autocomplete="email">
     <button type="submit" id="btn">Send magic link →</button>
+  </form>
+  <form id="codeForm" style="display:none">
+    <label for="code">6-digit code</label>
+    <input type="text" id="code" placeholder="123456" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">
+    <button type="submit" id="codeBtn">Log in with code →</button>
   </form>
   <div class="msg ok" id="ok">✓ Check your email — link expires in 15 minutes.</div>
   <div class="msg err" id="err">Something went wrong. Try again.</div>
@@ -76,7 +81,13 @@
   } catch {}
   document.getElementById('dash-link').style.display = 'block';
 })();
-document.getElementById('form').addEventListener('submit', async e => {
+const form = document.getElementById('form');
+const codeForm = document.getElementById('codeForm');
+const emailInput = document.getElementById('email');
+const codeInput = document.getElementById('code');
+const introCopy = document.getElementById('introCopy');
+
+form.addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('btn');
   const ok = document.getElementById('ok');
@@ -87,16 +98,54 @@ document.getElementById('form').addEventListener('submit', async e => {
     const res = await fetch('/v1/auth/magic', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email: document.getElementById('email').value }),
+      body: JSON.stringify({ email: emailInput.value }),
     });
-    if (res.ok) {
-      ok.style.display = 'block';
-      document.getElementById('form').style.display = 'none';
-    } else throw new Error();
+    if (!res.ok) throw new Error();
+    ok.textContent = '✓ Check your email — use the magic link or enter the 6-digit code below.';
+    ok.style.display = 'block';
+    form.style.display = 'none';
+    codeForm.style.display = 'block';
+    introCopy.textContent = 'Magic link sent. If the link opens outside the app, enter the 6-digit code from the email here.';
+    codeInput.focus();
   } catch {
+    err.textContent = 'Something went wrong. Try again.';
     err.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Send magic link →';
   }
+});
+
+codeForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('codeBtn');
+  const ok = document.getElementById('ok');
+  const err = document.getElementById('err');
+  const code = codeInput.value.replace(/\D/g, '').slice(0, 6);
+  if (code.length !== 6) {
+    err.textContent = 'Enter the full 6-digit code.';
+    err.style.display = 'block';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  ok.style.display = err.style.display = 'none';
+  try {
+    const res = await fetch('/v1/auth/verify-code', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({ email: emailInput.value, code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'invalid_code');
+    window.location.replace(data.destination || '/dashboard');
+  } catch {
+    err.textContent = 'Invalid or expired code. Request a new email and try again.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Log in with code →';
+  }
+});
+
+codeInput.addEventListener('input', () => {
+  codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
 });
 </script>
 </body>

@@ -4,36 +4,34 @@ import { nanoid } from 'nanoid';
 import { addMinutes, addDays } from 'date-fns';
 import { sendMagicLink } from '../lib/mailer.mjs';
 import { requireSession } from '../middleware/session.mjs';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const BASE_DOMAIN = process.env.BASE_DOMAIN || 'schedkit.net';
 
 export default async function authRoutes(fastify) {
 
-  // POST /v1/auth/magic — request magic link
+  // POST /v1/auth/magic — request magic link + code
   fastify.post('/auth/magic', {
     schema: {
       tags: ['Auth'],
       summary: 'Request a magic link login email',
-      description: 'Sends a one-time login link to the email address if it matches a registered user.',
+      description: 'Sends a one-time login link and short login code to the email address if it matches a registered user.',
       body: {
         type: 'object',
         required: ['email'],
         properties: { email: { type: 'string' } },
       },
     },
-  }, async (req, reply) => {
-    const { email } = req.body;
+  }, async (req) => {
+    const email = String(req.body?.email || '').toLowerCase().trim();
+    if (!email) return { ok: true };
 
-    const result = await db.find(tables.users, `(email,eq,${email.toLowerCase().trim()})`);
+    const result = await db.find(tables.users, `(email,eq,${email})`);
     // Always return 200 — don't leak whether email exists
     if (!result.list?.length) return { ok: true };
 
     const user = result.list[0];
-    const token = nanoid(40);
+    const code = generateLoginCode();
+    const token = `${code}-${nanoid(34)}`;
     const expiresAt = addMinutes(new Date(), 15).toISOString();
 
     await db.create(tables.magic_links, {
@@ -45,9 +43,51 @@ export default async function authRoutes(fastify) {
     });
 
     const link = `https://${BASE_DOMAIN}/v1/auth/verify?token=${token}`;
-    await sendMagicLink({ to: user.email, name: user.name, link });
+    await sendMagicLink({ to: user.email, name: user.name, link, code });
 
     return { ok: true };
+  });
+
+  // POST /v1/auth/verify-code — verify short code inside the PWA/web app
+  fastify.post('/auth/verify-code', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Verify short login code',
+      description: 'Verifies the 6-digit login code sent by email and issues a dashboard session cookie in the current browser/app context.',
+      body: {
+        type: 'object',
+        required: ['email', 'code'],
+        properties: {
+          email: { type: 'string' },
+          code: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const email = String(req.body?.email || '').toLowerCase().trim();
+    const code = String(req.body?.code || '').replace(/\D/g, '').slice(0, 6);
+    if (!email || code.length !== 6) return reply.code(400).send({ ok: false, error: 'invalid_code' });
+
+    const userResult = await db.find(tables.users, `(email,eq,${email})`);
+    if (!userResult.list?.length) return reply.code(400).send({ ok: false, error: 'invalid_code' });
+    const user = userResult.list[0];
+
+    const links = await db.list(tables.magic_links, {
+      where: `(user_id,eq,${user.Id})~and(used,eq,false)`,
+      sort: '-created_at',
+      limit: '10',
+    });
+
+    const match = (links.list || []).find(link => {
+      if (!link?.token || !String(link.token).startsWith(`${code}-`)) return false;
+      if (link.used) return false;
+      if (new Date(link.expires_at) < new Date()) return false;
+      return true;
+    });
+
+    if (!match) return reply.code(400).send({ ok: false, error: 'invalid_code' });
+
+    await consumeLoginAndCreateSession(reply, match, user, { redirect: false });
   });
 
   // GET /v1/auth/verify?token=... — verify magic link, issue session cookie
@@ -58,7 +98,7 @@ export default async function authRoutes(fastify) {
       querystring: { type: 'object', properties: { token: { type: 'string' } } },
     },
   }, async (req, reply) => {
-    const { token } = req.query;
+    const token = String(req.query?.token || '');
     if (!token) return reply.code(400).send('Missing token');
 
     const result = await db.find(tables.magic_links, `(token,eq,${token})`);
@@ -68,26 +108,8 @@ export default async function authRoutes(fastify) {
     if (link.used) return renderError(reply, 'This link has already been used.');
     if (new Date(link.expires_at) < new Date()) return renderError(reply, 'This link has expired. Please request a new one.');
 
-    // Mark used
-    await db.update(tables.magic_links, link.Id, { used: true });
-
-    // Create session (30 days)
-    const sessionToken = nanoid(48);
-    const sessionExpiry = addDays(new Date(), 30).toISOString();
-    await db.create(tables.sessions, {
-      token: sessionToken,
-      user_id: String(link.user_id),
-      expires_at: sessionExpiry,
-      created_at: new Date().toISOString(),
-    });
-
-    // Fetch user to check if onboarding needed
     const user = await db.get(tables.users, link.user_id);
-    const destination = (!user?.name) ? '/onboarding' : '/dashboard';
-
-    reply
-      .header('Set-Cookie', `sk_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}; Secure`)
-      .redirect(destination);
+    await consumeLoginAndCreateSession(reply, link, user, { redirect: true });
   });
 
   // POST /v1/auth/logout
@@ -144,7 +166,7 @@ export default async function authRoutes(fastify) {
       security: [{ cookieAuth: [] }],
     },
     preHandler: requireSession
-  }, async (req, reply) => {
+  }, async (req) => {
     const { name, email, timezone, ntfy_topic } = req.body || {};
     const updates = {
       ...(name && { name }),
@@ -163,18 +185,42 @@ export default async function authRoutes(fastify) {
   });
 }
 
+function generateLoginCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+async function consumeLoginAndCreateSession(reply, link, user, { redirect }) {
+  await db.update(tables.magic_links, link.Id, { used: true });
+
+  const sessionToken = nanoid(48);
+  const sessionExpiry = addDays(new Date(), 30).toISOString();
+  await db.create(tables.sessions, {
+    token: sessionToken,
+    user_id: String(link.user_id),
+    expires_at: sessionExpiry,
+    created_at: new Date().toISOString(),
+  });
+
+  const destination = (!user?.name) ? '/onboarding' : '/dashboard';
+  reply.header('Set-Cookie', `sk_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}; Secure`);
+
+  if (redirect) return reply.redirect(destination);
+  return reply.send({ ok: true, destination });
+}
+
 function renderError(reply, message) {
   return reply.code(400).type('text/html').send(`<!DOCTYPE html>
 <html><head><title>SchedKit</title>
 <style>
   body{background:#0a0a0b;color:#e8e8ea;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-  .box{text-align:center;padding:40px}
+  .box{text-align:center;padding:40px;max-width:480px}
   h2{color:#ff5f5f;margin-bottom:12px}
-  p{color:#5a5a6e;margin-bottom:24px}
+  p{color:#5a5a6e;margin-bottom:24px;line-height:1.6}
   a{color:#DFFF00;text-decoration:none}
 </style></head><body>
 <div class="box">
   <h2>⚠️ ${message}</h2>
+  <p>If you're using the iPhone app, go back to SchedKit and enter the 6-digit code from your email instead.</p>
   <a href="/login">← Back to login</a>
 </div>
 </body></html>`);
