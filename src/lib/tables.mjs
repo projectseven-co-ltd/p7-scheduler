@@ -11,3 +11,4 @@ tables.tickets = 'mh3shq07jve4boh';
 tables.ticket_responders = 'mvmka9czpxr135k';
 tables.ticket_replies = 'mrnbdc0zi78ki2l';
 tables.pushSubscriptions = 'mbvs3axseplv86g';
+tables.signals = 'mczpstui6uw1n6z';
