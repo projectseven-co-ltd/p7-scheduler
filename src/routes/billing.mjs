@@ -60,8 +60,8 @@ export default async function billingRoutes(fastify) {
     }
 
     // Cancel any lingering incomplete subscriptions for this customer/price
-    const existing = await stripe.subscriptions.list({ customer: customerId, status: 'incomplete', limit: 10 });
-    for (const s of existing.data) {
+    const staleSubs = await stripe.subscriptions.list({ customer: customerId, status: 'incomplete', limit: 10 });
+    for (const s of staleSubs.data) {
       if (s.items.data.some(i => i.price.id === priceId)) {
         await stripe.subscriptions.cancel(s.id);
       }
