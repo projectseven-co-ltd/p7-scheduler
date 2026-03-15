@@ -4357,7 +4357,7 @@ document.getElementById('beacon-camera-input').addEventListener('change', async 
       const err = await upRes.json().catch(() => ({}));
       throw new Error(err.error || `Upload ${upRes.status}`);
     }
-    const { signedUrl: imageUrl } = await upRes.json();
+    const { url: imageUrl } = await upRes.json();
 
     const body = {
       type: 'capture',

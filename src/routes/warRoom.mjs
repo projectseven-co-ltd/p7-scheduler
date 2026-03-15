@@ -1237,7 +1237,7 @@ body::after {
         '<div class="map-popup-row">Device <span>' + shortId + '</span></div>' +
         '<div class="map-popup-row">Time <span>' + time + ' UTC</span></div>';
       if (hasImage) {
-        const proxyUrl = '/v1/upload/image?url=' + encodeURIComponent(payload.image_url);
+        const proxyUrl = payload.image_url.startsWith('/') ? payload.image_url : '/v1/upload/image?url=' + encodeURIComponent(payload.image_url);
         html += '<img src="' + proxyUrl + '" style="width:100%;max-width:240px;border-radius:4px;margin-top:8px;cursor:pointer;" onclick="showCaptureLightbox(this.src)">';
       }
       popup.setContent(html);
