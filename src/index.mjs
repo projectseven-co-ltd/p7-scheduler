@@ -36,7 +36,7 @@ import warRoomRoutes from './routes/warRoom.mjs';
 import incidentStatusRoutes from './routes/incidentStatus.mjs';
 import settingsRoutes from './routes/settings.mjs';
 
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({ logger: true, bodyLimit: 10 * 1024 * 1024 }); // 10MB for image captures
 
 await fastify.register(cors, { origin: true });
 await fastify.register(formbody);

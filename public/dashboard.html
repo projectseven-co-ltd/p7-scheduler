@@ -1224,6 +1224,7 @@ async function init() {
   await loadSection('sitrep');
   populateTimezones();
   connectTicketStream();
+  connectSignalStream();
 }
 
 
@@ -1585,6 +1586,20 @@ function sitrepHandleSSE(type, payload) {
   if (type === 'reply.added') {
     sitrepPushFeed('reply', `Reply added — incident #${payload.ticket_id}`, new Date().toISOString());
   }
+  if (type === 'signal.beacon') {
+    const dev = payload.meta ? (JSON.parse(payload.meta||'{}').device_id || 'unknown') : 'unknown';
+    sitrepPushFeed('beacon', `📡 Beacon ping — device ${dev}${payload.lat ? ` · ${Number(payload.lat).toFixed(4)}, ${Number(payload.lng).toFixed(4)}` : ''}`, payload.created_at);
+  }
+  if (type === 'signal.beacon_off') {
+    sitrepPushFeed('beacon', `📡 Beacon stopped — user ${payload.user_id}`, new Date().toISOString());
+  }
+  if (type === 'signal.capture') {
+    const dev = payload.meta ? (JSON.parse(payload.meta||'{}').device_id || 'unknown') : 'unknown';
+    sitrepPushFeed('beacon', `📷 Capture received — device ${dev}`, payload.created_at);
+  }
+  if (type === 'signal.alert') {
+    sitrepPushFeed('alert', `🚨 ALERT — ${payload.note || 'operator triggered'}${payload.lat ? ` · ${Number(payload.lat).toFixed(4)}, ${Number(payload.lng).toFixed(4)}` : ''}`, payload.created_at);
+  }
 }
 
 // ── Kit Config tabs ───────────────────────────────────
@@ -1712,6 +1727,23 @@ let editingTicketId = null;
 let activeTicket = null;
 let ticketRepliesCache = {};
 let ticketStream = null;
+let signalStream = null;
+
+function connectSignalStream() {
+  if (signalStream) return;
+  signalStream = new EventSource('/v1/signals/stream', { withCredentials: true });
+  signalStream.onmessage = (e) => {
+    try {
+      const evt = JSON.parse(e.data);
+      if (evt.type && evt.type !== 'connected') sitrepHandleSSE(evt.type, evt.payload || {});
+    } catch {}
+  };
+  signalStream.onerror = () => {
+    signalStream?.close();
+    signalStream = null;
+    setTimeout(connectSignalStream, 5000);
+  };
+}
 
 function renderPlanTiers() {
   const plan = currentUser?.plan || 'free';
@@ -3645,7 +3677,19 @@ let beaconInterval = null;
 let beaconWatchId = null;
 let beaconLastCoords = null;
 let beaconPanelOpen = false;
+let wakeLock = null;
 const BEACON_INTERVAL_MS = 30000;
+
+// Device ID — stable per device, stored in localStorage
+function getDeviceId() {
+  let id = localStorage.getItem('schedkit-device-id');
+  if (!id) {
+    id = 'dev-' + Math.random().toString(36).slice(2,10) + '-' + Date.now().toString(36);
+    localStorage.setItem('schedkit-device-id', id);
+  }
+  return id;
+}
+const DEVICE_ID = getDeviceId();
 
 function toggleBeaconPanel() {
   beaconPanelOpen = !beaconPanelOpen;
@@ -3669,6 +3713,14 @@ async function startBeacon() {
   beaconActive = true;
   updateBeaconUI();
 
+  // Request Wake Lock — keeps screen on while beaconing (field/car mount use case)
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch {}
+  }
+
   // Start watching position
   beaconWatchId = navigator.geolocation.watchPosition(
     pos => {
@@ -3690,16 +3742,18 @@ function stopBeacon() {
   beaconActive = false;
   if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
   if (beaconWatchId !== null) { navigator.geolocation.clearWatch(beaconWatchId); beaconWatchId = null; }
+  if (wakeLock) { try { wakeLock.release(); } catch {} wakeLock = null; }
   // Notify server
   apiFetch('/v1/signals/beacon', { method: 'DELETE' }).catch(() => {});
   updateBeaconUI();
   document.getElementById('beacon-last-ping').textContent = 'Beacon stopped';
+  sitrepPushFeed('beacon', `📡 Beacon stopped — device ${DEVICE_ID}`);
 }
 
 async function sendBeaconPing() {
   if (!beaconActive) return;
   try {
-    const body = { type: 'beacon' };
+    const body = { type: 'beacon', meta: { device_id: DEVICE_ID } };
     if (beaconLastCoords) {
       body.lat = beaconLastCoords.lat;
       body.lng = beaconLastCoords.lng;
@@ -3725,6 +3779,7 @@ function updateBeaconUI() {
     status.textContent = 'Active — broadcasting every 30s';
     btn.textContent = '■ Stop Beacon';
     btn.classList.remove('off');
+    sitrepPushFeed('beacon', `📡 Beacon started — device ${DEVICE_ID}`);
   } else {
     fab.classList.remove('active');
     dot.classList.remove('active');
@@ -3740,44 +3795,61 @@ function triggerCapture() {
   document.getElementById('beacon-camera-input').click();
 }
 
+// Resize image on canvas before sending — keeps payload under ~200KB
+function resizeImageToDataUrl(file, maxPx = 1280) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 document.getElementById('beacon-camera-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = ''; // reset so same file can fire again
 
   toast('Uploading capture...', 'ok');
-
-  // Convert to base64 and send as signal with note
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
+  try {
+    const dataUrl = await resizeImageToDataUrl(file);
     const body = {
       type: 'capture',
       note: 'Field capture',
-      meta: { filename: file.name, size: file.size, mime: file.type },
+      image_url: dataUrl,
+      meta: { device_id: DEVICE_ID, filename: file.name, mime: file.type },
     };
     if (beaconLastCoords) {
       body.lat = beaconLastCoords.lat;
       body.lng = beaconLastCoords.lng;
       body.accuracy = beaconLastCoords.accuracy;
     }
-    // Store image inline for now (MVP — Phase 2: upload to S3/R2)
-    body.image_url = ev.target.result;
-
     const res = await apiFetch('/v1/signals', { method: 'POST', body: JSON.stringify(body) });
     if (res?.ok) {
-      toast('Capture sent', 'ok');
+      toast('📷 Capture sent', 'ok');
+      sitrepPushFeed('beacon', `📷 Capture sent — device ${DEVICE_ID}`);
     } else {
       toast('Capture failed', 'error');
     }
-  };
-  reader.readAsDataURL(file);
-
-  // Reset input so same file can be selected again
-  e.target.value = '';
+  } catch (err) {
+    console.error('Capture error:', err);
+    toast('Capture failed — ' + (err.message || 'unknown error'), 'error');
+  }
 });
 
 async function sendAlertSignal() {
   const note = prompt('Alert message (optional):') ?? '';
-  const body = { type: 'alert', note: note || 'ALERT — operator triggered' };
+  const body = { type: 'alert', note: note || 'ALERT — operator triggered', meta: { device_id: DEVICE_ID } };
   if (beaconLastCoords) {
     body.lat = beaconLastCoords.lat;
     body.lng = beaconLastCoords.lng;
@@ -3786,10 +3858,18 @@ async function sendAlertSignal() {
   const res = await apiFetch('/v1/signals', { method: 'POST', body: JSON.stringify(body) });
   if (res?.ok) {
     toast('🚨 Alert signal sent', 'error');
+    sitrepPushFeed('alert', `🚨 ALERT from device ${DEVICE_ID}${note ? ': ' + note : ''}`);
   } else {
     toast('Failed to send alert', 'error');
   }
 }
+
+// Re-acquire wake lock if page visibility changes while beacon is running
+document.addEventListener('visibilitychange', async () => {
+  if (beaconActive && document.visibilityState === 'visible' && !wakeLock && 'wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch {}
+  }
+});
 
 // Stop beacon on page unload
 window.addEventListener('beforeunload', () => {
