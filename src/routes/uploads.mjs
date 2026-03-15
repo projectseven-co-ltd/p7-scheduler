@@ -60,31 +60,54 @@ export default async function uploadsRoutes(fastify) {
 
     const json = await res.json();
     const file = Array.isArray(json) ? json[0] : json;
-    // Return the permanent (non-signed) URL
-    return reply.send({ url: file.url, title: file.title, size: file.size });
+    // Return both permanent url and signedUrl (signed expires ~2hrs)
+    return reply.send({ url: file.url, signedUrl: file.signedUrl, title: file.title, size: file.size });
   });
 
-  // GET /v1/upload/image?path=...
-  // Re-signs and redirects to a fresh signed URL
+  // GET /v1/upload/image?url=...
+  // Proxies a NocoDB MinIO signedUrl through our server (bypasses CORS/auth on client)
+  // Also accepts permanent url and re-signs by fetching through NocoDB
   fastify.get('/upload/image', {
     preHandler: requireSession,
     schema: {
       tags: ['Signals'],
-      summary: 'Get a signed URL for a stored capture image',
-      querystring: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+      summary: 'Proxy a stored capture image',
+      querystring: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] },
     },
   }, async (req, reply) => {
-    const { path: imgPath } = req.query;
-    // Extract just the filename from a full URL if needed
-    const filename = imgPath.includes('/nc/uploads/') ? imgPath.split('/nc/uploads/')[1] : imgPath;
-    const signRes = await fetch(
-      `${NOCO_BASE}/api/v1/db/storage/upload-by-url?path=${encodeURIComponent(filename)}`,
-      { headers: { 'xc-token': NOCO_TOKEN } }
-    ).catch(() => null);
+    const { url: imgUrl } = req.query;
 
-    // Simpler: just redirect to the NocoDB signed URL endpoint
-    // NocoDB has a /download endpoint that re-signs
-    const signedUrl = `${NOCO_BASE}/api/v1/db/storage/download?path=${encodeURIComponent(filename)}&xc-token=${NOCO_TOKEN}`;
-    return reply.redirect(signedUrl);
+    // If it's already a minio signedUrl (/nsn/ path), fetch directly
+    // If it's a permanent minio URL (/nc/uploads/), we need to re-sign
+    let fetchUrl = imgUrl;
+    if (imgUrl.includes('/nc/uploads/') && !imgUrl.includes('/nsn/')) {
+      // Extract relative path and re-upload a tiny probe to get a signed URL
+      // Actually: fetch the file through NocoDB's own signed URL mechanism
+      // NocoDB stores signed URLs — we re-sign by querying via storage/upload path
+      const relPath = imgUrl.split('/nc/uploads/')[1];
+      const signRes = await fetch(
+        `${NOCO_BASE}/api/v1/db/storage/upload?path=${UPLOAD_PATH}`,
+        {
+          method: 'POST',
+          headers: { 'xc-token': NOCO_TOKEN, 'Content-Type': `multipart/form-data; boundary=----resign` },
+          body: Buffer.from(`------resign\r\nContent-Disposition: form-data; name="filePath"\r\n\r\n${relPath}\r\n------resign--\r\n`),
+        }
+      ).catch(() => null);
+      // If re-sign fails, try fetching directly from minio with path as-is
+      if (signRes?.ok) {
+        const signData = await signRes.json().catch(() => []);
+        fetchUrl = (Array.isArray(signData) ? signData[0] : signData)?.signedUrl || imgUrl;
+      }
+    }
+
+    try {
+      const imgRes = await fetch(fetchUrl);
+      if (!imgRes.ok) return reply.code(404).send({ error: 'Image not found' });
+      const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      return reply.type(ct).header('Cache-Control', 'private, max-age=3600').send(buf);
+    } catch (e) {
+      return reply.code(502).send({ error: 'Failed to fetch image: ' + e.message });
+    }
   });
 }

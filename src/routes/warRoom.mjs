@@ -1233,11 +1233,12 @@ body::after {
     const popup = L.popup({ maxWidth: 260 });
     const m = L.marker([+payload.lat, +payload.lng], { icon }).addTo(leafletMap);
     m.on('click', function() {
-      let html = '<div class="map-popup-title" style="color:#a78bfa">\u{1F4F7} Capture</div>' +
+      let html = '<div class="map-popup-title" style="color:#a78bfa">[▲] Capture</div>' +
         '<div class="map-popup-row">Device <span>' + shortId + '</span></div>' +
         '<div class="map-popup-row">Time <span>' + time + ' UTC</span></div>';
       if (hasImage) {
-        html += '<img src="' + payload.image_url + '" style="width:100%;max-width:240px;border-radius:4px;margin-top:8px;cursor:pointer;" onclick="window.open(this.src)">';
+        const proxyUrl = '/v1/upload/image?url=' + encodeURIComponent(payload.image_url);
+        html += '<img src="' + proxyUrl + '" style="width:100%;max-width:240px;border-radius:4px;margin-top:8px;cursor:pointer;" onclick="showCaptureLightbox(this.src)">';
       }
       popup.setContent(html);
       m.bindPopup(popup).openPopup();
@@ -1354,6 +1355,30 @@ if ('serviceWorker' in navigator) {
     b.removeAttribute('onclick');
   });
 })();
+</script>
+
+<!-- Capture lightbox -->
+<div id="capture-lightbox" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);backdrop-filter:blur(6px);align-items:center;justify-content:center;flex-direction:column;gap:12px;" onclick="hideCaptureLightbox()">
+  <div style="position:absolute;top:16px;right:20px;font-family:'Fira Code',monospace;font-size:13px;color:#5a5a6e;cursor:pointer;" onclick="hideCaptureLightbox()">[×] close</div>
+  <img id="capture-lightbox-img" src="" style="max-width:90vw;max-height:82vh;border-radius:6px;border:1px solid rgba(167,139,250,0.3);object-fit:contain;" onclick="event.stopPropagation()">
+  <div id="capture-lightbox-meta" style="font-family:'Fira Code',monospace;font-size:11px;color:#5a5a6e;letter-spacing:0.04em;"></div>
+</div>
+<script>
+function showCaptureLightbox(src, meta) {
+  const lb = document.getElementById('capture-lightbox');
+  const img = document.getElementById('capture-lightbox-img');
+  const metaEl = document.getElementById('capture-lightbox-meta');
+  img.src = src;
+  metaEl.textContent = meta || '';
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function hideCaptureLightbox() {
+  document.getElementById('capture-lightbox').style.display = 'none';
+  document.getElementById('capture-lightbox-img').src = '';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCaptureLightbox(); });
 </script>
 </body>
 </html>`;
