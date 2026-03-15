@@ -107,7 +107,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
   background:none;width:100%;text-align:left;text-decoration:none;
 }
 .nav-item:hover{background:var(--surface2);color:var(--text)}
-.nav-item.active{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+.nav-item.active{background:rgba(255,95,95,0.08);color:#ff5f5f;border:1px solid rgba(255,95,95,0.25)}
 .nav-icon{font-size:11px;width:28px;text-align:center;font-family:var(--font-mono);letter-spacing:0.05em;color:var(--muted)}
 .sidebar-footer{padding:16px 10px;border-top:1px solid var(--border)}
 .user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--surface2)}
@@ -251,7 +251,7 @@ tr:hover td{background:var(--surface2)}
 .sitrep-stat-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px}
 .sitrep-stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.2;font-family:var(--font-mono);letter-spacing:0.05em}
 .sitrep-lower{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.sitrep-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.sitrep-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}.sitrep-panel.live{border-color:rgba(255,95,95,0.3)}
 .sitrep-panel-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .sitrep-panel-head h3{font-size:11px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0}
 .sitrep-panel-body{padding:0;max-height:320px;overflow-y:auto}
@@ -278,8 +278,8 @@ tr:hover td{background:var(--surface2)}
 .nextup-time{font-family:var(--font-mono);font-size:11px;color:var(--accent);min-width:72px;white-space:nowrap}
 .nextup-name{font-size:13px;font-weight:600;color:var(--text)}
 .nextup-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
-.sitrep-status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;font-size:11px;font-family:var(--font-mono);color:var(--muted)}
-.sitrep-status-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse-green 2s infinite}
+.sitrep-status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface2);border:1px solid rgba(255,95,95,0.25);border-radius:10px;margin-bottom:20px;font-size:11px;font-family:var(--font-mono);color:var(--muted)}
+.sitrep-status-dot{width:7px;height:7px;border-radius:50%;background:#ff5f5f;animation:pulse-red 2s infinite}
 @keyframes pulse-green{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* PLACEHOLDER sections */
@@ -575,10 +575,10 @@ tr:hover td{background:var(--surface2)}
             <div class="sitrep-feed-empty">Loading assignments...</div>
           </div>
         </div>
-        <div class="sitrep-panel">
+        <div class="sitrep-panel live">
           <div class="sitrep-panel-head">
             <h3>Activity Feed</h3>
-            <span style="font-size:11px;font-family:var(--font-mono);color:var(--accent)" id="sitrep-feed-live">● LIVE</span>
+            <span style="font-size:11px;font-family:var(--font-mono);color:#ff5f5f;animation:pulse-red 2s infinite" id="sitrep-feed-live">● LIVE</span>
           </div>
           <div class="sitrep-panel-body" id="sitrep-activity-feed">
             <div class="sitrep-feed-empty">Waiting for activity...</div>
