@@ -2736,9 +2736,9 @@ const planConfig = {
 };
 
 function openSignup(plan) {
-  // Paid plans — try checkout directly if logged in, else send to dashboard login first
+  // Paid plans — send to login with redirect back to upgrade flow
   if (plan === 'starter' || plan === 'agency') {
-    window.location.href = '/dashboard?upgrade=' + plan;
+    window.location.href = '/login?next=' + encodeURIComponent('/dashboard?upgrade=' + plan);
     return;
   }
 

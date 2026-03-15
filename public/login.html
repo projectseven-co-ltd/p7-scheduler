@@ -77,11 +77,12 @@
 <button class="lights-btn" id="lightsBtn"><span>[◑]</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
 <div id="lightsFlicker"></div>
 <script>
-// If already have a valid session, redirect to dashboard
+// If already have a valid session, redirect to destination
+const _nextUrl = new URLSearchParams(window.location.search).get('next') || '/dashboard';
 (async () => {
   try {
     const res = await fetch('/v1/auth/me', { credentials: 'include' });
-    if (res.ok) { window.location.replace('/dashboard'); return; }
+    if (res.ok) { window.location.replace(_nextUrl); return; }
   } catch {}
   document.getElementById('dash-link').style.display = 'block';
 })();
@@ -140,7 +141,7 @@ codeForm.addEventListener('submit', async e => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'invalid_code');
-    window.location.replace(data.destination || '/dashboard');
+    window.location.replace(data.destination || _nextUrl);
   } catch {
     err.textContent = 'Invalid or expired code. Request a new email and try again.';
     err.style.display = 'block';
