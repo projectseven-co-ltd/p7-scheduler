@@ -15,13 +15,13 @@ export default async function billingRoutes(fastify) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  // POST /v1/billing/checkout — create Stripe Checkout session
+  // POST /v1/billing/checkout — create Stripe Embedded Checkout session
   fastify.post('/billing/checkout', {
     preHandler: requireSession,
     schema: {
       tags: ['Billing'],
-      summary: 'Create Stripe Checkout session',
-      description: 'Creates a Stripe Checkout session for the given plan. Returns a redirect URL.',
+      summary: 'Create Stripe Embedded Checkout session',
+      description: 'Creates a Stripe Checkout session in embedded mode. Returns a clientSecret for rendering the Stripe Embedded Checkout form directly on the page.',
       body: {
         type: 'object',
         required: ['plan'],
@@ -29,7 +29,7 @@ export default async function billingRoutes(fastify) {
           plan: { type: 'string', enum: ['starter', 'agency'], description: 'Plan to upgrade to' },
         },
       },
-      response: { 200: { type: 'object', properties: { url: { type: 'string' } } } },
+      response: { 200: { type: 'object', properties: { clientSecret: { type: 'string' } } } },
     },
   }, async (req, reply) => {
     const { plan } = req.body;
@@ -38,16 +38,16 @@ export default async function billingRoutes(fastify) {
 
     const user = req.user;
     const session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: user.email,
       metadata: { user_id: String(user.Id), plan },
-      success_url: `https://schedkit.net/dashboard?billing=success&plan=${plan}`,
-      cancel_url: `https://schedkit.net/dashboard?billing=cancelled`,
+      return_url: `https://schedkit.net/dashboard?billing=success&plan=${plan}`,
     });
 
-    return { url: session.url };
+    return { clientSecret: session.client_secret };
   });
 
   // GET /v1/billing/portal — Stripe Customer Portal (manage/cancel subscription)

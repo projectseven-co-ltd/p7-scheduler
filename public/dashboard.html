@@ -1297,9 +1297,7 @@ async function init() {
   }
   if (upgradePlan && (upgradePlan === 'starter' || upgradePlan === 'agency')) {
     history.replaceState({}, '', '/dashboard');
-    toast('[~] Redirecting to checkout...', 'ok');
-    const res = await apiFetch('/v1/billing/checkout', { method: 'POST', body: JSON.stringify({ plan: upgradePlan }) });
-    if (res?.ok) { const d = await res.json(); if (d.url) window.location.href = d.url; }
+    openBillingModal(upgradePlan);
   }
 
   await loadSection('sitrep');
@@ -1394,7 +1392,7 @@ async function apiFetch(path, opts = {}) {
     try {
       const body = await res.clone().json();
       if (body.upgrade_url) {
-        toast(`${body.error} <a href="${body.upgrade_url}" target="_blank" style="color:var(--accent);text-decoration:underline">Upgrade →</a>`, 'err', 6000);
+        toast(`${body.error} — <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="openBillingModal('agency')">Upgrade →</span>`, 'err', 6000);
       } else {
         toast(body.error || 'You don\'t have permission to do that', 'err');
       }
@@ -2267,7 +2265,7 @@ async function saveEventType() {
   } else {
     const err = await res.json().catch(() => ({}));
     if (err.upgrade_url) {
-      toast(`${err.error} <a href="${err.upgrade_url}" target="_blank" style="color:var(--accent);text-decoration:underline">Upgrade →</a>`, 'err', 6000);
+      toast(`${err.error} — <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="openBillingModal('agency')">Upgrade →</span>`, 'err', 6000);
     } else {
       toast(err.error || err.message || `Save failed (${res.status})`, 'err');
     }
@@ -4432,6 +4430,83 @@ document.addEventListener('visibilitychange', async () => {
 // Stop beacon on page unload
 window.addEventListener('beforeunload', () => {
   if (beaconActive) stopBeacon();
+});
+</script>
+
+<!-- ── BILLING MODAL ──────────────────────────────────────── -->
+<div id="billing-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div id="billing-card" style="background:#111114;border:1px solid rgba(223,255,0,0.25);border-radius:16px;width:100%;max-width:520px;margin:16px;overflow:hidden;display:flex;flex-direction:column;">
+    <!-- header -->
+    <div style="padding:18px 20px 14px;border-bottom:1px solid #1e1e24;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Fira Code',monospace;font-size:13px;color:#DFFF00;">
+        <span id="billing-modal-sigil">[★]</span> <span id="billing-modal-title">Upgrade Plan</span>
+      </div>
+      <button onclick="closeBillingModal()" style="background:none;border:none;color:#5a5a6e;font-family:'Fira Code',monospace;font-size:16px;cursor:pointer;padding:0 4px;">[×]</button>
+    </div>
+    <!-- plan summary -->
+    <div id="billing-plan-summary" style="padding:14px 20px 0;font-family:'Fira Code',monospace;font-size:11px;color:#5a5a6e;"></div>
+    <!-- stripe form -->
+    <div id="billing-stripe-container" style="padding:16px 20px 20px;">
+      <div id="checkout" style="min-height:200px;"></div>
+      <div id="billing-loading" style="text-align:center;padding:40px 0;font-family:'Fira Code',monospace;font-size:12px;color:#5a5a6e;">[~] Connecting to payment processor...</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+const STRIPE_PK = 'pk_test_51SJT7Y3LrZftF9HcSg9r1PEyE049elN93yYwR70mhek4lR1t5HyVExuivcm2774QRzJkEVvvGGjLeRHfqOMZIqBL007UxmEM53';
+let _stripe = null;
+let _checkoutInstance = null;
+
+const PLAN_META = {
+  starter: { label: 'Starter', price: '$29/mo', desc: '10 event types · Priority support · Full API access', sigil: '[~]' },
+  agency:  { label: 'Agency',  price: '$99/mo', desc: 'Unlimited event types · 1 org · 5 teams · 25 members/team', sigil: '[★]' },
+};
+
+async function openBillingModal(plan) {
+  const meta = PLAN_META[plan];
+  if (!meta) return;
+
+  // Show modal
+  const modal = document.getElementById('billing-modal');
+  modal.style.display = 'flex';
+  document.getElementById('billing-modal-sigil').textContent = meta.sigil;
+  document.getElementById('billing-modal-title').textContent = `Upgrade to ${meta.label}`;
+  document.getElementById('billing-plan-summary').innerHTML =
+    `<span style="color:#DFFF00">${meta.label}</span> &nbsp;·&nbsp; ${meta.price} &nbsp;·&nbsp; ${meta.desc}`;
+  document.getElementById('billing-loading').style.display = 'block';
+  document.getElementById('checkout').style.display = 'none';
+  document.getElementById('checkout').innerHTML = '';
+
+  // Get clientSecret
+  try {
+    const res = await apiFetch('/v1/billing/checkout', { method: 'POST', body: JSON.stringify({ plan }) });
+    if (!res?.ok) { toast('[!] Failed to start checkout', 'err'); closeBillingModal(); return; }
+    const { clientSecret } = await res.json();
+
+    if (!_stripe) _stripe = Stripe(STRIPE_PK);
+    if (_checkoutInstance) { _checkoutInstance.destroy(); _checkoutInstance = null; }
+
+    document.getElementById('billing-loading').style.display = 'none';
+    document.getElementById('checkout').style.display = 'block';
+
+    _checkoutInstance = await _stripe.initEmbeddedCheckout({ clientSecret });
+    _checkoutInstance.mount('#checkout');
+  } catch(e) {
+    toast('[!] Checkout error: ' + e.message, 'err');
+    closeBillingModal();
+  }
+}
+
+function closeBillingModal() {
+  document.getElementById('billing-modal').style.display = 'none';
+  if (_checkoutInstance) { _checkoutInstance.destroy(); _checkoutInstance = null; }
+}
+
+// Close on backdrop click
+document.getElementById('billing-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('billing-modal')) closeBillingModal();
 });
 </script>
 </body>
