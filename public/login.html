@@ -77,16 +77,6 @@
 <button class="lights-btn" id="lightsBtn"><span>[◑]</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
 <div id="lightsFlicker"></div>
 <script>
-(function(){
-  const btn=document.getElementById('lightsBtn'),label=document.getElementById('lightsBtnLabel'),flicker=document.getElementById('lightsFlicker');
-  let lights=localStorage.getItem('p7-lights')==='1'||(localStorage.getItem('p7-lights')===null&&window.matchMedia?.('(prefers-color-scheme: light)').matches);
-  function applyTheme(on){document.documentElement.setAttribute('data-lights',on?'on':'off');if(label)label.textContent=on?'LIGHTS OFF':'LIGHTS ON';}
-  function flickerOn(cb){let i=0,f=flicker,fl=[80,60,100,50,120,40,200];function s(){f.style.background=i%2===0?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)';i++;if(i<fl.length)setTimeout(s,fl[i-1]);else{f.style.background='rgba(255,255,230,0)';cb();}}s();}
-  applyTheme(lights);
-  if(btn)btn.addEventListener('click',function(){localStorage.setItem('p7-lights-manual','1');if(!lights){flickerOn(()=>{lights=true;localStorage.setItem('p7-lights','1');applyTheme(true);});}else{lights=false;localStorage.setItem('p7-lights','0');applyTheme(false);}});
-})();
-</script>
-<script>
 // If already have a valid session, redirect to dashboard
 (async () => {
   try {

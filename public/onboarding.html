@@ -65,71 +65,13 @@
 <button class="lights-btn" id="lightsBtn"><span>[◑]</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
 <div id="lightsFlicker"></div>
 <script>
-(function(){
-  const btn=document.getElementById('lightsBtn'),label=document.getElementById('lightsBtnLabel'),flicker=document.getElementById('lightsFlicker');
-  let lights=localStorage.getItem('p7-lights')==='1'||(localStorage.getItem('p7-lights')===null&&window.matchMedia?.('(prefers-color-scheme: light)').matches);
-  function applyTheme(on){document.documentElement.setAttribute('data-lights',on?'on':'off');if(label)label.textContent=on?'LIGHTS OFF':'LIGHTS ON';}
-  function flickerOn(cb){let i=0,f=flicker,fl=[80,60,100,50,120,40,200];function s(){f.style.background=i%2===0?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)';i++;if(i<fl.length)setTimeout(s,fl[i-1]);else{f.style.background='rgba(255,255,230,0)';cb();}}s();}
-  applyTheme(lights);
-  if(btn)btn.addEventListener('click',function(){if(!lights){flickerOn(()=>{lights=true;localStorage.setItem('p7-lights','1');applyTheme(true);});}else{lights=false;localStorage.setItem('p7-lights','0');applyTheme(false);}});
-})();
-
-// Populate timezones
-const tzSelect = document.getElementById('timezone');
-const tzList = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC','America/Chicago','America/New_York','America/Los_Angeles','Europe/London','Europe/Paris','Asia/Tokyo'];
-const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-tzList.forEach(tz => {
-  const opt = document.createElement('option');
-  opt.value = opt.textContent = tz;
-  if (tz === userTz) opt.selected = true;
-  tzSelect.appendChild(opt);
-});
-
-document.getElementById('form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const btn = document.getElementById('btn');
-  const err = document.getElementById('err');
-  const name = document.getElementById('name').value.trim();
-  const timezone = document.getElementById('timezone').value;
-  if (!name) { err.textContent = 'Name is required'; err.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Saving...';
-  err.style.display = 'none';
-  try {
-    const res = await fetch('/v1/auth/me', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ name, timezone }),
-    });
-    if (res.ok) {
-      window.location.replace('/dashboard');
-    } else {
-      const d = await res.json().catch(() => ({}));
-      err.textContent = d.error || 'Something went wrong';
-      err.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Get started →';
-    }
-  } catch {
-    err.textContent = 'Network error. Try again.';
-    err.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Get started →';
-  }
-});
-</script>
-
-
-
-  <script>
-  // Tactical cycle (click): dark→nite→nvg→dark (NVG-safe, never passes through day)
-  // Day mode (long-press 500ms): toggle day — desk use only
   (function(){
     const TACTICAL=['dark','nite','nvg'];
     const MLABELS={dark:'NITE',day:'DARK',nite:'NVG',nvg:'DARK'};
     const MSIGILS={dark:'[◑]',day:'[☀]',nite:'[▌]',nvg:'[◈]'};
     let stored=localStorage.getItem('p7-display-mode')||'dark';
     if(stored==='off'||stored==='on')stored=stored==='on'?'day':'dark';
-    let mode=['dark','day','nite','nvg'].includes(stored)?stored:'dark';
-    let _preDay='dark';
+    let mode=['dark','day','nite','nvg'].includes(stored)?stored:'dark',_preDay='dark';
     function applyMode(m){
       mode=m;document.documentElement.setAttribute('data-lights',m);
       localStorage.setItem('p7-display-mode',m);
