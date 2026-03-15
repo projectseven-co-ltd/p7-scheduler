@@ -4434,21 +4434,75 @@ window.addEventListener('beforeunload', () => {
 </script>
 
 <!-- ── BILLING MODAL ──────────────────────────────────────── -->
-<div id="billing-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div id="billing-card" style="background:#111114;border:1px solid rgba(223,255,0,0.25);border-radius:16px;width:100%;max-width:520px;margin:16px;overflow:hidden;display:flex;flex-direction:column;">
+<style>
+#billing-modal { display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); align-items:flex-start; justify-content:center; overflow-y:auto; padding:24px 16px; }
+#billing-card { background:#111114; border:1px solid rgba(223,255,0,0.25); border-radius:16px; width:100%; max-width:480px; margin:auto; display:flex; flex-direction:column; }
+.billing-header { padding:18px 20px 14px; border-bottom:1px solid #1e1e24; display:flex; align-items:center; justify-content:space-between; }
+.billing-sigil { font-family:'Fira Code',monospace; font-size:13px; color:#DFFF00; }
+.billing-close { background:none; border:none; color:#5a5a6e; font-family:'Fira Code',monospace; font-size:16px; cursor:pointer; padding:0 4px; line-height:1; }
+.billing-close:hover { color:#e8e8ea; }
+.billing-summary { padding:14px 20px 0; font-family:'Fira Code',monospace; font-size:11px; color:#5a5a6e; line-height:1.6; }
+.billing-summary strong { color:#DFFF00; }
+.billing-features { padding:12px 20px 0; display:flex; flex-direction:column; gap:4px; }
+.billing-feature { font-family:'Fira Code',monospace; font-size:11px; color:#5a5a6e; }
+.billing-feature::before { content:'[+] '; color:#DFFF00; }
+.billing-divider { border:none; border-top:1px solid #1e1e24; margin:14px 0 0; }
+.billing-form-wrap { padding:16px 20px 20px; display:flex; flex-direction:column; gap:14px; }
+.billing-field { display:flex; flex-direction:column; gap:6px; }
+.billing-label { font-family:'Fira Code',monospace; font-size:10px; color:#5a5a6e; text-transform:uppercase; letter-spacing:0.08em; }
+.billing-input { background:#0a0a0b; border:1px solid #1e1e24; border-radius:6px; padding:10px 12px; color:#e8e8ea; font-family:'Fira Code',monospace; font-size:13px; outline:none; transition:border-color 0.15s; }
+.billing-input:focus { border-color:rgba(223,255,0,0.4); }
+.billing-stripe-field { background:#0a0a0b; border:1px solid #1e1e24; border-radius:6px; padding:11px 12px; min-height:42px; transition:border-color 0.15s; }
+.billing-stripe-field.StripeElement--focus { border-color:rgba(223,255,0,0.4); }
+.billing-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.billing-submit { background:#DFFF00; color:#0a0a0b; border:none; border-radius:6px; padding:12px; font-family:'Fira Code',monospace; font-size:13px; font-weight:700; cursor:pointer; width:100%; transition:opacity 0.15s; margin-top:4px; }
+.billing-submit:hover { opacity:0.9; }
+.billing-submit:disabled { opacity:0.4; cursor:not-allowed; }
+.billing-status { font-family:'Fira Code',monospace; font-size:11px; text-align:center; min-height:16px; }
+.billing-status.err { color:#ff5f5f; }
+.billing-status.ok { color:#4ade80; }
+.billing-footer { font-family:'Fira Code',monospace; font-size:10px; color:#3a3a4e; text-align:center; padding:0 20px 16px; }
+#billing-loading-state { text-align:center; padding:40px 0; font-family:'Fira Code',monospace; font-size:12px; color:#5a5a6e; }
+</style>
+
+<div id="billing-modal">
+  <div id="billing-card">
     <!-- header -->
-    <div style="padding:18px 20px 14px;border-bottom:1px solid #1e1e24;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Fira Code',monospace;font-size:13px;color:#DFFF00;">
-        <span id="billing-modal-sigil">[★]</span> <span id="billing-modal-title">Upgrade Plan</span>
-      </div>
-      <button onclick="closeBillingModal()" style="background:none;border:none;color:#5a5a6e;font-family:'Fira Code',monospace;font-size:16px;cursor:pointer;padding:0 4px;">[×]</button>
+    <div class="billing-header">
+      <div class="billing-sigil"><span id="bm-sigil">[★]</span> <span id="bm-title">Upgrade Plan</span></div>
+      <button class="billing-close" onclick="closeBillingModal()">[×]</button>
     </div>
     <!-- plan summary -->
-    <div id="billing-plan-summary" style="padding:14px 20px 0;font-family:'Fira Code',monospace;font-size:11px;color:#5a5a6e;"></div>
-    <!-- stripe form -->
-    <div id="billing-stripe-container" style="padding:16px 20px 20px;">
-      <div id="checkout" style="min-height:200px;"></div>
-      <div id="billing-loading" style="text-align:center;padding:40px 0;font-family:'Fira Code',monospace;font-size:12px;color:#5a5a6e;">[~] Connecting to payment processor...</div>
+    <div class="billing-summary" id="bm-summary"></div>
+    <div class="billing-features" id="bm-features"></div>
+    <hr class="billing-divider">
+    <!-- loading state -->
+    <div id="billing-loading-state">[~] Preparing payment form...</div>
+    <!-- payment form (hidden until ready) -->
+    <div class="billing-form-wrap" id="billing-form-wrap" style="display:none;">
+      <div class="billing-field">
+        <div class="billing-label">Cardholder name</div>
+        <input class="billing-input" id="billing-name" type="text" placeholder="Full name" autocomplete="cc-name">
+      </div>
+      <div class="billing-field">
+        <div class="billing-label">Card number</div>
+        <div class="billing-stripe-field" id="stripe-card-number"></div>
+      </div>
+      <div class="billing-row">
+        <div class="billing-field">
+          <div class="billing-label">Expiry</div>
+          <div class="billing-stripe-field" id="stripe-card-expiry"></div>
+        </div>
+        <div class="billing-field">
+          <div class="billing-label">CVC</div>
+          <div class="billing-stripe-field" id="stripe-card-cvc"></div>
+        </div>
+      </div>
+      <div class="billing-status" id="billing-status"></div>
+      <button class="billing-submit" id="billing-submit-btn" onclick="submitBilling()">
+        <span id="billing-submit-label">[→] Subscribe</span>
+      </button>
+      <div class="billing-footer">Payments secured by Stripe · Cancel anytime in billing portal</div>
     </div>
   </div>
 </div>
@@ -4456,55 +4510,155 @@ window.addEventListener('beforeunload', () => {
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 const STRIPE_PK = 'pk_test_51SJT7Y3LrZftF9HcSg9r1PEyE049elN93yYwR70mhek4lR1t5HyVExuivcm2774QRzJkEVvvGGjLeRHfqOMZIqBL007UxmEM53';
-let _stripe = null;
-let _checkoutInstance = null;
 
 const PLAN_META = {
-  starter: { label: 'Starter', price: '$29/mo', desc: '10 event types · Priority support · Full API access', sigil: '[~]' },
-  agency:  { label: 'Agency',  price: '$99/mo', desc: 'Unlimited event types · 1 org · 5 teams · 25 members/team', sigil: '[★]' },
+  starter: {
+    label: 'Starter', price: '$29/mo', sigil: '[~]',
+    features: ['10 event types', 'Priority support', 'Full API access', 'SchedKit SDK', 'Signals + Beacon'],
+  },
+  agency: {
+    label: 'Agency', price: '$99/mo', sigil: '[★]',
+    features: ['Unlimited event types', '1 org · 5 teams · 25 members/team', 'Team booking pages', 'War Room access', 'Full API + webhook access'],
+  },
+};
+
+let _stripe = null;
+let _elements = null;
+let _cardNumber = null;
+let _cardExpiry = null;
+let _cardCvc = null;
+let _currentPlan = null;
+let _clientSecret = null;
+let _submitting = false;
+
+const STRIPE_ELEMENT_STYLE = {
+  base: {
+    color: '#e8e8ea',
+    fontFamily: '\'Fira Code\', monospace',
+    fontSize: '13px',
+    '::placeholder': { color: '#3a3a4e' },
+  },
+  invalid: { color: '#ff5f5f' },
 };
 
 async function openBillingModal(plan) {
   const meta = PLAN_META[plan];
   if (!meta) return;
+  _currentPlan = plan;
 
-  // Show modal
-  const modal = document.getElementById('billing-modal');
-  modal.style.display = 'flex';
-  document.getElementById('billing-modal-sigil').textContent = meta.sigil;
-  document.getElementById('billing-modal-title').textContent = `Upgrade to ${meta.label}`;
-  document.getElementById('billing-plan-summary').innerHTML =
-    `<span style="color:#DFFF00">${meta.label}</span> &nbsp;·&nbsp; ${meta.price} &nbsp;·&nbsp; ${meta.desc}`;
-  document.getElementById('billing-loading').style.display = 'block';
-  document.getElementById('checkout').style.display = 'none';
-  document.getElementById('checkout').innerHTML = '';
+  // Populate header + summary
+  document.getElementById('bm-sigil').textContent = meta.sigil;
+  document.getElementById('bm-title').textContent = `Upgrade to ${meta.label}`;
+  document.getElementById('bm-summary').innerHTML =
+    `<strong>${meta.label}</strong> &nbsp;·&nbsp; ${meta.price}`;
+  document.getElementById('bm-features').innerHTML =
+    meta.features.map(f => `<div class="billing-feature">${f}</div>`).join('');
+  document.getElementById('billing-submit-label').textContent = `[→] Subscribe — ${meta.price}`;
 
-  // Get clientSecret
+  // Reset
+  document.getElementById('billing-status').textContent = '';
+  document.getElementById('billing-status').className = 'billing-status';
+  document.getElementById('billing-loading-state').style.display = 'block';
+  document.getElementById('billing-form-wrap').style.display = 'none';
+  document.getElementById('billing-modal').style.display = 'flex';
+
   try {
-    const res = await apiFetch('/v1/billing/checkout', { method: 'POST', body: JSON.stringify({ plan }) });
-    if (!res?.ok) { toast('[!] Failed to start checkout', 'err'); closeBillingModal(); return; }
+    // Get subscription clientSecret
+    const res = await apiFetch('/v1/billing/subscribe', { method: 'POST', body: JSON.stringify({ plan }) });
+    if (!res?.ok) {
+      const err = await res.json().catch(() => ({}));
+      setBillingStatus('[!] ' + (err.message || 'Failed to initialize payment'), 'err');
+      return;
+    }
     const { clientSecret } = await res.json();
+    _clientSecret = clientSecret;
 
+    // Init Stripe Elements
     if (!_stripe) _stripe = Stripe(STRIPE_PK);
-    if (_checkoutInstance) { _checkoutInstance.destroy(); _checkoutInstance = null; }
+    if (_elements) { _cardNumber.destroy(); _cardExpiry.destroy(); _cardCvc.destroy(); }
+    _elements = _stripe.elements();
 
-    document.getElementById('billing-loading').style.display = 'none';
-    document.getElementById('checkout').style.display = 'block';
+    _cardNumber = _elements.create('cardNumber', { style: STRIPE_ELEMENT_STYLE, showIcon: false });
+    _cardExpiry = _elements.create('cardExpiry', { style: STRIPE_ELEMENT_STYLE });
+    _cardCvc    = _elements.create('cardCvc',    { style: STRIPE_ELEMENT_STYLE });
 
-    _checkoutInstance = await _stripe.initEmbeddedCheckout({ clientSecret });
-    _checkoutInstance.mount('#checkout');
+    _cardNumber.mount('#stripe-card-number');
+    _cardExpiry.mount('#stripe-card-expiry');
+    _cardCvc.mount('#stripe-card-cvc');
+
+    // Show form
+    document.getElementById('billing-loading-state').style.display = 'none';
+    document.getElementById('billing-form-wrap').style.display = 'flex';
+    document.getElementById('billing-name').focus();
+
   } catch(e) {
-    toast('[!] Checkout error: ' + e.message, 'err');
-    closeBillingModal();
+    setBillingStatus('[!] ' + e.message, 'err');
+    document.getElementById('billing-loading-state').style.display = 'none';
+    document.getElementById('billing-form-wrap').style.display = 'flex';
   }
+}
+
+async function submitBilling() {
+  if (_submitting || !_clientSecret || !_cardNumber) return;
+  _submitting = true;
+  const btn = document.getElementById('billing-submit-btn');
+  const label = document.getElementById('billing-submit-label');
+  btn.disabled = true;
+  label.textContent = '[~] Processing...';
+  setBillingStatus('', '');
+
+  const name = document.getElementById('billing-name').value.trim();
+  if (!name) {
+    setBillingStatus('[!] Please enter cardholder name', 'err');
+    btn.disabled = false;
+    label.textContent = `[→] Subscribe — ${PLAN_META[_currentPlan]?.price || ''}`;
+    _submitting = false;
+    return;
+  }
+
+  const { error, paymentIntent } = await _stripe.confirmCardPayment(_clientSecret, {
+    payment_method: {
+      card: _cardNumber,
+      billing_details: { name },
+    },
+  });
+
+  if (error) {
+    setBillingStatus('[!] ' + error.message, 'err');
+    btn.disabled = false;
+    label.textContent = `[→] Subscribe — ${PLAN_META[_currentPlan]?.price || ''}`;
+    _submitting = false;
+    return;
+  }
+
+  if (paymentIntent.status === 'succeeded') {
+    setBillingStatus('[✓] Payment confirmed — activating plan...', 'ok');
+    setTimeout(() => {
+      closeBillingModal();
+      const planLabel = PLAN_META[_currentPlan]?.label || _currentPlan;
+      toast(`[✓] Upgraded to ${planLabel} — welcome aboard.`, 'ok');
+      // Reload to reflect new plan
+      setTimeout(() => window.location.reload(), 1500);
+    }, 1200);
+  }
+
+  _submitting = false;
+}
+
+function setBillingStatus(msg, type) {
+  const el = document.getElementById('billing-status');
+  el.textContent = msg;
+  el.className = 'billing-status' + (type ? ' ' + type : '');
 }
 
 function closeBillingModal() {
   document.getElementById('billing-modal').style.display = 'none';
-  if (_checkoutInstance) { _checkoutInstance.destroy(); _checkoutInstance = null; }
+  _submitting = false;
+  if (_cardNumber) { _cardNumber.destroy(); _cardExpiry.destroy(); _cardCvc.destroy(); }
+  _elements = null; _cardNumber = null; _cardExpiry = null; _cardCvc = null;
+  _clientSecret = null; _currentPlan = null;
 }
 
-// Close on backdrop click
 document.getElementById('billing-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('billing-modal')) closeBillingModal();
 });
