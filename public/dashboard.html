@@ -3822,6 +3822,56 @@ window.addEventListener('load', () => initPush());
   box-shadow: inset 0 0 30px rgba(223,255,0,0.03);
 }
 #bscr-stop-btn:hover { background: rgba(223,255,0,0.12); border-color: rgba(223,255,0,0.5); }
+
+/* ── BEACON SCREEN: NITE MODE ── */
+[data-lights="nite"] #beacon-screen { background: rgba(20,0,0,0.92); }
+[data-lights="nite"] #bscr-card { background: #080000; }
+[data-lights="nite"] #bscr-card::before {
+  background-image: linear-gradient(rgba(180,20,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(180,20,0,0.04) 1px, transparent 1px);
+}
+[data-lights="nite"] #bscr-card { border-color: rgba(180,20,0,0.2) !important; box-shadow: 0 0 80px rgba(0,0,0,0.9), 0 0 40px rgba(180,20,0,0.05) !important; }
+[data-lights="nite"] #bscr-title { color: #6a1500; }
+[data-lights="nite"] #bscr-title-dot { background: #6a1500; box-shadow: 0 0 6px #6a1500; animation: none; }
+[data-lights="nite"] #bscr-close { color: #4a1000; border-color: rgba(180,20,0,0.2); }
+[data-lights="nite"] #bscr-close:hover { border-color: rgba(180,20,0,0.4); color: #8a2000; }
+[data-lights="nite"] .bscr-radar-ring { stroke: rgba(180,20,0,0.15); }
+[data-lights="nite"] #bscr-radar-sweep { stroke: rgba(180,20,0,0.0); }
+[data-lights="nite"] #bscr-radar-svg { filter: saturate(0.1) brightness(0.4); }
+[data-lights="nite"] #bscr-radar-blip { fill: #8a2000; filter: drop-shadow(0 0 4px #8a2000); }
+[data-lights="nite"] #bscr-crosshair::before,
+[data-lights="nite"] #bscr-crosshair::after { background: rgba(180,20,0,0.3); }
+[data-lights="nite"] #bscr-coords-main { color: #6a1500; }
+[data-lights="nite"] #bscr-coords-sub,
+[data-lights="nite"] #bscr-last-ping { color: #3a0a00; }
+[data-lights="nite"] #bscr-capture-btn { color: #4a1000; border-color: rgba(180,20,0,0.2); }
+[data-lights="nite"] #bscr-alert-btn { color: #6a1500; border-color: rgba(180,20,0,0.3); background: transparent; }
+[data-lights="nite"] #bscr-stop-btn { color: #4a1000; border-color: rgba(180,20,0,0.2); background: transparent; }
+[data-lights="nite"] #bscr-device-id { color: #3a0a00; }
+
+/* ── BEACON SCREEN: NVG MODE ── */
+[data-lights="nvg"] #beacon-screen { background: rgba(0,2,4,0.97); }
+[data-lights="nvg"] #bscr-card { background: #000305; }
+[data-lights="nvg"] #bscr-card::before {
+  background-image: linear-gradient(rgba(30,60,80,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(30,60,80,0.03) 1px, transparent 1px);
+}
+[data-lights="nvg"] #bscr-card { border-color: rgba(30,60,80,0.15) !important; box-shadow: 0 0 80px rgba(0,0,0,0.99) !important; }
+[data-lights="nvg"] #bscr-title { color: #1e3a44; letter-spacing: 0.25em; }
+[data-lights="nvg"] #bscr-title-dot { background: #1e3a44; box-shadow: none; animation: none; }
+[data-lights="nvg"] #bscr-close { color: #1e3a44; border-color: rgba(30,60,80,0.15); }
+[data-lights="nvg"] #bscr-close:hover { border-color: rgba(30,60,80,0.3); color: #2a5a6a; }
+[data-lights="nvg"] .bscr-radar-ring { stroke: rgba(30,60,80,0.12); }
+[data-lights="nvg"] #bscr-radar-svg { filter: saturate(0.05) brightness(0.25); }
+[data-lights="nvg"] #bscr-radar-blip { fill: #2a5a6a; filter: drop-shadow(0 0 2px #1e3a44); }
+[data-lights="nvg"] #bscr-crosshair::before,
+[data-lights="nvg"] #bscr-crosshair::after { background: rgba(30,60,80,0.25); }
+[data-lights="nvg"] #bscr-coords-main { color: #2a5a6a; text-shadow: none; }
+[data-lights="nvg"] #bscr-coords-sub,
+[data-lights="nvg"] #bscr-last-ping { color: #1e3a44; }
+[data-lights="nvg"] #bscr-capture-btn { color: #1e3a44; border-color: rgba(30,60,80,0.2); }
+[data-lights="nvg"] #bscr-alert-btn { color: #1e3a44; border-color: rgba(30,60,80,0.2); background: transparent; }
+[data-lights="nvg"] #bscr-stop-btn { color: #1e3a44; border-color: rgba(30,60,80,0.2); background: transparent; }
+[data-lights="nvg"] #bscr-device-id { color: #0e1e24; }
+[data-lights="nvg"] #bscr-feed { filter: saturate(0.05) brightness(0.4); }
 </style>
 
 <div id="beacon-screen">
