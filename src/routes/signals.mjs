@@ -76,6 +76,27 @@ export default async function signalsRoutes(fastify) {
     let orgId = req.body.org_id || null;
     if (!orgId) orgId = await getPrimaryOrgId(req.user.Id);
 
+    // ── Beacon fast-path: skip DB write, broadcast only ──────────────────
+    // Beacon pings are ephemeral — only the live position matters.
+    // Captures, notes, alerts, and checkins are persisted normally.
+    if (type === 'beacon') {
+      const result = {
+        Id: null,
+        user_id: req.user.Id,
+        org_id: orgId,
+        type: 'beacon',
+        lat: lat ?? null,
+        lng: lng ?? null,
+        accuracy: accuracy ?? null,
+        meta: meta ? JSON.stringify(meta) : null,
+        created_at: new Date().toISOString(),
+        user_name: req.user.name || req.user.email,
+      };
+      if (orgId) broadcastSignal(orgId, { type: 'signal.beacon', payload: result });
+      return reply.code(201).send(result);
+    }
+    // ── End beacon fast-path ──────────────────────────────────────────────
+
     const signal = await db.create(tables.signals, {
       user_id:    req.user.Id,
       org_id:     orgId,
@@ -163,7 +184,8 @@ export default async function signalsRoutes(fastify) {
     schema: { tags: ['Signals'], summary: 'Stop beacon — broadcast beacon_off to org stream' },
   }, async (req) => {
     const orgId = await getPrimaryOrgId(req.user.Id);
-    if (orgId) broadcastSignal(orgId, { type: 'signal.beacon_off', payload: { user_id: req.user.Id, org_id: orgId } });
+    const deviceId = req.body?.device_id || req.query?.device_id || null;
+    if (orgId) broadcastSignal(orgId, { type: 'signal.beacon_off', payload: { user_id: req.user.Id, org_id: orgId, device_id: deviceId } });
     return { ok: true };
   });
 

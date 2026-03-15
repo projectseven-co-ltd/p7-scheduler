@@ -4133,7 +4133,7 @@ function stopBeacon() {
   if (beaconWatchId !== null) { navigator.geolocation.clearWatch(beaconWatchId); beaconWatchId = null; }
   if (wakeLock) { try { wakeLock.release(); } catch {} wakeLock = null; }
   // Notify server
-  apiFetch('/v1/signals/beacon', { method: 'DELETE' }).catch(() => {});
+  apiFetch('/v1/signals/beacon', { method: 'DELETE', body: JSON.stringify({ device_id: DEVICE_ID }) }).catch(() => {});
   updateBeaconUI();
   document.getElementById('beacon-last-ping').textContent = 'Beacon stopped';
   sitrepPushFeed('beacon', `📡 Beacon stopped — device ${DEVICE_ID}`);

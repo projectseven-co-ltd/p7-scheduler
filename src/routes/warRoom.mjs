@@ -1188,37 +1188,66 @@ body::after {
     if (!payload) return;
     let meta = {};
     try { meta = JSON.parse(payload.meta || '{}'); } catch {}
-    const deviceId = meta.device_id || ('user-' + payload.user_id);
+    // device_id can come from meta (beacon pings) or directly on payload (beacon_off)
+    const deviceId = payload.device_id || meta.device_id || ('user-' + payload.user_id);
+    const shortId = deviceId.slice(-8);
 
     if (type === 'signal.beacon') {
       if (payload.lat != null) {
         if (!mapInitialized && beaconMarkers.size === 0) {
           // First beacon — auto-switch to map
           switchTab('map');
-          setTimeout(() => updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, meta.device_id), 400);
+          setTimeout(() => updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, deviceId), 400);
         } else {
-          updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, meta.device_id);
+          updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, deviceId);
         }
       }
-      addFeedItem('beacon', '📡 Beacon · ' + deviceId.slice(-6) + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
+      addFeedItem('beacon', '📡 ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     } else if (type === 'signal.beacon_off') {
       removeBeaconDot(deviceId, payload.user_id);
-      addFeedItem('beacon', '📡 Beacon off · user ' + payload.user_id);
+      addFeedItem('muted', '📡 ' + shortId + ' offline');
     } else if (type === 'signal.alert') {
       if (payload.lat != null && mapInitialized) flashAlert(+payload.lat, +payload.lng, payload.note);
-      addFeedItem('alert', '🚨 ALERT · ' + (payload.note || 'operator triggered'));
+      addFeedItem('alert', '🚨 ALERT · ' + shortId + ' · ' + (payload.note || 'operator triggered'));
     } else if (type === 'signal.capture') {
-      addFeedItem('beacon', '📷 Capture · device ' + deviceId.slice(-6));
+      if (payload.lat != null && mapInitialized) addCapturePin(payload, deviceId);
+      addFeedItem('capture', '📷 Capture · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     } else if (type === 'signal.note') {
-      addFeedItem('beacon', '📝 Note · ' + (payload.note || '').slice(0, 60));
+      addFeedItem('beacon', '📝 ' + shortId + ' · ' + (payload.note || '').slice(0, 60));
     }
+  }
+
+
+  function addCapturePin(payload, deviceId) {
+    if (!leafletMap || payload.lat == null || payload.lng == null) return;
+    const shortId = (deviceId || '').slice(-8);
+    const hasImage = !!(payload.image_url && payload.image_url.length > 0);
+    const icon = L.divIcon({
+      className: '',
+      html: '<div style="width:20px;height:20px;border-radius:4px;background:#8b5cf6;border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 0 8px rgba(139,92,246,0.6);">\u{1F4F7}</div>',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+    const time = new Date().toISOString().slice(11,19);
+    const popup = L.popup({ maxWidth: 260 });
+    const m = L.marker([+payload.lat, +payload.lng], { icon }).addTo(leafletMap);
+    m.on('click', function() {
+      let html = '<div class="map-popup-title" style="color:#a78bfa">\u{1F4F7} Capture</div>' +
+        '<div class="map-popup-row">Device <span>' + shortId + '</span></div>' +
+        '<div class="map-popup-row">Time <span>' + time + ' UTC</span></div>';
+      if (hasImage) {
+        html += '<img src="' + payload.image_url + '" style="width:100%;max-width:240px;border-radius:4px;margin-top:8px;cursor:pointer;" onclick="window.open(this.src,\'_blank\')">';
+      }
+      popup.setContent(html);
+      m.bindPopup(popup).openPopup();
+    });
   }
 
   function addFeedItem(kind, text) {
     const feed = document.getElementById('wr-feed');
     if (!feed) return;
     const now = new Date().toISOString().slice(11,19);
-    const dot = kind === 'alert' ? '#ff5f5f' : kind === 'beacon' ? '#00ffcc' : 'var(--muted)';
+    const dot = kind === 'alert' ? '#ff5f5f' : kind === 'capture' ? '#a78bfa' : kind === 'muted' ? 'var(--muted,#5a5a6e)' : '#00ffcc';
     const item = document.createElement('div');
     item.className = 'sitrep-feed-item';
     item.innerHTML = \`<div class="sitrep-feed-dot" style="background:\${dot}"></div><div style="flex:1"><span style="color:var(--muted);font-family:'Fira Code',monospace;font-size:10px;">\${now} </span><span style="font-size:12px;">\${text}</span></div>\`;
