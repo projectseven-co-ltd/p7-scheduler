@@ -117,35 +117,32 @@ document.getElementById('form').addEventListener('submit', async e => {
 });
 </script>
 
-// 3-way display mode: off / on / nite / nvg
-(function(){
-  const btn = document.getElementById('lightsBtn');
-  const label = document.getElementById('lightsBtnLabel') || document.getElementById('lightsBtnLabelMobile');
-  const MODES = ['off','on','nite','nvg'];
-  const MODE_LABELS = { off:'LIGHTS ON', on:'LIGHTS OFF', nite:'NVG', nvg:'OFF' };
-  const MODE_SIGILS = { off:'[◑]', on:'[◑]', nite:'[▌]', nvg:'[◈]' };
-  let stored = localStorage.getItem('p7-display-mode');
-  if (!stored) {
-    stored = (localStorage.getItem('p7-lights') === '1') ? 'on' :
-             (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches) ? 'on' : 'off';
-  }
-  let mode = MODES.includes(stored) ? stored : 'off';
-  function applyMode(m){
-    mode = m;
-    document.documentElement.setAttribute('data-lights', m);
-    localStorage.setItem('p7-display-mode', m);
-    const allLabels = document.querySelectorAll('#lightsBtnLabel,#lightsBtnLabelMobile');
-    allLabels.forEach(el => el.textContent = MODE_LABELS[m] || 'LIGHTS ON');
-    const allBtns = document.querySelectorAll('.lights-btn');
-    allBtns.forEach(b => {
-      const icon = b.querySelector('span:first-child');
-      if(icon) icon.textContent = MODE_SIGILS[m] || '[◑]';
+
+
+  // Tactical cycle (click): dark→nite→nvg→dark (NVG-safe, never passes through day)
+  // Day mode (long-press 500ms): toggle day — desk use only
+  (function(){
+    const TACTICAL=['dark','nite','nvg'];
+    const MLABELS={dark:'NITE',day:'DARK',nite:'NVG',nvg:'DARK'};
+    const MSIGILS={dark:'[◑]',day:'[☀]',nite:'[▌]',nvg:'[◈]'};
+    let stored=localStorage.getItem('p7-display-mode')||'dark';
+    if(stored==='off'||stored==='on')stored=stored==='on'?'day':'dark';
+    let mode=['dark','day','nite','nvg'].includes(stored)?stored:'dark';
+    let _preDay='dark';
+    function applyMode(m){
+      mode=m;document.documentElement.setAttribute('data-lights',m);
+      localStorage.setItem('p7-display-mode',m);
+      document.querySelectorAll('#lightsBtnLabel,#lightsBtnLabelMobile').forEach(el=>el.textContent=MLABELS[m]||'DARK');
+      document.querySelectorAll('.lights-btn').forEach(b=>{const ic=b.querySelector('span:first-child');if(ic&&!ic.classList.contains('phosphor-dot'))ic.textContent=MSIGILS[m]||'[◑]';});
+    }
+    applyMode(mode);
+    document.querySelectorAll('.lights-btn').forEach(b=>{
+      let _t=null;
+      b.addEventListener('pointerdown',()=>{_t=setTimeout(()=>{_t=null;if(mode==='day')applyMode(_preDay);else{_preDay=mode;applyMode('day');}},500);});
+      b.addEventListener('pointerup',()=>{if(!_t)return;clearTimeout(_t);_t=null;if(mode==='day')applyMode(_preDay);else applyMode(TACTICAL[(TACTICAL.indexOf(mode)+1)%TACTICAL.length]);});
+      b.addEventListener('pointercancel',()=>{clearTimeout(_t);_t=null;});
+      b.addEventListener('contextmenu',e=>e.preventDefault());
     });
-  }
-  applyMode(mode);
-  document.querySelectorAll('.lights-btn').forEach(b => b.addEventListener('click', function(){
-    applyMode(MODES[(MODES.indexOf(mode)+1) % MODES.length]);
-  }));
-})();
+  })();
 </body>
 </html>

@@ -1179,43 +1179,59 @@ tr:hover td{background:var(--surface2)}
   const btn = document.getElementById('lightsBtn');
   const label = document.getElementById('lightsBtnLabel');
   const flicker = document.getElementById('lightsFlicker');
-  // modes: 'off' | 'on' | 'nite' | 'nvg'
-  const MODES = ['off','on','nite','nvg'];
-  const MODE_LABELS = { off:'LIGHTS ON', on:'LIGHTS OFF', nite:'NVG', nvg:'OFF' };
-  const MODE_SIGILS = { off:'[◑]', on:'[◑]', nite:'[▌]', nvg:'[◈]' };
+  // Tactical cycle (click): dark → nite → nvg → dark  (never passes through day — NVG-safe)
+  // Day mode (long-press 500ms): toggle day on/off — desk use only
+  const TACTICAL = ['dark','nite','nvg'];
+  const MODE_LABELS = { dark:'NITE', day:'DARK', nite:'NVG', nvg:'DARK' };
+  const MODE_SIGILS = { dark:'[◑]', day:'[☀]', nite:'[▌]', nvg:'[◈]' };
+  const MODE_TITLES = { dark:'Click: nite mode · Hold: day mode', day:'Click or hold: back to dark', nite:'Click: NVG mode · Hold: day mode', nvg:'Click: dark mode · Hold: day mode' };
   let stored = localStorage.getItem('p7-display-mode');
-  if (!stored) {
-    stored = (localStorage.getItem('p7-lights') === '1') ? 'on' :
-             (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches) ? 'on' : 'off';
-  }
-  let mode = MODES.includes(stored) ? stored : 'off';
+  // migrate old keys
+  if (!stored || stored === 'off') stored = (localStorage.getItem('p7-lights') === '1') ? 'day' : 'dark';
+  if (stored === 'on') stored = 'day';
+  let mode = ['dark','day','nite','nvg'].includes(stored) ? stored : 'dark';
+  let _preDay = 'dark'; // where to return after leaving day
   function applyMode(m){
     mode = m;
     document.documentElement.setAttribute('data-lights', m);
     localStorage.setItem('p7-display-mode', m);
-    if(label) label.textContent = MODE_LABELS[m] || 'LIGHTS ON';
+    if(label) label.textContent = MODE_LABELS[m] || 'DARK';
     const icon = btn?.querySelector('span:first-child');
     if(icon) icon.textContent = MODE_SIGILS[m] || '[◑]';
-    if(btn) btn.title = {off:'Switch to day mode',on:'Switch to nite mode',nite:'Switch to NVG mode',nvg:'Switch off modes'}[m]||'';
+    if(btn) btn.title = MODE_TITLES[m] || '';
   }
   function flickerOn(cb){
     let f = flicker; if(!f) return cb();
     const flashes = [80,60,100,50,120,40,200];
     let i=0;
     function step(){
-      f.style.background = (i%2===0) ? 'rgba(255,255,230,0.18)' : 'rgba(255,255,230,0)';
-      i++;
-      if(i < flashes.length) setTimeout(step, flashes[i-1]);
+      f.style.background=(i%2===0)?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)';
+      i++; if(i<flashes.length) setTimeout(step,flashes[i-1]);
       else { f.style.background='rgba(255,255,230,0)'; cb(); }
     }
     step();
   }
   applyMode(mode);
-  if(btn) btn.addEventListener('click', function(){
-    const next = MODES[(MODES.indexOf(mode)+1) % MODES.length];
-    if(next === 'on') { flickerOn(() => applyMode('on')); }
-    else { applyMode(next); }
-  });
+  if(btn){
+    let _pressTimer = null;
+    btn.addEventListener('pointerdown', function(){
+      _pressTimer = setTimeout(function(){
+        _pressTimer = null;
+        // long press → toggle day
+        if(mode === 'day'){ applyMode(_preDay); }
+        else { _preDay = mode; flickerOn(() => applyMode('day')); }
+      }, 500);
+    });
+    btn.addEventListener('pointerup', function(){
+      if(!_pressTimer) return; // was a long-press, already handled
+      clearTimeout(_pressTimer); _pressTimer = null;
+      // short click → tactical cycle (never day)
+      if(mode === 'day'){ applyMode(_preDay); }
+      else { applyMode(TACTICAL[(TACTICAL.indexOf(mode)+1) % TACTICAL.length]); }
+    });
+    btn.addEventListener('pointercancel', function(){ clearTimeout(_pressTimer); _pressTimer = null; });
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
 })();
 const API = '';
 let currentUser = null;

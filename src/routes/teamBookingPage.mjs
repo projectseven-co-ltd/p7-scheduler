@@ -765,24 +765,16 @@ html, body {
   // ── Lights ──
   (function() {
     const flicker = document.getElementById('lightsFlicker');
-const _lBtn = document.getElementById('lightsBtn');
-  const _MODES = ['off','on','nite','nvg'];
-  const _MLABELS = {off:'LIGHTS ON',on:'LIGHTS OFF',nite:'NVG',nvg:'OFF'};
-  const _MSIGILS = {off:'[◑]',on:'[◑]',nite:'[▌]',nvg:'[◈]'};
-  let _stored = localStorage.getItem('p7-display-mode') ||
-    (localStorage.getItem('p7-lights')==='1' ? 'on' :
-     (localStorage.getItem('p7-lights')===null && window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'on' : 'off'));
-  let _mode = _MODES.includes(_stored) ? _stored : 'off';
-  function _applyMode(m){
-    _mode=m; document.documentElement.setAttribute('data-lights',m);
-    localStorage.setItem('p7-display-mode',m);
-    ['lightsBtnLabel','lightsBtnLabelMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=_MLABELS[m]||'LIGHTS ON';});
-    document.querySelectorAll('.lights-btn').forEach(b=>{const ic=b.querySelector('span:first-child');if(ic)ic.textContent=_MSIGILS[m]||'[◑]';});
-  }
-  _applyMode(_mode);
-  document.querySelectorAll('.lights-btn').forEach(b=>b.addEventListener('click',()=>_applyMode(_MODES[(_MODES.indexOf(_mode)+1)%_MODES.length]))); }
-        else { lights=false; localStorage.setItem('p7-lights','0'); apply(false); }
-      });
+
+  // Tactical cycle (click): dark→nite→nvg→dark (NVG-safe)
+  // Day mode (long-press 500ms): toggle day — desk use only
+  const _TAC=['dark','nite','nvg'],_ML={dark:'NITE',day:'DARK',nite:'NVG',nvg:'DARK'},_MS={dark:'[◑]',day:'[☀]',nite:'[▌]',nvg:'[◈]'};
+  let _stored2=localStorage.getItem('p7-display-mode')||'dark';
+  if(_stored2==='off'||_stored2==='on')_stored2=_stored2==='on'?'day':'dark';
+  let _mode2=['dark','day','nite','nvg'].includes(_stored2)?_stored2:'dark',_preDay2='dark';
+  function _applyMode2(m){_mode2=m;document.documentElement.setAttribute('data-lights',m);localStorage.setItem('p7-display-mode',m);['lightsBtnLabel','lightsBtnLabelMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=_ML[m]||'DARK';});document.querySelectorAll('.lights-btn').forEach(b=>{const ic=b.querySelector('span:first-child');if(ic&&!ic.classList.contains('phosphor-dot'))ic.textContent=_MS[m]||'[◑]';});}
+  _applyMode2(_mode2);
+  document.querySelectorAll('.lights-btn').forEach(b=>{let _t=null;b.addEventListener('pointerdown',()=>{_t=setTimeout(()=>{_t=null;if(_mode2==='day')_applyMode2(_preDay2);else{_preDay2=_mode2;_applyMode2('day');}},500);});b.addEventListener('pointerup',()=>{if(!_t)return;clearTimeout(_t);_t=null;if(_mode2==='day')_applyMode2(_preDay2);else _applyMode2(_TAC[(_TAC.indexOf(_mode2)+1)%_TAC.length]);});b.addEventListener('pointercancel',()=>{clearTimeout(_t);_t=null;});b.addEventListener('contextmenu',e=>e.preventDefault());});
     });
   })();
 })();
