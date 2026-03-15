@@ -4260,11 +4260,10 @@ function stopBeacon() {
   if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
   if (beaconWatchId !== null) { navigator.geolocation.clearWatch(beaconWatchId); beaconWatchId = null; }
   if (wakeLock) { try { wakeLock.release(); } catch {} wakeLock = null; }
-  // Notify server
+  // Notify server — SSE beacon_off event will update the feed
   apiFetch('/v1/signals/beacon', { method: 'DELETE', body: JSON.stringify({ device_id: DEVICE_ID }) }).catch(() => {});
   updateBeaconUI();
   document.getElementById('beacon-last-ping').textContent = 'Beacon stopped';
-  sitrepPushFeed('beacon', `[-] Offline · ${DEVICE_ID}`);
 }
 
 async function sendBeaconPing() {

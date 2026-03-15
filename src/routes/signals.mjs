@@ -184,15 +184,66 @@ export default async function signalsRoutes(fastify) {
     return { signals: result.list || [], total: result.pageInfo?.totalRows ?? 0 };
   });
 
-  // DELETE /v1/signals/beacon — stop beacon
+  // DELETE /v1/signals/beacon — stop beacon, persist beacon_off log entry
   fastify.delete('/signals/beacon', {
     preHandler: requireSession,
-    schema: { tags: ['Signals'], summary: 'Stop beacon — broadcast beacon_off to org stream' },
+    schema: { tags: ['Signals'], summary: 'Stop beacon — log beacon_off + broadcast to org stream' },
   }, async (req) => {
     const orgId = await getPrimaryOrgId(req.user.Id);
     const deviceId = req.body?.device_id || req.query?.device_id || null;
-    if (orgId) broadcastSignal(orgId, { type: 'signal.beacon_off', payload: { user_id: req.user.Id, org_id: orgId, device_id: deviceId } });
+    // Persist beacon_off to DB for audit trail
+    let logEntry = null;
+    try {
+      logEntry = await db.create(tables.signals, {
+        user_id: req.user.Id,
+        org_id: orgId || null,
+        type: 'beacon_off',
+        meta: JSON.stringify({ device_id: deviceId }),
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      fastify.log.warn('beacon_off db write failed: ' + e.message);
+    }
+    const payload = {
+      user_id: req.user.Id,
+      org_id: orgId,
+      device_id: deviceId,
+      created_at: logEntry?.created_at || new Date().toISOString(),
+    };
+    if (orgId) broadcastSignal(orgId, { type: 'signal.beacon_off', payload });
     return { ok: true };
+  });
+
+  // GET /v1/signals/log — beacon lifecycle log (beacon_off events + persisted signals)
+  fastify.get('/signals/log', {
+    preHandler: requireSession,
+    schema: {
+      tags: ['Signals'],
+      summary: 'Beacon lifecycle log — persisted beacon_off events',
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'integer', default: 50, maximum: 200 },
+          offset: { type: 'integer', default: 0 },
+          type: { type: 'string', description: 'Filter by signal type (e.g. beacon_off, alert, capture)' },
+          device_id: { type: 'string' },
+        },
+      },
+      response: { 200: { type: 'object', additionalProperties: true } },
+    },
+  }, async (req) => {
+    const orgId = await getPrimaryOrgId(req.user.Id);
+    const { limit = 50, offset = 0, type: typeFilter, device_id: deviceFilter } = req.query;
+    let where = orgId ? `(org_id,eq,${orgId})` : `(user_id,eq,${req.user.Id})`;
+    if (typeFilter) where += `~and(type,eq,${typeFilter})`;
+    if (deviceFilter) where += `~and(meta,like,%${deviceFilter}%)`;
+    const result = await db.find(tables.signals, where, { limit, offset, sort: '-created_at' });
+    return {
+      entries: result?.list || [],
+      total: result?.pageInfo?.totalRows || 0,
+      limit,
+      offset,
+    };
   });
 
   // GET /v1/signals/stream — SSE stream scoped to user's orgs
