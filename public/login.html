@@ -37,6 +37,20 @@
   .dashboard-link{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
   .dashboard-link a{color:var(--accent);text-decoration:none}
   .dashboard-link a:hover{text-decoration:underline}
+/* ── NITE MODE ── */
+[data-lights="nite"]{
+  --bg:#0d0000;--surface:#130000;--surface2:#1a0000;--border:#2a0000;
+  --accent:#ff3300;--accent-dim:rgba(255,51,0,0.08);--accent-border:rgba(255,51,0,0.2);
+  --text:#ffaa88;--muted:#662200;--red:#ff4400;--green:#882200;
+  filter:brightness(0.65);
+}
+/* ── NVG MODE ── */
+[data-lights="nvg"]{
+  --bg:#000508;--surface:#010c12;--surface2:#021018;--border:#031820;
+  --accent:#4a7a8a;--accent-dim:rgba(74,122,138,0.06);--accent-border:rgba(74,122,138,0.12);
+  --text:#4a7a8a;--muted:#1e3a44;--red:#2a5a6a;--green:#2a5a6a;
+  filter:brightness(0.3) saturate(0.15);
+}
 </style>
 </head>
 <body>
@@ -148,5 +162,36 @@ codeInput.addEventListener('input', () => {
   codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
 });
 </script>
+
+// 3-way display mode: off / on / nite / nvg
+(function(){
+  const btn = document.getElementById('lightsBtn');
+  const label = document.getElementById('lightsBtnLabel') || document.getElementById('lightsBtnLabelMobile');
+  const MODES = ['off','on','nite','nvg'];
+  const MODE_LABELS = { off:'LIGHTS ON', on:'LIGHTS OFF', nite:'NVG', nvg:'OFF' };
+  const MODE_SIGILS = { off:'[◑]', on:'[◑]', nite:'[▌]', nvg:'[◈]' };
+  let stored = localStorage.getItem('p7-display-mode');
+  if (!stored) {
+    stored = (localStorage.getItem('p7-lights') === '1') ? 'on' :
+             (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches) ? 'on' : 'off';
+  }
+  let mode = MODES.includes(stored) ? stored : 'off';
+  function applyMode(m){
+    mode = m;
+    document.documentElement.setAttribute('data-lights', m);
+    localStorage.setItem('p7-display-mode', m);
+    const allLabels = document.querySelectorAll('#lightsBtnLabel,#lightsBtnLabelMobile');
+    allLabels.forEach(el => el.textContent = MODE_LABELS[m] || 'LIGHTS ON');
+    const allBtns = document.querySelectorAll('.lights-btn');
+    allBtns.forEach(b => {
+      const icon = b.querySelector('span:first-child');
+      if(icon) icon.textContent = MODE_SIGILS[m] || '[◑]';
+    });
+  }
+  applyMode(mode);
+  document.querySelectorAll('.lights-btn').forEach(b => b.addEventListener('click', function(){
+    applyMode(MODES[(MODES.indexOf(mode)+1) % MODES.length]);
+  }));
+})();
 </body>
 </html>

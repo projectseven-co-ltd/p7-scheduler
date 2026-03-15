@@ -71,6 +71,20 @@
 [data-lights="on"] .ticket-reply-box textarea{color:var(--text);background:transparent}
 [data-lights="on"] .ticket-reply-box textarea:focus{background:rgba(74,85,0,0.04)}
 [data-lights="on"] .flatpickr-time input:hover,[data-lights="on"] .flatpickr-time input:focus{background:#e4e3df}
+/* ── NITE MODE ── */
+[data-lights="nite"]{
+  --bg:#0d0000;--surface:#130000;--surface2:#1a0000;--border:#2a0000;
+  --accent:#ff3300;--accent-dim:rgba(255,51,0,0.08);--accent-border:rgba(255,51,0,0.2);
+  --text:#ffaa88;--muted:#662200;--red:#ff4400;--green:#882200;
+  filter:brightness(0.65);
+}
+/* ── NVG MODE ── */
+[data-lights="nvg"]{
+  --bg:#000508;--surface:#010c12;--surface2:#021018;--border:#031820;
+  --accent:#4a7a8a;--accent-dim:rgba(74,122,138,0.06);--accent-border:rgba(74,122,138,0.12);
+  --text:#4a7a8a;--muted:#1e3a44;--red:#2a5a6a;--green:#2a5a6a;
+  filter:brightness(0.3) saturate(0.15);
+}
 /* lights toggle */
 .lights-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid var(--accent-border);background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.08em;cursor:pointer;transition:all .2s;white-space:nowrap}
 .lights-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -1165,11 +1179,24 @@ tr:hover td{background:var(--surface2)}
   const btn = document.getElementById('lightsBtn');
   const label = document.getElementById('lightsBtnLabel');
   const flicker = document.getElementById('lightsFlicker');
-  let lights = localStorage.getItem('p7-lights') === '1' ||
-    (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches);
-  function applyTheme(on){
-    document.documentElement.setAttribute('data-lights', on ? 'on' : 'off');
-    if(label) label.textContent = on ? 'LIGHTS OFF' : 'LIGHTS ON';
+  // modes: 'off' | 'on' | 'nite' | 'nvg'
+  const MODES = ['off','on','nite','nvg'];
+  const MODE_LABELS = { off:'LIGHTS ON', on:'LIGHTS OFF', nite:'NVG', nvg:'OFF' };
+  const MODE_SIGILS = { off:'[◑]', on:'[◑]', nite:'[▌]', nvg:'[◈]' };
+  let stored = localStorage.getItem('p7-display-mode');
+  if (!stored) {
+    stored = (localStorage.getItem('p7-lights') === '1') ? 'on' :
+             (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches) ? 'on' : 'off';
+  }
+  let mode = MODES.includes(stored) ? stored : 'off';
+  function applyMode(m){
+    mode = m;
+    document.documentElement.setAttribute('data-lights', m);
+    localStorage.setItem('p7-display-mode', m);
+    if(label) label.textContent = MODE_LABELS[m] || 'LIGHTS ON';
+    const icon = btn?.querySelector('span:first-child');
+    if(icon) icon.textContent = MODE_SIGILS[m] || '[◑]';
+    if(btn) btn.title = {off:'Switch to day mode',on:'Switch to nite mode',nite:'Switch to NVG mode',nvg:'Switch off modes'}[m]||'';
   }
   function flickerOn(cb){
     let f = flicker; if(!f) return cb();
@@ -1183,14 +1210,11 @@ tr:hover td{background:var(--surface2)}
     }
     step();
   }
-  applyTheme(lights);
+  applyMode(mode);
   if(btn) btn.addEventListener('click', function(){
-    localStorage.setItem('p7-lights-manual','1');
-    if(!lights){
-      flickerOn(()=>{ lights=true; localStorage.setItem('p7-lights','1'); applyTheme(true); });
-    } else {
-      lights=false; localStorage.setItem('p7-lights','0'); applyTheme(false);
-    }
+    const next = MODES[(MODES.indexOf(mode)+1) % MODES.length];
+    if(next === 'on') { flickerOn(() => applyMode('on')); }
+    else { applyMode(next); }
   });
 })();
 const API = '';

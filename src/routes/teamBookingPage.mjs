@@ -436,6 +436,10 @@ html, body {
 @media (min-width: 721px) { .mobile-lights { display: none !important; } }
 
 #lightsFlicker { position: fixed; inset: 0; z-index: 9999; pointer-events: none; }
+/* ── NITE MODE ── */
+[data-lights="nite"]{--bg:#0d0000;--surface:#130000;--surface2:#1a0000;--border:#2a0000;--accent:#ff3300;--accent-dim:rgba(255,51,0,0.08);--accent-border:rgba(255,51,0,0.2);--text:#ffaa88;--muted:#662200;--red:#ff4400;--green:#882200;filter:brightness(0.65);}
+/* ── NVG MODE ── */
+[data-lights="nvg"]{--bg:#000508;--surface:#010c12;--surface2:#021018;--border:#031820;--accent:#4a7a8a;--accent-dim:rgba(74,122,138,0.06);--accent-border:rgba(74,122,138,0.12);--text:#4a7a8a;--muted:#1e3a44;--red:#2a5a6a;--green:#2a5a6a;filter:brightness(0.3) saturate(0.15);}
 </style>
 </head>
 <body>
@@ -761,22 +765,22 @@ html, body {
   // ── Lights ──
   (function() {
     const flicker = document.getElementById('lightsFlicker');
-    let lights = localStorage.getItem('p7-lights') === '1' ||
-      (localStorage.getItem('p7-lights') === null && window.matchMedia?.('(prefers-color-scheme: light)').matches);
-    function apply(on) {
-      document.documentElement.setAttribute('data-lights', on ? 'on' : 'off');
-      ['lightsBtnLabel','lightsBtnLabelMobile'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = on ? 'LIGHTS OFF' : 'LIGHTS ON'; });
-    }
-    function flickerOn(cb) {
-      let i = 0, fl = [80,60,100,50,120,40,200];
-      function s() { flicker.style.background = i%2===0?'rgba(255,255,230,0.18)':'rgba(255,255,230,0)'; i++; if(i<fl.length)setTimeout(s,fl[i-1]);else{flicker.style.background='rgba(255,255,230,0)';cb();} }
-      s();
-    }
-    apply(lights);
-    ['lightsBtn','lightsBtnMobile'].forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) btn.addEventListener('click', () => {
-        if (!lights) { flickerOn(() => { lights=true; localStorage.setItem('p7-lights','1'); apply(true); }); }
+const _lBtn = document.getElementById('lightsBtn');
+  const _MODES = ['off','on','nite','nvg'];
+  const _MLABELS = {off:'LIGHTS ON',on:'LIGHTS OFF',nite:'NVG',nvg:'OFF'};
+  const _MSIGILS = {off:'[◑]',on:'[◑]',nite:'[▌]',nvg:'[◈]'};
+  let _stored = localStorage.getItem('p7-display-mode') ||
+    (localStorage.getItem('p7-lights')==='1' ? 'on' :
+     (localStorage.getItem('p7-lights')===null && window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'on' : 'off'));
+  let _mode = _MODES.includes(_stored) ? _stored : 'off';
+  function _applyMode(m){
+    _mode=m; document.documentElement.setAttribute('data-lights',m);
+    localStorage.setItem('p7-display-mode',m);
+    ['lightsBtnLabel','lightsBtnLabelMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=_MLABELS[m]||'LIGHTS ON';});
+    document.querySelectorAll('.lights-btn').forEach(b=>{const ic=b.querySelector('span:first-child');if(ic)ic.textContent=_MSIGILS[m]||'[◑]';});
+  }
+  _applyMode(_mode);
+  document.querySelectorAll('.lights-btn').forEach(b=>b.addEventListener('click',()=>_applyMode(_MODES[(_MODES.indexOf(_mode)+1)%_MODES.length]))); }
         else { lights=false; localStorage.setItem('p7-lights','0'); apply(false); }
       });
     });
