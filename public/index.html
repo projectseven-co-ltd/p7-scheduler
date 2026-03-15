@@ -303,13 +303,30 @@
     padding: 28px 24px;
   }
 
-  .nvg-callout { border: 1px solid rgba(74,122,138,0.2); border-radius: 12px; padding: 40px 48px; background: rgba(0,5,8,0.6); display: flex; align-items: flex-start; gap: 32px; }
-  .nvg-callout-icon { font-family: var(--font-mono); font-size: 28px; color: #4a7a8a; line-height: 1; flex-shrink: 0; margin-top: 2px; }
-  .nvg-callout-body h3 { font-size: 16px; font-weight: 600; color: #4a7a8a; margin-bottom: 10px; letter-spacing: 0.05em; }
-  .nvg-callout-body p { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 600px; }
-  .nvg-callout-body p + p { margin-top: 8px; }
-  .nvg-tag { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: #4a7a8a; border: 1px solid rgba(74,122,138,0.3); border-radius: 4px; padding: 2px 6px; margin-right: 6px; }
-  @media (max-width: 600px) { .nvg-callout { flex-direction: column; padding: 28px 24px; gap: 20px; } }
+
+  /* ── NVG SECTION ── */
+  .nvg-section { padding: 80px 24px; }
+  .nvg-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .nvg-copy .section-label { margin-bottom: 16px; }
+  .nvg-copy h2 { font-size: clamp(24px, 3vw, 36px); font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
+  .nvg-copy p { font-size: 14px; color: var(--muted); line-height: 1.75; margin-bottom: 12px; }
+  .nvg-copy p:last-child { margin-bottom: 0; }
+  .nvg-demo { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #05080a; }
+  .nvg-demo-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); }
+  .nvg-demo-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .nvg-demo-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; margin-left: 6px; }
+  .nvg-demo-tabs { display: flex; gap: 6px; margin-left: auto; }
+  .nvg-tab { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .nvg-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(223,255,0,0.06); }
+  .nvg-demo-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: filter .4s, background .4s; }
+  .nvg-demo-row { display: flex; align-items: center; gap: 10px; }
+  .nvg-demo-sigil { font-family: var(--font-mono); font-size: 11px; transition: color .4s; }
+  .nvg-demo-label { font-size: 11px; transition: color .4s; }
+  .nvg-demo-val { font-family: var(--font-mono); font-size: 10px; margin-left: auto; transition: color .4s; }
+  .nvg-demo-bar-inner { height: 3px; border-radius: 2px; transition: background .4s; flex: 1; }
+  .nvg-demo-status { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.04); transition: color .4s, border-color .4s; }
+  .nvg-demo-status-dot { width: 6px; height: 6px; border-radius: 50%; transition: background .4s; }
+  @media (max-width: 800px) { .nvg-inner { grid-template-columns: 1fr; gap: 40px; } }
   .usecase-icon { font-size: 20px; margin-bottom: 14px; font-family: var(--font-mono); color: var(--accent); letter-spacing: 0.05em; }
   .usecase h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
   .usecase p { font-size: 13px; color: var(--muted); line-height: 1.6; }
@@ -902,31 +919,131 @@
 </section>
 
 
-<!-- NVG / TACTICAL DISPLAY CALLOUT -->
-<section style="padding:0 24px 80px">
+<!-- NVG DISPLAY MODES -->
+<section class="nvg-section">
   <div class="container">
-    <div class="nvg-callout">
-      <div class="nvg-callout-icon">[◈]</div>
-      <div class="nvg-callout-body">
-        <h3>NVG-AWARE DISPLAY MODES</h3>
-        <p>
-          <span class="nvg-tag">DARK</span>
-          <span class="nvg-tag">NITE</span>
-          <span class="nvg-tag">NVG</span>
-          SchedKit is built for operators who work in the dark — literally.
-          Our interface includes a dedicated NVG mode that crushes screen luminance and strips hot colors
-          so your display won't auto-gate your Gen III image-intensification goggles.
-        </p>
-        <p>
-          NITE mode shifts to a dim red palette for naked-eye dark adaptation. NVG mode drops to near-black
-          blue-grey with <code style="font-family:var(--font-mono);font-size:11px;color:#4a7a8a">brightness(0.3) saturate(0.15)</code> —
-          the minimum we can achieve in software. The tactical cycle never passes through full-brightness day mode,
-          so you won't accidentally blind yourself mid-op. Long-press the <code style="font-family:var(--font-mono);font-size:11px;color:#4a7a8a">[◑]</code> button for desk mode only.
-        </p>
+    <div class="nvg-inner">
+      <div class="nvg-copy">
+        <div class="section-label">Display modes</div>
+        <h2>Built for operators who work in the dark</h2>
+        <p>SchedKit includes NVG-aware display modes designed for real field use. The tactical cycle — DARK, NITE, NVG — never passes through full brightness, so you won't auto-gate your Gen III image-intensification goggles mid-op.</p>
+        <p><strong style="color:var(--text)">NITE</strong> shifts to a dim red palette for naked-eye dark adaptation. <strong style="color:var(--text)">NVG</strong> crushes luminance and desaturates to near-monochrome blue-grey — the minimum achievable in software. Day mode requires a deliberate long-press.</p>
+        <p style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Click the mode tabs to preview →</p>
+      </div>
+      <div class="nvg-demo" id="nvgDemo">
+        <div class="nvg-demo-bar">
+          <div class="nvg-demo-dot" id="nvgDot"></div>
+          <span class="nvg-demo-title" id="nvgDemoTitle">SCHEDKIT · SITREP</span>
+          <div class="nvg-demo-tabs">
+            <button class="nvg-tab active" onclick="setNvgDemo('dark')">[◑] DARK</button>
+            <button class="nvg-tab" onclick="setNvgDemo('nite')">[▌] NITE</button>
+            <button class="nvg-tab" onclick="setNvgDemo('nvg')">[◈] NVG</button>
+          </div>
+        </div>
+        <div class="nvg-demo-body" id="nvgBody">
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS1">[+]</span>
+            <span class="nvg-demo-label" id="nvgL1">Beacon active · DEV-4F2A</span>
+            <span class="nvg-demo-val" id="nvgV1">35.4676° N</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar1"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS2">[!]</span>
+            <span class="nvg-demo-label" id="nvgL2">Alert · Unit 3 · no ping 4m</span>
+            <span class="nvg-demo-val" id="nvgV2">WARN</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar2"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS3">[■]</span>
+            <span class="nvg-demo-label" id="nvgL3">Incident · INC-0042 · open</span>
+            <span class="nvg-demo-val" id="nvgV3">2h ago</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar3"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS4">[✓]</span>
+            <span class="nvg-demo-label" id="nvgL4">Assignment · confirmed</span>
+            <span class="nvg-demo-val" id="nvgV4">09:00</span>
+          </div>
+        </div>
+        <div class="nvg-demo-status">
+          <div class="nvg-demo-status-dot" id="nvgStatusDot"></div>
+          <span id="nvgStatusText">SYSTEM NOMINAL · LIVE</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
+<script>
+const NVG_THEMES = {
+  dark: {
+    bg:'#05080a', border:'rgba(255,255,255,0.06)', dot:'#DFFF00', dotShadow:'0 0 6px #DFFF00',
+    title:'#5a5a6e', bodyFilter:'none', bodyBg:'#05080a',
+    s1:'#00ffcc', l1:'#e8e8ea', v1:'#5a5a6e',
+    s2:'#ff5f5f', l2:'#e8e8ea', v2:'#ff5f5f',
+    s3:'#ff5f5f', l3:'#e8e8ea', v3:'#5a5a6e',
+    s4:'#DFFF00', l4:'#e8e8ea', v4:'#5a5a6e',
+    bar1:'#00ffcc', bar2:'#ff5f5f', bar3:'rgba(255,95,95,0.3)', bar4:'#DFFF00',
+    statusDot:'#ff5f5f', statusText:'#5a5a6e', statusBorder:'rgba(255,255,255,0.04)',
+    tabActive:'#DFFF00', tabBg:'rgba(223,255,0,0.06)', tabBorder:'#DFFF00',
+  },
+  nite: {
+    bg:'#080000', border:'rgba(180,20,0,0.12)', dot:'#6a1500', dotShadow:'0 0 4px #6a1500',
+    title:'#3a0800', bodyFilter:'saturate(0.15) brightness(0.5)', bodyBg:'#080000',
+    s1:'#4a1200', l1:'#4a1200', v1:'#2a0800',
+    s2:'#6a1500', l2:'#4a1200', v2:'#6a1500',
+    s3:'#6a1500', l3:'#4a1200', v3:'#2a0800',
+    s4:'#3a0800', l4:'#3a0800', v4:'#2a0800',
+    bar1:'#3a0800', bar2:'#6a1500', bar3:'rgba(100,20,0,0.3)', bar4:'#3a0800',
+    statusDot:'#4a1200', statusText:'#2a0800', statusBorder:'rgba(100,20,0,0.1)',
+    tabActive:'#8a2000', tabBg:'rgba(138,32,0,0.1)', tabBorder:'#6a1500',
+  },
+  nvg: {
+    bg:'#000305', border:'rgba(30,60,80,0.1)', dot:'#1e3a44', dotShadow:'none',
+    title:'#0e1e24', bodyFilter:'saturate(0.05) brightness(0.35)', bodyBg:'#000305',
+    s1:'#1e3a44', l1:'#1e3a44', v1:'#0e1e24',
+    s2:'#2a5a6a', l2:'#1e3a44', v2:'#2a5a6a',
+    s3:'#2a5a6a', l3:'#1e3a44', v3:'#0e1e24',
+    s4:'#1e3a44', l4:'#1e3a44', v4:'#0e1e24',
+    bar1:'#1e3a44', bar2:'#2a5a6a', bar3:'rgba(30,58,68,0.2)', bar4:'#1e3a44',
+    statusDot:'#1e3a44', statusText:'#0e1e24', statusBorder:'rgba(30,60,80,0.08)',
+    tabActive:'#4a7a8a', tabBg:'rgba(74,122,138,0.06)', tabBorder:'#2a5a6a',
+  }
+};
+function setNvgDemo(mode) {
+  const t = NVG_THEMES[mode];
+  const demo = document.getElementById('nvgDemo');
+  demo.style.background = t.bg;
+  demo.style.borderColor = t.border;
+  document.getElementById('nvgDot').style.cssText = `background:${t.dot};box-shadow:${t.dotShadow}`;
+  document.getElementById('nvgDemoTitle').style.color = t.title;
+  const body = document.getElementById('nvgBody');
+  body.style.filter = t.bodyFilter;
+  body.style.background = t.bg;
+  ['1','2','3','4'].forEach(n => {
+    const s = document.getElementById('nvgS'+n); if(s) s.style.color = t['s'+n];
+    const l = document.getElementById('nvgL'+n); if(l) l.style.color = t['l'+n];
+    const v = document.getElementById('nvgV'+n); if(v) v.style.color = t['v'+n];
+    const b = document.getElementById('nvgBar'+n); if(b) b.style.background = t['bar'+n];
+  });
+  const sd = document.getElementById('nvgStatusDot'); if(sd) { sd.style.background = t.statusDot; sd.style.boxShadow = 'none'; }
+  const st = document.getElementById('nvgStatusText'); if(st) st.style.color = t.statusText;
+  const sb = demo.querySelector('.nvg-demo-status'); if(sb) sb.style.borderTopColor = t.statusBorder;
+  document.querySelectorAll('.nvg-tab').forEach(tab => {
+    const isActive = (tab.textContent.includes(mode.toUpperCase()) || (mode==='dark' && tab.textContent.includes('DARK')));
+    tab.classList.toggle('active', isActive);
+    tab.style.borderColor = isActive ? t.tabBorder : 'rgba(255,255,255,0.1)';
+    tab.style.color = isActive ? t.tabActive : '';
+    tab.style.background = isActive ? t.tabBg : 'transparent';
+  });
+}
+setNvgDemo('dark');
+</script>
 
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
@@ -1375,13 +1492,30 @@ fetch('/version').then(r=>r.json()).then(d=>{
     padding: 28px 24px;
   }
 
-  .nvg-callout { border: 1px solid rgba(74,122,138,0.2); border-radius: 12px; padding: 40px 48px; background: rgba(0,5,8,0.6); display: flex; align-items: flex-start; gap: 32px; }
-  .nvg-callout-icon { font-family: var(--font-mono); font-size: 28px; color: #4a7a8a; line-height: 1; flex-shrink: 0; margin-top: 2px; }
-  .nvg-callout-body h3 { font-size: 16px; font-weight: 600; color: #4a7a8a; margin-bottom: 10px; letter-spacing: 0.05em; }
-  .nvg-callout-body p { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 600px; }
-  .nvg-callout-body p + p { margin-top: 8px; }
-  .nvg-tag { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: #4a7a8a; border: 1px solid rgba(74,122,138,0.3); border-radius: 4px; padding: 2px 6px; margin-right: 6px; }
-  @media (max-width: 600px) { .nvg-callout { flex-direction: column; padding: 28px 24px; gap: 20px; } }
+
+  /* ── NVG SECTION ── */
+  .nvg-section { padding: 80px 24px; }
+  .nvg-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .nvg-copy .section-label { margin-bottom: 16px; }
+  .nvg-copy h2 { font-size: clamp(24px, 3vw, 36px); font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
+  .nvg-copy p { font-size: 14px; color: var(--muted); line-height: 1.75; margin-bottom: 12px; }
+  .nvg-copy p:last-child { margin-bottom: 0; }
+  .nvg-demo { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #05080a; }
+  .nvg-demo-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); }
+  .nvg-demo-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .nvg-demo-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; margin-left: 6px; }
+  .nvg-demo-tabs { display: flex; gap: 6px; margin-left: auto; }
+  .nvg-tab { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .nvg-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(223,255,0,0.06); }
+  .nvg-demo-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: filter .4s, background .4s; }
+  .nvg-demo-row { display: flex; align-items: center; gap: 10px; }
+  .nvg-demo-sigil { font-family: var(--font-mono); font-size: 11px; transition: color .4s; }
+  .nvg-demo-label { font-size: 11px; transition: color .4s; }
+  .nvg-demo-val { font-family: var(--font-mono); font-size: 10px; margin-left: auto; transition: color .4s; }
+  .nvg-demo-bar-inner { height: 3px; border-radius: 2px; transition: background .4s; flex: 1; }
+  .nvg-demo-status { font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.04); transition: color .4s, border-color .4s; }
+  .nvg-demo-status-dot { width: 6px; height: 6px; border-radius: 50%; transition: background .4s; }
+  @media (max-width: 800px) { .nvg-inner { grid-template-columns: 1fr; gap: 40px; } }
   .usecase-icon { font-size: 20px; margin-bottom: 14px; font-family: var(--font-mono); color: var(--accent); letter-spacing: 0.05em; }
   .usecase h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
   .usecase p { font-size: 13px; color: var(--muted); line-height: 1.6; }
@@ -1974,31 +2108,131 @@ fetch('/version').then(r=>r.json()).then(d=>{
 </section>
 
 
-<!-- NVG / TACTICAL DISPLAY CALLOUT -->
-<section style="padding:0 24px 80px">
+<!-- NVG DISPLAY MODES -->
+<section class="nvg-section">
   <div class="container">
-    <div class="nvg-callout">
-      <div class="nvg-callout-icon">[◈]</div>
-      <div class="nvg-callout-body">
-        <h3>NVG-AWARE DISPLAY MODES</h3>
-        <p>
-          <span class="nvg-tag">DARK</span>
-          <span class="nvg-tag">NITE</span>
-          <span class="nvg-tag">NVG</span>
-          SchedKit is built for operators who work in the dark — literally.
-          Our interface includes a dedicated NVG mode that crushes screen luminance and strips hot colors
-          so your display won't auto-gate your Gen III image-intensification goggles.
-        </p>
-        <p>
-          NITE mode shifts to a dim red palette for naked-eye dark adaptation. NVG mode drops to near-black
-          blue-grey with <code style="font-family:var(--font-mono);font-size:11px;color:#4a7a8a">brightness(0.3) saturate(0.15)</code> —
-          the minimum we can achieve in software. The tactical cycle never passes through full-brightness day mode,
-          so you won't accidentally blind yourself mid-op. Long-press the <code style="font-family:var(--font-mono);font-size:11px;color:#4a7a8a">[◑]</code> button for desk mode only.
-        </p>
+    <div class="nvg-inner">
+      <div class="nvg-copy">
+        <div class="section-label">Display modes</div>
+        <h2>Built for operators who work in the dark</h2>
+        <p>SchedKit includes NVG-aware display modes designed for real field use. The tactical cycle — DARK, NITE, NVG — never passes through full brightness, so you won't auto-gate your Gen III image-intensification goggles mid-op.</p>
+        <p><strong style="color:var(--text)">NITE</strong> shifts to a dim red palette for naked-eye dark adaptation. <strong style="color:var(--text)">NVG</strong> crushes luminance and desaturates to near-monochrome blue-grey — the minimum achievable in software. Day mode requires a deliberate long-press.</p>
+        <p style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Click the mode tabs to preview →</p>
+      </div>
+      <div class="nvg-demo" id="nvgDemo">
+        <div class="nvg-demo-bar">
+          <div class="nvg-demo-dot" id="nvgDot"></div>
+          <span class="nvg-demo-title" id="nvgDemoTitle">SCHEDKIT · SITREP</span>
+          <div class="nvg-demo-tabs">
+            <button class="nvg-tab active" onclick="setNvgDemo('dark')">[◑] DARK</button>
+            <button class="nvg-tab" onclick="setNvgDemo('nite')">[▌] NITE</button>
+            <button class="nvg-tab" onclick="setNvgDemo('nvg')">[◈] NVG</button>
+          </div>
+        </div>
+        <div class="nvg-demo-body" id="nvgBody">
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS1">[+]</span>
+            <span class="nvg-demo-label" id="nvgL1">Beacon active · DEV-4F2A</span>
+            <span class="nvg-demo-val" id="nvgV1">35.4676° N</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar1"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS2">[!]</span>
+            <span class="nvg-demo-label" id="nvgL2">Alert · Unit 3 · no ping 4m</span>
+            <span class="nvg-demo-val" id="nvgV2">WARN</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar2"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS3">[■]</span>
+            <span class="nvg-demo-label" id="nvgL3">Incident · INC-0042 · open</span>
+            <span class="nvg-demo-val" id="nvgV3">2h ago</span>
+          </div>
+          <div class="nvg-demo-row">
+            <div class="nvg-demo-bar-inner" id="nvgBar3"></div>
+          </div>
+          <div class="nvg-demo-row">
+            <span class="nvg-demo-sigil" id="nvgS4">[✓]</span>
+            <span class="nvg-demo-label" id="nvgL4">Assignment · confirmed</span>
+            <span class="nvg-demo-val" id="nvgV4">09:00</span>
+          </div>
+        </div>
+        <div class="nvg-demo-status">
+          <div class="nvg-demo-status-dot" id="nvgStatusDot"></div>
+          <span id="nvgStatusText">SYSTEM NOMINAL · LIVE</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
+<script>
+const NVG_THEMES = {
+  dark: {
+    bg:'#05080a', border:'rgba(255,255,255,0.06)', dot:'#DFFF00', dotShadow:'0 0 6px #DFFF00',
+    title:'#5a5a6e', bodyFilter:'none', bodyBg:'#05080a',
+    s1:'#00ffcc', l1:'#e8e8ea', v1:'#5a5a6e',
+    s2:'#ff5f5f', l2:'#e8e8ea', v2:'#ff5f5f',
+    s3:'#ff5f5f', l3:'#e8e8ea', v3:'#5a5a6e',
+    s4:'#DFFF00', l4:'#e8e8ea', v4:'#5a5a6e',
+    bar1:'#00ffcc', bar2:'#ff5f5f', bar3:'rgba(255,95,95,0.3)', bar4:'#DFFF00',
+    statusDot:'#ff5f5f', statusText:'#5a5a6e', statusBorder:'rgba(255,255,255,0.04)',
+    tabActive:'#DFFF00', tabBg:'rgba(223,255,0,0.06)', tabBorder:'#DFFF00',
+  },
+  nite: {
+    bg:'#080000', border:'rgba(180,20,0,0.12)', dot:'#6a1500', dotShadow:'0 0 4px #6a1500',
+    title:'#3a0800', bodyFilter:'saturate(0.15) brightness(0.5)', bodyBg:'#080000',
+    s1:'#4a1200', l1:'#4a1200', v1:'#2a0800',
+    s2:'#6a1500', l2:'#4a1200', v2:'#6a1500',
+    s3:'#6a1500', l3:'#4a1200', v3:'#2a0800',
+    s4:'#3a0800', l4:'#3a0800', v4:'#2a0800',
+    bar1:'#3a0800', bar2:'#6a1500', bar3:'rgba(100,20,0,0.3)', bar4:'#3a0800',
+    statusDot:'#4a1200', statusText:'#2a0800', statusBorder:'rgba(100,20,0,0.1)',
+    tabActive:'#8a2000', tabBg:'rgba(138,32,0,0.1)', tabBorder:'#6a1500',
+  },
+  nvg: {
+    bg:'#000305', border:'rgba(30,60,80,0.1)', dot:'#1e3a44', dotShadow:'none',
+    title:'#0e1e24', bodyFilter:'saturate(0.05) brightness(0.35)', bodyBg:'#000305',
+    s1:'#1e3a44', l1:'#1e3a44', v1:'#0e1e24',
+    s2:'#2a5a6a', l2:'#1e3a44', v2:'#2a5a6a',
+    s3:'#2a5a6a', l3:'#1e3a44', v3:'#0e1e24',
+    s4:'#1e3a44', l4:'#1e3a44', v4:'#0e1e24',
+    bar1:'#1e3a44', bar2:'#2a5a6a', bar3:'rgba(30,58,68,0.2)', bar4:'#1e3a44',
+    statusDot:'#1e3a44', statusText:'#0e1e24', statusBorder:'rgba(30,60,80,0.08)',
+    tabActive:'#4a7a8a', tabBg:'rgba(74,122,138,0.06)', tabBorder:'#2a5a6a',
+  }
+};
+function setNvgDemo(mode) {
+  const t = NVG_THEMES[mode];
+  const demo = document.getElementById('nvgDemo');
+  demo.style.background = t.bg;
+  demo.style.borderColor = t.border;
+  document.getElementById('nvgDot').style.cssText = `background:${t.dot};box-shadow:${t.dotShadow}`;
+  document.getElementById('nvgDemoTitle').style.color = t.title;
+  const body = document.getElementById('nvgBody');
+  body.style.filter = t.bodyFilter;
+  body.style.background = t.bg;
+  ['1','2','3','4'].forEach(n => {
+    const s = document.getElementById('nvgS'+n); if(s) s.style.color = t['s'+n];
+    const l = document.getElementById('nvgL'+n); if(l) l.style.color = t['l'+n];
+    const v = document.getElementById('nvgV'+n); if(v) v.style.color = t['v'+n];
+    const b = document.getElementById('nvgBar'+n); if(b) b.style.background = t['bar'+n];
+  });
+  const sd = document.getElementById('nvgStatusDot'); if(sd) { sd.style.background = t.statusDot; sd.style.boxShadow = 'none'; }
+  const st = document.getElementById('nvgStatusText'); if(st) st.style.color = t.statusText;
+  const sb = demo.querySelector('.nvg-demo-status'); if(sb) sb.style.borderTopColor = t.statusBorder;
+  document.querySelectorAll('.nvg-tab').forEach(tab => {
+    const isActive = (tab.textContent.includes(mode.toUpperCase()) || (mode==='dark' && tab.textContent.includes('DARK')));
+    tab.classList.toggle('active', isActive);
+    tab.style.borderColor = isActive ? t.tabBorder : 'rgba(255,255,255,0.1)';
+    tab.style.color = isActive ? t.tabActive : '';
+    tab.style.background = isActive ? t.tabBg : 'transparent';
+  });
+}
+setNvgDemo('dark');
+</script>
 
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
