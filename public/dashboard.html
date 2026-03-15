@@ -67,6 +67,9 @@
 [data-lights="on"] .flatpickr-day.inRange{background:#d5d9c0;border-color:#d5d9c0}
 [data-lights="on"] .flatpickr-day.startRange,[data-lights="on"] .flatpickr-day.endRange{background:#4a5500;border-color:#4a5500;color:#f5f4ef}
 [data-lights="on"] .flatpickr-time input{background:#edecea;color:#141410}
+[data-lights="on"] .ticket-reply-box{background:var(--surface);border-color:var(--border)}
+[data-lights="on"] .ticket-reply-box textarea{color:var(--text);background:transparent}
+[data-lights="on"] .ticket-reply-box textarea:focus{background:rgba(74,85,0,0.04)}
 [data-lights="on"] .flatpickr-time input:hover,[data-lights="on"] .flatpickr-time input:focus{background:#e4e3df}
 /* lights toggle */
 .lights-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid var(--accent-border);background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.08em;cursor:pointer;transition:all .2s;white-space:nowrap}
@@ -232,20 +235,33 @@ tr:hover td{background:var(--surface2)}
 .ticket-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
 .ticket-detail-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px}
 .ticket-detail-card h4{font-size:11px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
-.ticket-thread{margin-top:18px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px}
-.ticket-thread-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.ticket-thread{margin-top:18px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.ticket-thread-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .ticket-thread-head h4{font-size:11px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
-.ticket-thread-list{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow:auto;padding-right:4px}
-.ticket-thread-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
-.ticket-thread-item.staff{border-color:var(--accent-border)}
-.ticket-thread-item.activity{border-style:dashed}
-.ticket-thread-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px}
-.ticket-thread-author{color:var(--text);font-family:var(--font-sans);font-size:13px;font-weight:600}
-.ticket-thread-body{font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.ticket-reply-box{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-.ticket-reply-box textarea{min-height:90px}
-.ticket-reply-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.ticket-thread-empty{color:var(--muted);font-size:12px;padding:8px 0}
+.ticket-thread-list{display:flex;flex-direction:column;gap:0;max-height:340px;overflow:auto;padding-right:4px}
+.ticket-thread-item{position:relative;padding:12px 14px 12px 20px;border-left:2px solid var(--border);margin-left:8px}
+.ticket-thread-item::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--border);border:2px solid var(--surface2)}
+.ticket-thread-item.staff{border-left-color:var(--accent-border)}
+.ticket-thread-item.staff::before{background:var(--accent);border-color:var(--surface2)}
+.ticket-thread-item.customer{border-left-color:rgba(74,222,128,0.25)}
+.ticket-thread-item.customer::before{background:#4ade80;border-color:var(--surface2)}
+.ticket-thread-item.activity{border-left-color:var(--border);opacity:0.7}
+.ticket-thread-item.activity::before{background:var(--surface2);border-color:var(--border)}
+.ticket-thread-item:last-child{border-left-color:transparent}
+.ticket-thread-bubble{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 13px}
+.ticket-thread-item.staff .ticket-thread-bubble{border-color:var(--accent-border);background:var(--accent-dim)}
+.ticket-thread-item.customer .ticket-thread-bubble{border-color:rgba(74,222,128,0.2);background:rgba(74,222,128,0.05)}
+.ticket-thread-item.activity .ticket-thread-bubble{border-style:dashed;background:transparent}
+.ticket-thread-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:6px}
+.ticket-thread-author{color:var(--text);font-family:var(--font-sans);font-size:13px;font-weight:700}
+.ticket-thread-body{font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--text)}
+.ticket-thread-item.activity .ticket-thread-body{color:var(--muted);font-size:12px;font-family:var(--font-mono)}
+.ticket-reply-box{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ticket-reply-box textarea{min-height:90px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--font-sans);font-size:13px;line-height:1.6;padding:12px 14px;resize:vertical;outline:none;box-sizing:border-box}
+.ticket-reply-box textarea::placeholder{color:var(--muted)}
+.ticket-reply-box textarea:focus{background:rgba(223,255,0,0.02);border-bottom-color:var(--accent-border)}
+.ticket-reply-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px}
+.ticket-thread-empty{color:var(--muted);font-size:12px;padding:8px 0;font-family:var(--font-mono)}
 .tier-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
 .tier-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
 .tier-card.current{border-color:var(--accent-border);box-shadow:0 0 0 1px var(--accent-border) inset}
@@ -1410,17 +1426,19 @@ function renderTicketThread(ticket) {
   list.innerHTML = items.map(item => {
     const staff = !!item.is_staff;
     const klass = item.kind === 'activity' ? 'ticket-thread-item activity' : `ticket-thread-item${staff ? ' staff' : ''}`;
-    const who = item.author_name || (staff ? 'Staff' : 'Customer');
-    const tag = item.kind === 'activity'
+    const who = item.author_name || (staff ? 'Staff' : 'Customer');    const tag = item.kind === 'activity'
       ? `<span class="badge badge-normal">${esc(item.label || 'activity')}</span>`
       : (staff ? '<span class="badge badge-normal">staff</span>' : '<span class="badge badge-open">customer</span>');
-    return `<div class="${klass}">
-      <div class="ticket-thread-meta">
-        <span class="ticket-thread-author">${esc(who)}</span>
-        ${tag}
-        <span>${esc(fmtTicketTime(item.created_at || item.CreatedAt))}</span>
+    const itemKlass = item.kind === 'activity' ? 'ticket-thread-item activity' : `ticket-thread-item${staff ? ' staff' : ' customer'}`;
+    return `<div class="${itemKlass}">
+      <div class="ticket-thread-bubble">
+        <div class="ticket-thread-meta">
+          <span class="ticket-thread-author">${esc(who)}</span>
+          ${tag}
+          <span>${esc(fmtTicketTime(item.created_at || item.CreatedAt))}</span>
+        </div>
+        <div class="ticket-thread-body">${esc(item.body || '')}</div>
       </div>
-      <div class="ticket-thread-body">${esc(item.body || '')}</div>
     </div>`;
   }).join('');
   list.scrollTop = list.scrollHeight;
