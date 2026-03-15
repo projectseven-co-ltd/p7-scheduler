@@ -260,7 +260,6 @@ export default async function incidentsRoutes(fastify) {
       },
     };
     broadcastAll(event);
-    if (ticket.customer_token) broadcastPublic(ticket.customer_token, event);
 
     return reply.code(201).send(replyRow);
   });

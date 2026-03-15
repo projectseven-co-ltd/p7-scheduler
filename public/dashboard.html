@@ -439,7 +439,7 @@ tr:hover td{background:var(--surface2)}
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
-      <div id="topbar-actions"><button class="app-chip stale" id="app-status-chip" onclick="handleAppChipClick()"><span class="dot"></span><span id="app-status-label">REFRESH APP</span></button></div>
+      <div id="topbar-actions"></div>
     </div>
   </div>
   <div class="content">
@@ -1070,8 +1070,6 @@ async function init() {
   await loadSection('bookings');
   populateTimezones();
   connectTicketStream();
-  setupPwaControls();
-  updateAppChip();
 }
 
 
