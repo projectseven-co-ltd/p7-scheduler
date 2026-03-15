@@ -82,6 +82,7 @@ export default async function authRoutes(fastify) {
         properties: {
           email: { type: 'string', format: 'email' },
           code: { type: 'string' },
+          next: { type: 'string' },
         },
         examples: [{ email: 'ops@schedkit.net', code: '482193' }],
       },
@@ -99,6 +100,7 @@ export default async function authRoutes(fastify) {
   }, async (req, reply) => {
     const email = String(req.body?.email || '').toLowerCase().trim();
     const code = String(req.body?.code || '').replace(/\D/g, '').slice(0, 6);
+    const next = String(req.body?.next || '').slice(0, 200) || null;
     if (!email || code.length !== 6) return reply.code(400).send({ ok: false, error: 'invalid_code' });
 
     const userResult = await db.find(tables.users, `(email,eq,${email})`);
@@ -120,7 +122,7 @@ export default async function authRoutes(fastify) {
 
     if (!match) return reply.code(400).send({ ok: false, error: 'invalid_code' });
 
-    await consumeLoginAndCreateSession(reply, match, user, { redirect: false, next: null });
+    await consumeLoginAndCreateSession(reply, match, user, { redirect: false, next });
   });
 
   // GET /v1/auth/verify?token=... — verify magic link, issue session cookie

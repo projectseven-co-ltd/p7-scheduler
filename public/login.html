@@ -142,7 +142,7 @@ codeForm.addEventListener('submit', async e => {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       credentials: 'include',
-      body: JSON.stringify({ email: emailInput.value, code }),
+      body: JSON.stringify({ email: emailInput.value, code, next: _nextUrl !== '/dashboard' ? _nextUrl : undefined }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'invalid_code');
