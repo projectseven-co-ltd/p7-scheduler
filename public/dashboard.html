@@ -221,6 +221,58 @@ tr:hover td{background:var(--surface2)}
 .empty-icon{font-size:36px;margin-bottom:12px}
 .empty p{font-size:14px}
 
+/* NAV DIVIDER */
+.nav-divider{height:1px;background:var(--border);margin:8px 10px}
+
+/* SITREP */
+.sitrep-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.sitrep-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden}
+.sitrep-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border)}
+.sitrep-stat.ok::before{background:var(--accent)}
+.sitrep-stat.warn::before{background:#fbbf24}
+.sitrep-stat.crit::before{background:#ff5f5f}
+.sitrep-stat.info::before{background:#60a5fa}
+.sitrep-stat-label{font-size:10px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sitrep-stat-value{font-size:32px;font-weight:800;color:var(--text);line-height:1}
+.sitrep-stat-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px}
+.sitrep-stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15}
+.sitrep-lower{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sitrep-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.sitrep-panel-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sitrep-panel-head h3{font-size:11px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0}
+.sitrep-panel-body{padding:0;max-height:320px;overflow-y:auto}
+.sitrep-feed-item{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;font-size:13px}
+.sitrep-feed-item:last-child{border-bottom:none}
+.sitrep-feed-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;background:var(--muted)}
+.sitrep-feed-dot.assignment{background:var(--accent)}
+.sitrep-feed-dot.incident{background:#60a5fa}
+.sitrep-feed-dot.alert{background:#ff5f5f}
+.sitrep-feed-dot.reply{background:#4ade80}
+.sitrep-feed-text{flex:1;line-height:1.4;color:var(--text)}
+.sitrep-feed-time{font-size:11px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap;margin-top:2px}
+.sitrep-feed-empty{padding:24px 16px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--font-mono)}
+.nextup-item{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.nextup-item:last-child{border-bottom:none}
+.nextup-time{font-family:var(--font-mono);font-size:11px;color:var(--accent);min-width:72px;white-space:nowrap}
+.nextup-name{font-size:13px;font-weight:600;color:var(--text)}
+.nextup-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.sitrep-status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;font-size:11px;font-family:var(--font-mono);color:var(--muted)}
+.sitrep-status-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse-green 2s infinite}
+@keyframes pulse-green{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* PLACEHOLDER sections */
+.placeholder-section{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:16px;text-align:center;color:var(--muted)}
+.placeholder-section .ph-icon{font-size:48px;opacity:.4}
+.placeholder-section h3{font-size:16px;color:var(--text);margin:0}
+.placeholder-section p{font-size:13px;max-width:340px;line-height:1.6;margin:0}
+.placeholder-section .ph-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;padding:4px 10px;border:1px solid var(--border);border-radius:20px;text-transform:uppercase}
+
+/* KIT CONFIG tabs */
+.kit-tabs{display:flex;gap:4px;padding:4px;background:var(--surface2);border-radius:10px;margin-bottom:20px;overflow-x:auto}
+.kit-tab{padding:7px 16px;border-radius:8px;font-size:12px;font-family:var(--font-mono);letter-spacing:.05em;border:none;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s}
+.kit-tab.active{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.kit-tab-panel{display:none}.kit-tab-panel.active{display:block}
+
 /* BOOKING LINK */
 .booking-link-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
 .booking-link-box code{font-family:var(--font-mono);font-size:13px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -323,6 +375,9 @@ tr:hover td{background:var(--surface2)}
   .stat{padding:14px 12px}
   .stat-value{font-size:22px}
   .stat-label{font-size:11px}
+  .sitrep-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .sitrep-stat-value{font-size:24px}
+  .sitrep-lower{grid-template-columns:1fr}
 }
 
 @media(max-width:640px){
@@ -405,29 +460,24 @@ tr:hover td{background:var(--surface2)}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo"><a href="/dashboard"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg>sched<span>kit</span></a></div>
   <nav class="sidebar-nav">
-    <button class="nav-item active" data-section="assignments">
+    <button class="nav-item active" data-section="sitrep">
+      <span class="nav-icon">📡</span> SITREP
+    </button>
+    <button class="nav-item" data-section="assignments">
       <span class="nav-icon">📋</span> Assignments
     </button>
-    <button class="nav-item" data-section="event-types">
-      <span class="nav-icon">⚡</span> Event Types
-    </button>
-    <button class="nav-item" data-section="availability">
-      <span class="nav-icon">🕐</span> Availability
-    </button>
-    <button class="nav-item" data-section="blackout">
-      <span class="nav-icon">🚫</span> Blackout Dates
-    </button>
     <button class="nav-item" data-section="tickets">
-      <span class="nav-icon">🎫</span> Tickets
+      <span class="nav-icon">🎫</span> Incidents
     </button>
-    <button class="nav-item" data-section="clients">
-      <span class="nav-icon">🚨</span> Client Flags
+    <button class="nav-item" data-section="signals">
+      <span class="nav-icon">⚡</span> Signals
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" data-section="kit">
+      <span class="nav-icon">🧰</span> Kit Config
     </button>
     <button class="nav-item" data-section="orgs">
-      <span class="nav-icon">🏢</span> Organizations
-    </button>
-    <button class="nav-item" data-section="settings">
-      <span class="nav-icon">⚙️</span> Settings
+      <span class="nav-icon">🏢</span> Units
     </button>
   </nav>
   <div class="sidebar-footer">
@@ -451,7 +501,7 @@ tr:hover td{background:var(--surface2)}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:8px">
       <button class="mob-hamburger" id="mobHamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
-      <h1 id="page-title">Assignments</h1>
+      <h1 id="page-title">SITREP</h1>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
@@ -460,8 +510,63 @@ tr:hover td{background:var(--surface2)}
   </div>
   <div class="content">
 
+    <!-- SITREP -->
+    <div class="section active" id="section-sitrep">
+      <div class="sitrep-status-bar">
+        <div class="sitrep-status-dot"></div>
+        <span id="sitrep-status-text">SYSTEM NOMINAL · LIVE FEED ACTIVE</span>
+        <span style="margin-left:auto" id="sitrep-last-updated"></span>
+      </div>
+      <div class="sitrep-grid">
+        <div class="sitrep-stat ok" id="sitrep-tile-assignments">
+          <div class="sitrep-stat-label">Assignments Today</div>
+          <div class="sitrep-stat-value" id="sitrep-assignments-today">—</div>
+          <div class="sitrep-stat-sub" id="sitrep-assignments-sub">loading...</div>
+          <div class="sitrep-stat-icon">📋</div>
+        </div>
+        <div class="sitrep-stat info" id="sitrep-tile-incidents">
+          <div class="sitrep-stat-label">Open Incidents</div>
+          <div class="sitrep-stat-value" id="sitrep-incidents-open">—</div>
+          <div class="sitrep-stat-sub" id="sitrep-incidents-sub">loading...</div>
+          <div class="sitrep-stat-icon">🎫</div>
+        </div>
+        <div class="sitrep-stat" id="sitrep-tile-signals">
+          <div class="sitrep-stat-label">Active Signals</div>
+          <div class="sitrep-stat-value" id="sitrep-signals-active">—</div>
+          <div class="sitrep-stat-sub">alerts api coming soon</div>
+          <div class="sitrep-stat-icon">⚡</div>
+        </div>
+        <div class="sitrep-stat ok" id="sitrep-tile-sla">
+          <div class="sitrep-stat-label">SLA Health</div>
+          <div class="sitrep-stat-value" id="sitrep-sla-status">OK</div>
+          <div class="sitrep-stat-sub" id="sitrep-sla-sub">loading...</div>
+          <div class="sitrep-stat-icon">🛡️</div>
+        </div>
+      </div>
+      <div class="sitrep-lower">
+        <div class="sitrep-panel">
+          <div class="sitrep-panel-head">
+            <h3>Next Up</h3>
+            <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted)" id="sitrep-nextup-count"></span>
+          </div>
+          <div class="sitrep-panel-body" id="sitrep-nextup-list">
+            <div class="sitrep-feed-empty">Loading assignments...</div>
+          </div>
+        </div>
+        <div class="sitrep-panel">
+          <div class="sitrep-panel-head">
+            <h3>Activity Feed</h3>
+            <span style="font-size:11px;font-family:var(--font-mono);color:var(--accent)" id="sitrep-feed-live">● LIVE</span>
+          </div>
+          <div class="sitrep-panel-body" id="sitrep-activity-feed">
+            <div class="sitrep-feed-empty">Waiting for activity...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ASSIGNMENTS -->
-    <div class="section active" id="section-assignments">
+    <div class="section" id="section-assignments">
       <div class="page-header" style="margin-bottom:16px">
         <h2>Assignments</h2>
         <div style="display:flex;gap:8px;align-items:center">
@@ -483,7 +588,7 @@ tr:hover td{background:var(--surface2)}
     <!-- TICKETS -->
     <div class="section" id="section-tickets">
       <div class="page-header" style="margin-bottom:16px">
-        <h2>Tickets</h2>
+        <h2>Incidents</h2>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-ghost" onclick="loadTickets()">Refresh</button>
           <button class="btn btn-primary" onclick="openTicketModal()">+ New Ticket</button>
@@ -568,6 +673,31 @@ tr:hover td{background:var(--surface2)}
       </div>
       <div id="orgs-list"><div class="loading">loading...</div></div>
       <div id="org-detail" style="display:none;margin-top:24px"></div>
+    </div>
+
+    <!-- SIGNALS (placeholder) -->
+    <div class="section" id="section-signals">
+      <div class="placeholder-section">
+        <div class="ph-icon">⚡</div>
+        <h3>Signals</h3>
+        <p>The Signals API is coming soon. Wire any inbound signal — weather alerts, sensor readings, webhooks, booking events — to any outbound action. Physical or digital.</p>
+        <span class="ph-badge">Coming in Phase 2</span>
+      </div>
+    </div>
+
+    <!-- KIT CONFIG -->
+    <div class="section" id="section-kit">
+      <div class="page-header" style="margin-bottom:16px">
+        <h2>Kit Config</h2>
+      </div>
+      <div class="kit-tabs">
+        <button class="kit-tab active" onclick="switchKitTab('event-types')">Event Types</button>
+        <button class="kit-tab" onclick="switchKitTab('availability')">Availability</button>
+        <button class="kit-tab" onclick="switchKitTab('blackout')">Blackout</button>
+        <button class="kit-tab" onclick="switchKitTab('clients')">Client Flags</button>
+        <button class="kit-tab" onclick="switchKitTab('settings')">Account</button>
+      </div>
+      <div id="kit-tab-content"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -1074,16 +1204,16 @@ async function init() {
   if (calConnected) { toast('Google Calendar connected!', 'ok'); }
   if (calError) { toast('Calendar connection failed: ' + calError, 'err'); }
   if (calConnected || calError) {
-    // Clean up URL and navigate to settings
+    // Clean up URL and navigate to kit config → settings tab
     history.replaceState({}, '', '/dashboard');
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.section === 'settings'));
-    document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-settings'));
-    await loadSection('settings');
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.section === 'kit'));
+    document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-kit'));
+    await loadKitTab('settings');
     populateTimezones();
     return;
   }
 
-  await loadSection('assignments');
+  await loadSection('sitrep');
   populateTimezones();
   connectTicketStream();
 }
@@ -1226,7 +1356,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('section-' + section).classList.add('active');
-    const titles = { assignments:'Assignments',tickets:'Tickets','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',orgs:'Organizations',settings:'Settings' };
+    const titles = { sitrep:'SITREP', assignments:'Assignments', tickets:'Incidents', signals:'Signals', kit:'Kit Config', 'event-types':'Event Types', availability:'Availability', blackout:'Blackout Dates', clients:'Client Flags', orgs:'Units', settings:'Settings' };
     document.getElementById('page-title').textContent = titles[section] || section;
     loadSection(section);
     closeSidebar(); // close on mobile after nav
@@ -1244,14 +1374,236 @@ function closeSidebar() {
 }
 
 async function loadSection(name) {
+  if (name === 'sitrep') await loadSitrep();
   if (name === 'assignments') await loadAssignments();
   if (name === 'tickets') await loadTickets();
+  if (name === 'signals') {} // placeholder
+  if (name === 'kit') await loadKitTab(currentKitTab || 'event-types');
   if (name === 'event-types') await loadEventTypes();
   if (name === 'availability') await loadAvailability();
   if (name === 'blackout') await loadBlackout();
   if (name === 'clients') await loadClients();
   if (name === 'orgs') await loadOrgs();
   if (name === 'settings') await loadCalendarStatus();
+}
+
+// ── SITREP ───────────────────────────────────────────
+const sitrepFeed = [];
+const SITREP_MAX_FEED = 40;
+
+function sitrepPushFeed(kind, text, ts) {
+  sitrepFeed.unshift({ kind, text, ts: ts || new Date().toISOString() });
+  if (sitrepFeed.length > SITREP_MAX_FEED) sitrepFeed.length = SITREP_MAX_FEED;
+  renderSitrepFeed();
+}
+
+function renderSitrepFeed() {
+  const el = document.getElementById('sitrep-activity-feed');
+  if (!el) return;
+  if (!sitrepFeed.length) {
+    el.innerHTML = `<div class="sitrep-feed-empty">Waiting for activity...</div>`;
+    return;
+  }
+  el.innerHTML = sitrepFeed.map(item => `
+    <div class="sitrep-feed-item">
+      <div class="sitrep-feed-dot ${item.kind}"></div>
+      <div style="flex:1">
+        <div class="sitrep-feed-text">${esc(item.text)}</div>
+        <div class="sitrep-feed-time">${esc(fmtRelTime(item.ts))}</div>
+      </div>
+    </div>`).join('');
+}
+
+function fmtRelTime(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function fmtShortTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const today = new Date();
+  const isToday = d.toDateString() === today.toDateString();
+  if (isToday) return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+async function loadSitrep() {
+  // Fire requests in parallel
+  const [asgRes, tickRes] = await Promise.all([
+    apiFetch('/v1/bookings?limit=100'),
+    apiFetch('/v1/tickets?limit=100'),
+  ]);
+
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+  const todayEnd = new Date(now); todayEnd.setHours(23,59,59,999);
+
+  // Assignments tile
+  let assignmentsToday = 0, pendingCount = 0, upcomingList = [];
+  if (asgRes?.ok) {
+    const { bookings = [] } = await asgRes.json();
+    assignmentsToday = bookings.filter(b => {
+      const t = new Date(b.start_time);
+      return t >= todayStart && t <= todayEnd && b.status !== 'cancelled';
+    }).length;
+    pendingCount = bookings.filter(b => b.status === 'pending').length;
+    upcomingList = bookings
+      .filter(b => b.status === 'confirmed' && new Date(b.start_time) > now)
+      .sort((a,b) => new Date(a.start_time) - new Date(b.start_time))
+      .slice(0, 5);
+
+    // Seed feed with recent confirmed bookings
+    bookings
+      .filter(b => b.status === 'confirmed')
+      .sort((a,b) => new Date(b.created_at||b.CreatedAt||0) - new Date(a.created_at||a.CreatedAt||0))
+      .slice(0, 5)
+      .forEach(b => sitrepFeed.push({
+        kind: 'assignment',
+        text: `Assignment confirmed — ${b.attendee_name || 'Attendee'} · ${b.event_type_name || 'Event'}`,
+        ts: b.created_at || b.CreatedAt,
+      }));
+  }
+
+  document.getElementById('sitrep-assignments-today').textContent = assignmentsToday;
+  document.getElementById('sitrep-assignments-sub').textContent =
+    pendingCount > 0 ? `${pendingCount} pending confirmation` : 'all confirmed';
+  const asgTile = document.getElementById('sitrep-tile-assignments');
+  if (asgTile) asgTile.className = `sitrep-stat ${pendingCount > 0 ? 'warn' : 'ok'}`;
+
+  // Next up panel
+  const nextupEl = document.getElementById('sitrep-nextup-list');
+  const nextupCount = document.getElementById('sitrep-nextup-count');
+  if (nextupEl) {
+    if (!upcomingList.length) {
+      nextupEl.innerHTML = `<div class="sitrep-feed-empty">No upcoming assignments</div>`;
+    } else {
+      nextupEl.innerHTML = upcomingList.map(b => `
+        <div class="nextup-item">
+          <div class="nextup-time">${esc(fmtShortTime(b.start_time))}</div>
+          <div>
+            <div class="nextup-name">${esc(b.attendee_name || 'Attendee')}</div>
+            <div class="nextup-sub">${esc(b.event_type_name || b.event_type_id || '—')}</div>
+          </div>
+        </div>`).join('');
+    }
+    if (nextupCount) nextupCount.textContent = `${upcomingList.length} upcoming`;
+  }
+
+  // Incidents tile
+  let openIncidents = 0, breachedCount = 0, inProgressCount = 0;
+  if (tickRes?.ok) {
+    const { tickets = [] } = await tickRes.json();
+    openIncidents = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+    breachedCount = tickets.filter(t => t.sla_status === 'breached').length;
+    inProgressCount = tickets.filter(t => t.status === 'in_progress').length;
+
+    // Seed feed with recent tickets
+    tickets
+      .sort((a,b) => new Date(b.CreatedAt||b.created_at||0) - new Date(a.CreatedAt||a.created_at||0))
+      .slice(0, 5)
+      .forEach(t => sitrepFeed.push({
+        kind: 'incident',
+        text: `Incident opened — ${t.title || 'Untitled'} · ${(t.priority||'normal').toUpperCase()}`,
+        ts: t.CreatedAt || t.created_at,
+      }));
+  }
+
+  document.getElementById('sitrep-incidents-open').textContent = openIncidents;
+  document.getElementById('sitrep-incidents-sub').textContent =
+    inProgressCount > 0 ? `${inProgressCount} in progress` : breachedCount > 0 ? `${breachedCount} sla breached` : 'no active incidents';
+  const incTile = document.getElementById('sitrep-tile-incidents');
+  if (incTile) incTile.className = `sitrep-stat ${breachedCount > 0 ? 'crit' : openIncidents > 0 ? 'warn' : 'ok'}`;
+
+  // Signals tile (placeholder)
+  document.getElementById('sitrep-signals-active').textContent = '—';
+
+  // SLA health tile
+  const slaStatus = document.getElementById('sitrep-sla-status');
+  const slaSub = document.getElementById('sitrep-sla-sub');
+  const slaTile = document.getElementById('sitrep-tile-sla');
+  if (breachedCount > 0) {
+    slaStatus.textContent = 'BREACH';
+    slaSub.textContent = `${breachedCount} ticket${breachedCount > 1 ? 's' : ''} overdue`;
+    slaTile.className = 'sitrep-stat crit';
+    slaStatus.style.color = 'var(--red)';
+  } else {
+    slaStatus.textContent = 'OK';
+    slaSub.textContent = 'all tickets within sla';
+    slaTile.className = 'sitrep-stat ok';
+    slaStatus.style.color = '';
+  }
+
+  // Sort and render feed
+  sitrepFeed.sort((a,b) => new Date(b.ts||0) - new Date(a.ts||0));
+  renderSitrepFeed();
+
+  // Update status bar
+  const lastUpdEl = document.getElementById('sitrep-last-updated');
+  if (lastUpdEl) lastUpdEl.textContent = `updated ${fmtRelTime(new Date().toISOString())}`;
+}
+
+// Hook into SSE stream to push live events into the SITREP feed
+const _origTicketStreamHandler = null;
+function sitrepHandleSSE(type, payload) {
+  if (type === 'incident.created') {
+    sitrepPushFeed('incident', `Incident opened — ${payload.title || 'Untitled'} · ${(payload.priority||'normal').toUpperCase()}`, payload.CreatedAt || payload.created_at);
+    // Refresh incident tile count live
+    const el = document.getElementById('sitrep-incidents-open');
+    if (el) el.textContent = parseInt(el.textContent||0,10) + 1;
+  }
+  if (type === 'incident.updated' || type === 'incident.resolved') {
+    sitrepPushFeed('incident', `Incident ${type === 'incident.resolved' ? 'resolved' : 'updated'} — ${payload.title || 'Untitled'}`, new Date().toISOString());
+  }
+  if (type === 'incident.breached') {
+    sitrepPushFeed('alert', `⚠ SLA breached — ${payload.title || 'Untitled'}`, new Date().toISOString());
+    const slaTile = document.getElementById('sitrep-tile-sla');
+    if (slaTile) slaTile.className = 'sitrep-stat crit';
+    const slaEl = document.getElementById('sitrep-sla-status');
+    if (slaEl) { slaEl.textContent = 'BREACH'; slaEl.style.color = 'var(--red)'; }
+  }
+  if (type === 'reply.added') {
+    sitrepPushFeed('reply', `Reply added — incident #${payload.ticket_id}`, new Date().toISOString());
+  }
+}
+
+// ── Kit Config tabs ───────────────────────────────────
+let currentKitTab = 'event-types';
+const kitTabSections = {
+  'event-types': () => document.getElementById('section-event-types')?.outerHTML,
+  'availability': () => document.getElementById('section-availability')?.outerHTML,
+  'blackout': () => document.getElementById('section-blackout')?.outerHTML,
+  'clients': () => document.getElementById('section-clients')?.outerHTML,
+  'settings': () => document.getElementById('section-settings')?.outerHTML,
+};
+
+async function loadKitTab(tab) {
+  currentKitTab = tab;
+  // Update tab buttons
+  document.querySelectorAll('.kit-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(tab.replace('-',' ').split('-')[0].toLowerCase()));
+  });
+  // Load the section data
+  await loadSection(tab);
+  // Clone the real section content into the kit-tab-content div
+  const kitContent = document.getElementById('kit-tab-content');
+  if (!kitContent) return;
+  const src = document.getElementById(`section-${tab}`);
+  if (src) {
+    kitContent.innerHTML = src.innerHTML;
+  }
+}
+
+async function switchKitTab(tab) {
+  document.querySelectorAll('.kit-tab').forEach((btn, i) => {
+    const tabs = ['event-types','availability','blackout','clients','settings'];
+    btn.classList.toggle('active', tabs[i] === tab);
+  });
+  await loadKitTab(tab);
 }
 
 // ── Assignments ──────────────────────────────────────
@@ -1474,6 +1826,8 @@ function connectTicketStream() {
     try {
       const evt = JSON.parse(e.data);
       const { type, payload } = evt || {};
+      // Push to SITREP feed
+      sitrepHandleSSE(type, payload);
       if (type === 'incident.created' || type === 'incident.updated' || type === 'incident.breached' || type === 'incident.resolved') {
         mergeTicketIntoCache(payload);
         if (activeTicket && String(activeTicket.Id) === String(payload.Id)) {
