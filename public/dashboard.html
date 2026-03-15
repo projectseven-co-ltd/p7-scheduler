@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2)}
   .lights-btn{padding:5px 10px}
   .mob-hamburger{min-width:42px;min-height:42px}
 
-  /* Bookings: card layout on mobile */
+  /* Assignments: card layout on mobile */
   .bookings-table thead{display:none}
   .bookings-table tbody tr{
     display:block;margin-bottom:12px;
@@ -390,7 +390,7 @@ tr:hover td{background:var(--surface2)}
   }
   .modal-overlay{padding:10px;align-items:flex-end}
 
-  /* Booking link box wraps */
+  /* Assignment link box wraps */
   .booking-link-box{flex-wrap:wrap}
   .booking-link-box code{min-width:0;word-break:break-all;white-space:normal}
 
@@ -405,8 +405,8 @@ tr:hover td{background:var(--surface2)}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo"><a href="/dashboard"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg>sched<span>kit</span></a></div>
   <nav class="sidebar-nav">
-    <button class="nav-item active" data-section="bookings">
-      <span class="nav-icon">📅</span> Bookings
+    <button class="nav-item active" data-section="assignments">
+      <span class="nav-icon">📋</span> Assignments
     </button>
     <button class="nav-item" data-section="event-types">
       <span class="nav-icon">⚡</span> Event Types
@@ -451,7 +451,7 @@ tr:hover td{background:var(--surface2)}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:8px">
       <button class="mob-hamburger" id="mobHamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
-      <h1 id="page-title">Bookings</h1>
+      <h1 id="page-title">Assignments</h1>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <button class="lights-btn" id="lightsBtn"><span>🔦</span><span id="lightsBtnLabel">LIGHTS ON</span></button>
@@ -460,13 +460,13 @@ tr:hover td{background:var(--surface2)}
   </div>
   <div class="content">
 
-    <!-- BOOKINGS -->
-    <div class="section active" id="section-bookings">
+    <!-- ASSIGNMENTS -->
+    <div class="section active" id="section-assignments">
       <div class="page-header" style="margin-bottom:16px">
-        <h2>Bookings</h2>
+        <h2>Assignments</h2>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-ghost" id="toggle-cancelled-btn" onclick="toggleCancelled()" style="font-size:12px;padding:6px 14px">Show Cancelled</button>
-          <button class="btn btn-primary" onclick="openCreateBookingModal()">+ New Booking</button>
+          <button class="btn btn-primary" onclick="openCreateAssignmentModal()">+ New Assignment</button>
         </div>
       </div>
       <div class="stats">
@@ -476,7 +476,7 @@ tr:hover td{background:var(--surface2)}
         <div class="stat"><div class="stat-label">cancelled</div><div class="stat-value" id="stat-cancelled">—</div></div>
       </div>
       <div class="table-wrap" id="bookings-table">
-        <div class="loading">loading bookings...</div>
+        <div class="loading">loading assignments...</div>
       </div>
     </div>
 
@@ -530,7 +530,7 @@ tr:hover td{background:var(--surface2)}
         <h2>Weekly Availability</h2>
         <button class="btn btn-primary" id="save-avail-btn" onclick="saveAvailability()">Save Changes</button>
       </div>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Set the days and hours you're available for bookings. Times are in your account timezone.</p>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Set the days and hours you're available for assignments. Times are in your account timezone.</p>
       <div class="avail-grid" id="avail-grid"><div class="loading">loading...</div></div>
     </div>
 
@@ -619,7 +619,7 @@ tr:hover td{background:var(--surface2)}
 
         <div class="table-wrap" style="padding:28px;margin-top:20px" id="cal-connect-card">
           <h3 style="margin:0 0 6px;font-size:15px">Calendar Sync</h3>
-          <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6">Connect your Google Calendar to block busy times and automatically add bookings as events.</p>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6">Connect your Google Calendar to block busy times and automatically add assignments as events.</p>
           <div id="cal-status-area">
             <div style="color:var(--muted);font-size:13px">Loading…</div>
           </div>
@@ -821,12 +821,12 @@ tr:hover td{background:var(--surface2)}
     <div class="form-row">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
         <input type="checkbox" id="et-requires-confirmation" style="width:16px;height:16px;accent-color:var(--accent)">
-        Require host confirmation before booking is finalized
+        Require host confirmation before assignment is finalized
       </label>
       <div class="form-hint">Attendees will see "awaiting confirmation" and you'll get Accept/Decline links by email + in the dashboard.</div>
     </div>
     <div class="form-row">
-      <label>Custom Fields <span style="color:var(--muted)">(collected from attendees at booking)</span></label>
+      <label>Custom Fields <span style="color:var(--muted)">(collected from attendees at assignment)</span></label>
       <div id="cf-builder" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
       <button type="button" class="btn btn-ghost" style="font-size:13px;padding:8px 14px" onclick="addCustomField()">+ Add field</button>
     </div>
@@ -840,8 +840,8 @@ tr:hover td{background:var(--surface2)}
 <!-- RESCHEDULE MODAL -->
 <div class="modal-overlay" id="reschedule-modal">
   <div class="modal">
-    <h3>Reschedule Booking</h3>
-    <div id="rs-booking-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
+    <h3>Reschedule Assignment</h3>
+    <div id="rs-assignment-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
     <!-- Override toggle -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
       <input type="checkbox" id="rs-override" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer" onchange="toggleRsOverride()">
@@ -913,23 +913,23 @@ tr:hover td{background:var(--surface2)}
   </div>
 </div>
 
-<!-- CANCEL BOOKING MODAL -->
-<div class="modal-overlay" id="cancel-booking-modal">
+<!-- CANCEL ASSIGNMENT MODAL -->
+<div class="modal-overlay" id="cancel-assignment-modal">
   <div class="modal" style="max-width:420px">
-    <h3>Cancel Booking</h3>
-    <div id="cancel-booking-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
+    <h3>Cancel Assignment</h3>
+    <div id="cancel-assignment-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted)"></div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px">The attendee will receive a cancellation email. This cannot be undone.</p>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('cancel-booking-modal')">Keep it</button>
-      <button class="btn" style="background:rgba(255,95,95,.15);color:#ff5f5f;border:1px solid rgba(255,95,95,.3)" id="cancel-confirm-btn" onclick="confirmCancelBooking()">Yes, Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('cancel-assignment-modal')">Keep It</button>
+      <button class="btn" style="background:rgba(255,95,95,.15);color:#ff5f5f;border:1px solid rgba(255,95,95,.3)" id="cancel-confirm-btn" onclick="confirmCancelAssignment()">Yes, Cancel Assignment</button>
     </div>
   </div>
 </div>
 
-<!-- CREATE BOOKING MODAL -->
-<div class="modal-overlay" id="create-booking-modal">
+<!-- CREATE ASSIGNMENT MODAL -->
+<div class="modal-overlay" id="create-assignment-modal">
   <div class="modal" style="max-width:520px">
-    <h3 id="cb-title">New Booking</h3>
+    <h3 id="cb-title">New Assignment</h3>
 
     <!-- Step 1: Event type + date -->
     <div id="cb-step1">
@@ -948,7 +948,7 @@ tr:hover td{background:var(--surface2)}
         <div id="cb-slots" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto"></div>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="closeModal('create-booking-modal')">Cancel</button>
+        <button class="btn btn-ghost" onclick="closeModal('create-assignment-modal')">Cancel</button>
         <button class="btn btn-primary" id="cb-next-btn" onclick="showCbStep2()" disabled>Next →</button>
       </div>
     </div>
@@ -974,7 +974,7 @@ tr:hover td{background:var(--surface2)}
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="showCbStep1()">← Back</button>
-        <button class="btn btn-primary" id="cb-confirm-btn" onclick="confirmCreateBooking()">Create Booking</button>
+        <button class="btn btn-primary" id="cb-confirm-btn" onclick="confirmCreateAssignment()">Create Assignment</button>
       </div>
     </div>
   </div>
@@ -1083,7 +1083,7 @@ async function init() {
     return;
   }
 
-  await loadSection('bookings');
+  await loadSection('assignments');
   populateTimezones();
   connectTicketStream();
 }
@@ -1196,8 +1196,8 @@ async function loadUser() {
   const plan = currentUser.plan || 'free';
   const planNames = { free: 'Free — $0', starter: 'Starter — $29/mo', agency: 'Agency — $99/mo', enterprise: 'Enterprise' };
   const planLimits = {
-    free: 'Event types: 3 &nbsp;·&nbsp; Bookings/mo: 50 &nbsp;·&nbsp; Tickets in dashboard &nbsp;·&nbsp; No orgs',
-    starter: 'Event types: 10 &nbsp;·&nbsp; Bookings/mo: Unlimited &nbsp;·&nbsp; Tickets in dashboard &nbsp;·&nbsp; No orgs',
+    free: 'Event types: 3 &nbsp;·&nbsp; Assignments/mo: 50 &nbsp;·&nbsp; Tickets in dashboard &nbsp;·&nbsp; No orgs',
+    starter: 'Event types: 10 &nbsp;·&nbsp; Assignments/mo: Unlimited &nbsp;·&nbsp; Tickets in dashboard &nbsp;·&nbsp; No orgs',
     agency: 'Event types: Unlimited &nbsp;·&nbsp; 1 org · 5 teams · 25 members &nbsp;·&nbsp; Tickets + client ops',
     enterprise: 'Event types: Unlimited &nbsp;·&nbsp; Unlimited orgs, teams &amp; members &nbsp;·&nbsp; Full ticketing foundation',
   };
@@ -1226,7 +1226,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('section-' + section).classList.add('active');
-    const titles = { bookings:'Bookings',tickets:'Tickets','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',orgs:'Organizations',settings:'Settings' };
+    const titles = { assignments:'Assignments',tickets:'Tickets','event-types':'Event Types',availability:'Availability',blackout:'Blackout Dates',clients:'Client Flags',orgs:'Organizations',settings:'Settings' };
     document.getElementById('page-title').textContent = titles[section] || section;
     loadSection(section);
     closeSidebar(); // close on mobile after nav
@@ -1244,7 +1244,7 @@ function closeSidebar() {
 }
 
 async function loadSection(name) {
-  if (name === 'bookings') await loadBookings();
+  if (name === 'assignments') await loadAssignments();
   if (name === 'tickets') await loadTickets();
   if (name === 'event-types') await loadEventTypes();
   if (name === 'availability') await loadAvailability();
@@ -1254,8 +1254,8 @@ async function loadSection(name) {
   if (name === 'settings') await loadCalendarStatus();
 }
 
-// ── Bookings ──────────────────────────────────────
-async function loadBookings() {
+// ── Assignments ──────────────────────────────────────
+async function loadAssignments() {
   const res = await apiFetch('/v1/bookings?limit=100');
   if (!res?.ok) return;
   const { bookings, total } = await res.json();
@@ -1271,8 +1271,8 @@ async function loadBookings() {
   const pendingStat = document.getElementById('stat-pending');
   if (pendingStat) pendingStat.textContent = pending.length;
 
-  // Store all bookings for toggle
-  window._allBookings = bookings;
+  // Store all assignments for toggle
+  window._allAssignments = bookings;
   window._showCancelled = window._showCancelled || false;
 
   // Load flags for badge display
@@ -1283,7 +1283,7 @@ async function loadBookings() {
     flags.forEach(f => { window._clientFlags[f.email] = f; });
   }
 
-  renderBookingsTable(bookings);
+  renderAssignmentsTable(bookings);
 }
 
 function toggleCancelled() {
@@ -1292,19 +1292,19 @@ function toggleCancelled() {
   btn.textContent = window._showCancelled ? 'Hide Cancelled' : 'Show Cancelled';
   btn.style.color = window._showCancelled ? 'var(--accent)' : '';
   btn.style.borderColor = window._showCancelled ? 'var(--accent)' : '';
-  renderBookingsTable(window._allBookings);
+  renderAssignmentsTable(window._allAssignments);
 }
 
-function renderBookingsTable(bookings) {
+function renderAssignmentsTable(bookings) {
   if (!bookings?.length) {
-    document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>No bookings yet. Share your booking link to get started.</p></div>`;
+    document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>No assignments yet. Share your booking link to get started.</p></div>`;
     return;
   }
 
   const visible = window._showCancelled ? bookings : bookings.filter(b => b.status !== 'cancelled');
 
   if (!visible.length) {
-    document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>No active bookings. <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;display:inline" onclick="toggleCancelled()">Show cancelled</button></p></div>`;
+    document.getElementById('bookings-table').innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>No active assignments. <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;display:inline" onclick="toggleCancelled()">Show cancelled</button></p></div>`;
     return;
   }
 
@@ -1319,7 +1319,7 @@ function renderBookingsTable(bookings) {
       isPending ? `<button class="btn btn-primary" style="font-size:12px;padding:6px 12px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)" onclick='confirmBooking(${JSON.stringify(b.confirm_token||'').replace(/'/g,"&#39;")}, ${JSON.stringify(b).replace(/'/g,"&#39;")})'>✓ Confirm</button>` : '',
       isPending ? `<button class="btn" style="font-size:12px;padding:6px 12px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick='declineBooking(${JSON.stringify(b.confirm_token||'').replace(/'/g,"&#39;")}, ${JSON.stringify(b).replace(/'/g,"&#39;")})'>✕ Decline</button>` : '',
       canReschedule ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openRescheduleModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Reschedule</button>` : '',
-      canCancel ? `<button class="btn" style="font-size:12px;padding:6px 12px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick='openCancelBookingModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Cancel</button>` : '',
+      canCancel ? `<button class="btn" style="font-size:12px;padding:6px 12px;background:rgba(255,95,95,.08);color:#ff5f5f;border:1px solid rgba(255,95,95,.2)" onclick='openCancelAssignmentModal(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Cancel</button>` : '',
       `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick='openFlagModal(${JSON.stringify(window._clientFlags?.[b.attendee_email]||{email:b.attendee_email}).replace(/'/g,"&#39;")})'>${window._clientFlags?.[b.attendee_email] ? '🚨 Edit Flag' : '🏴 Flag'}</button>`,
     ].filter(Boolean).join(' ');
     return `<tr>
@@ -1348,8 +1348,8 @@ let ticketStream = null;
 function renderPlanTiers() {
   const plan = currentUser?.plan || 'free';
   const tiers = [
-    { key: 'free', name: 'Free', price: '$0', bullets: ['3 event types', '50 bookings / month', 'Dashboard ticket intake', 'Solo workflow'] },
-    { key: 'starter', name: 'Starter', price: '$29/mo', bullets: ['10 event types', 'Unlimited bookings', 'Better fit for active operators', 'Ticketing stays in dashboard'] },
+    { key: 'free', name: 'Free', price: '$0', bullets: ['3 event types', '50 assignments / month', 'Dashboard ticket intake', 'Solo workflow'] },
+    { key: 'starter', name: 'Starter', price: '$29/mo', bullets: ['10 event types', 'Unlimited assignments', 'Better fit for active operators', 'Ticketing stays in dashboard'] },
     { key: 'agency', name: 'Agency', price: '$99/mo', bullets: ['Unlimited event types', '1 org, 5 teams, 25 members', 'Client ops + shared workflows', 'Good for internal helpdesk rollout'] },
     { key: 'enterprise', name: 'Enterprise', price: 'Custom', bullets: ['Unlimited orgs / teams / members', 'Best home for full ticketing rollout', 'API-first responder direction', 'Custom support & expansion'] },
   ];
@@ -1664,7 +1664,7 @@ async function loadEventTypes() {
   const { event_types } = await res.json();
 
   if (!event_types.length) {
-    document.getElementById('event-types-list').innerHTML = `<div class="empty"><div class="empty-icon">⚡</div><p>No event types yet. Create one to start accepting bookings.</p></div>`;
+    document.getElementById('event-types-list').innerHTML = `<div class="empty"><div class="empty-icon">⚡</div><p>No event types yet. Create one to start accepting assignments.</p></div>`;
     return;
   }
 
@@ -2047,7 +2047,7 @@ async function saveFlag() {
     closeModal('flag-modal');
     toast('Client flag saved', 'ok');
     await loadClients();
-    await loadBookings(); // refresh badges
+    await loadAssignments(); // refresh badges
   } else {
     toast('Failed to save flag', 'err');
   }
@@ -2056,7 +2056,7 @@ async function saveFlag() {
 async function removeFlag(email) {
   if (!confirm(`Remove flag for ${email}?`)) return;
   const res = await apiFetch(`/v1/clients/${encodeURIComponent(email)}/flag`, { method: 'DELETE' });
-  if (res?.ok) { toast('Flag removed', 'ok'); await loadClients(); await loadBookings(); }
+  if (res?.ok) { toast('Flag removed', 'ok'); await loadClients(); await loadAssignments(); }
   else toast('Failed to remove flag', 'err');
 }
 
@@ -2536,12 +2536,12 @@ async function testNtfy() {
 }
 
 // ── Admin Reschedule ──────────────────────────────
-let rsBooking = null;
+let rsAssignment = null;
 let rsSelectedSlot = null;
 let rsFlatpickr = null;
 
-function openRescheduleModal(booking) {
-  rsBooking = booking;
+function openRescheduleModal(assignment) {
+  rsAssignment = assignment;
   rsSelectedSlot = null;
   document.getElementById('rs-confirm-btn').disabled = true;
   document.getElementById('rs-slots-row').style.display = 'none';
@@ -2551,9 +2551,9 @@ function openRescheduleModal(booking) {
   document.getElementById('rs-normal-mode').style.display = '';
   document.getElementById('rs-override-dt').value = '';
 
-  const start = new Date(booking.start_time);
-  document.getElementById('rs-booking-info').innerHTML =
-    `<strong>${esc(booking.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(booking.attendee_email)}<br>
+  const start = new Date(assignment.start_time);
+  document.getElementById("rs-assignment-info").innerHTML =
+    `<strong>${esc(assignment.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(assignment.attendee_email)}<br>
      Current: <span style="color:var(--accent)">${start.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
 
   if (rsFlatpickr) rsFlatpickr.destroy();
@@ -2593,12 +2593,12 @@ async function loadRsSlots(dateStr) {
   rsSelectedSlot = null;
   document.getElementById('rs-confirm-btn').disabled = true;
 
-  // Find event type slug for this booking
-  const etRes = await apiFetch(`/v1/event-types/${rsBooking.event_type_id}`);
+  // Find event type slug for this assignment
+  const etRes = await apiFetch(`/v1/event-types/${rsAssignment.event_type_id}`);
   if (!etRes?.ok) { slotsEl.innerHTML = '<div style="color:var(--red)">Could not load event type</div>'; return; }
   const et = await etRes.json();
 
-  const tz = rsBooking.attendee_timezone || currentUser?.timezone || 'UTC';
+  const tz = rsAssignment.attendee_timezone || currentUser?.timezone || 'UTC';
   const res = await fetch(`/v1/slots/${currentUser.slug}/${et.slug}?date=${dateStr}&timezone=${encodeURIComponent(tz)}`);
   const data = await res.json();
 
@@ -2630,14 +2630,14 @@ async function confirmAdminReschedule() {
     if (!dtVal) return;
     startTime = new Date(dtVal).toISOString();
   } else {
-    if (!rsBooking || !rsSelectedSlot) return;
+    if (!rsAssignment || !rsSelectedSlot) return;
     startTime = rsSelectedSlot.start;
   }
 
   const btn = document.getElementById('rs-confirm-btn');
   btn.disabled = true; btn.textContent = 'Rescheduling...';
 
-  const res = await apiFetch(`/v1/bookings/${rsBooking.Id}/reschedule`, {
+  const res = await apiFetch(`/v1/bookings/${rsAssignment.Id}/reschedule`, {
     method: 'POST',
     body: JSON.stringify({ start_time: startTime, override: isOverride }),
   });
@@ -2645,26 +2645,26 @@ async function confirmAdminReschedule() {
   if (res?.ok) {
     closeModal('reschedule-modal');
     toast(isOverride ? 'Rescheduled (override) — attendee notified' : 'Rescheduled — attendee notified by email', 'ok');
-    await loadBookings();
+    await loadAssignments();
   } else {
     toast('Reschedule failed', 'err');
     btn.disabled = false; btn.textContent = 'Confirm Reschedule';
   }
 }
 
-// ── Cancel Booking ────────────────────────────────
+// ── Cancel Assignment ────────────────────────────────
 let cancelTarget = null;
 
-function openCancelBookingModal(booking) {
-  cancelTarget = booking;
-  const start = new Date(booking.start_time);
-  document.getElementById('cancel-booking-info').innerHTML =
-    `<strong>${esc(booking.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(booking.attendee_email)}<br>
+function openCancelAssignmentModal(assignment) {
+  cancelTarget = assignment;
+  const start = new Date(assignment.start_time);
+  document.getElementById('cancel-assignment-info').innerHTML =
+    `<strong>${esc(assignment.attendee_name)}</strong> &nbsp;·&nbsp; ${esc(assignment.attendee_email)}<br>
      <span style="color:var(--accent);font-family:var(--font-mono)">${start.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
-  openModal('cancel-booking-modal');
+  openModal('cancel-assignment-modal');
 }
 
-async function confirmCancelBooking() {
+async function confirmCancelAssignment() {
   if (!cancelTarget) return;
   const btn = document.getElementById('cancel-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelling...';
@@ -2677,23 +2677,23 @@ async function confirmCancelBooking() {
   });
 
   if (res.ok || res.status === 302 || res.redirected) {
-    closeModal('cancel-booking-modal');
-    toast('Booking cancelled — attendee notified', 'ok');
-    await loadBookings();
+    closeModal('cancel-assignment-modal');
+    toast('Assignment cancelled — attendee notified', 'ok');
+    await loadAssignments();
   } else {
     toast('Cancel failed — try again', 'err');
   }
-  btn.disabled = false; btn.textContent = 'Yes, Cancel';
+  btn.disabled = false; btn.textContent = 'Yes, Cancel Assignment';
 }
 
-// ── Confirm / Decline pending bookings ────────────
+// ── Confirm / Decline pending assignments ────────────
 async function confirmBooking(confirm_token, booking) {
   if (!confirm_token) return toast('Missing confirm token', 'err');
-  if (!confirm(`Confirm booking for ${booking.attendee_name}?`)) return;
+  if (!confirm(`Confirm assignment for ${booking.attendee_name}?`)) return;
   const res = await fetch(`/v1/bookings/${confirm_token}/confirm`, { credentials: 'include' });
   if (res.ok || res.status === 200) {
-    toast('Booking confirmed — attendee notified', 'ok');
-    await loadBookings();
+    toast('Assignment confirmed — attendee notified', 'ok');
+    await loadAssignments();
   } else {
     toast('Confirm failed', 'err');
   }
@@ -2701,23 +2701,23 @@ async function confirmBooking(confirm_token, booking) {
 
 async function declineBooking(confirm_token, booking) {
   if (!confirm_token) return toast('Missing confirm token', 'err');
-  if (!confirm(`Decline booking for ${booking.attendee_name}? They will be notified.`)) return;
+  if (!confirm(`Decline assignment for ${booking.attendee_name}? They will be notified.`)) return;
   const res = await fetch(`/v1/bookings/${confirm_token}/decline`, { credentials: 'include' });
   if (res.ok || res.status === 200) {
-    toast('Booking declined — attendee notified', 'ok');
-    await loadBookings();
+    toast('Assignment declined — attendee notified', 'ok');
+    await loadAssignments();
   } else {
     toast('Decline failed', 'err');
   }
 }
 
-// ── Create Booking ────────────────────────────────
+// ── Create Assignment ────────────────────────────────
 let cbSlot = null;
 let cbEt = null;
 let cbFpDate = null;
 let cbFpTz = null;
 
-async function openCreateBookingModal() {
+async function openCreateAssignmentModal() {
   cbSlot = null; cbEt = null;
   document.getElementById('cb-next-btn').disabled = true;
   document.getElementById('cb-slots-row').style.display = 'none';
@@ -2786,7 +2786,7 @@ async function openCreateBookingModal() {
     }
   });
 
-  openModal('create-booking-modal');
+  openModal('create-assignment-modal');
 }
 
 async function loadCbSlots(dateStr) {
@@ -2826,7 +2826,7 @@ async function loadCbSlots(dateStr) {
 function showCbStep1() {
   document.getElementById('cb-step1').style.display = '';
   document.getElementById('cb-step2').style.display = 'none';
-  document.getElementById('cb-title').textContent = 'New Booking';
+  document.getElementById('cb-title').textContent = 'New Assignment';
 }
 
 function showCbStep2() {
@@ -2842,7 +2842,7 @@ function showCbStep2() {
   document.getElementById('cb-step2').style.display = '';
 }
 
-async function confirmCreateBooking() {
+async function confirmCreateAssignment() {
   const name = document.getElementById('cb-name').value.trim();
   const email = document.getElementById('cb-email').value.trim();
   const tz = document.getElementById('cb-tz').value;
@@ -2868,14 +2868,14 @@ async function confirmCreateBooking() {
   });
 
   if (res.ok) {
-    closeModal('create-booking-modal');
-    toast('Booking created — confirmation sent to attendee', 'ok');
-    await loadBookings();
+    closeModal('create-assignment-modal');
+    toast('Assignment created — confirmation sent to attendee', 'ok');
+    await loadAssignments();
   } else {
     const err = await res.json().catch(() => ({}));
-    toast(err.error || 'Failed to create booking', 'err');
+    toast(err.error || 'Failed to create assignment', 'err');
   }
-  btn.disabled = false; btn.textContent = 'Create Booking';
+  btn.disabled = false; btn.textContent = 'Create Assignment';
 }
 
 // ── Auth ──────────────────────────────────────────
