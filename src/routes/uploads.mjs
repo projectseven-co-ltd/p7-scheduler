@@ -2,8 +2,8 @@
 
 import { requireSession } from '../middleware/session.mjs';
 
-const NOCO_BASE = process.env.NOCO_BASE_URL || 'https://noco.app.p7n.net';
-const NOCO_TOKEN = process.env.NOCO_API_TOKEN;
+const NOCO_BASE = process.env.NOCO_URL || 'https://noco.app.p7n.net';
+const NOCO_TOKEN = process.env.NOCO_TOKEN;
 const UPLOAD_PATH = 'noco/pdrfbzgtno2cf9l/m21ubw2908iz01s/image_url';
 
 export default async function uploadsRoutes(fastify) {
