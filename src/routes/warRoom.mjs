@@ -468,6 +468,73 @@ body::after {
   height: 100%;
   background: #0a0a0b;
 }
+/* Map overlay panels */
+#map-beacon-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  width: 220px;
+  background: rgba(10,10,11,0.92);
+  border: 1px solid rgba(0,255,204,0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  font-family: 'Fira Code', monospace;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+#map-feed-panel {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 1000;
+  width: 300px;
+  background: rgba(10,10,11,0.88);
+  border: 1px solid rgba(223,255,0,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  font-family: 'Fira Code', monospace;
+  max-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.mbp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(223,255,0,0.5);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+.mbp-count {
+  background: rgba(0,255,204,0.15);
+  color: #00ffcc;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10px;
+}
+#beacon-units-list {
+  overflow-y: auto;
+  flex: 1;
+}
+#beacon-units-list::-webkit-scrollbar { display: none; }
+#wr-feed {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
+}
+#wr-feed::-webkit-scrollbar { display: none; }
+#wr-feed .sitrep-feed-item {
+  padding: 5px 12px;
+  font-size: 11px;
+}
 #map-no-geo {
   display: none;
   position: absolute;
@@ -571,6 +638,19 @@ body::after {
   <div id="view-map">
     <div id="map-container"></div>
     <div id="map-no-geo">NO GEO DATA — INCLUDE lat/lng WHEN CREATING INCIDENTS</div>
+    <!-- Beacon units overlay on map -->
+    <div id="map-beacon-panel">
+      <div class="mbp-header">
+        <span>📡 ACTIVE BEACONS</span>
+        <span id="beacon-units-count" class="mbp-count">0</span>
+      </div>
+      <div id="beacon-units-list"></div>
+    </div>
+    <!-- Live feed overlay on map -->
+    <div id="map-feed-panel">
+      <div class="mbp-header">ACTIVITY</div>
+      <div id="wr-feed"></div>
+    </div>
   </div>
 </div>
 
@@ -826,6 +906,11 @@ body::after {
   const incidentMarkers = new Map(); // id -> { marker, circle }
   const responderMarkers = new Map(); // user_id -> marker
 
+  // Beacon markers keyed by device_id (more specific than user_id)
+  // Each entry: { marker, accuracyCircle, labelMarker, lastSeen, userId, lat, lng }
+  const beaconMarkers = new Map();
+  const BEACON_STALE_MS = 120000; // 2 min — remove dot if no ping
+
   // Priority pin colors (SLA-independent default)
   const PRIORITY_COLORS = { urgent: '#ff3333', high: '#ff8800', normal: '#00aaff', low: '#555568' };
   const SLA_COLORS = { ok: '#00ff88', warning: '#ffaa00', breached: '#ff3333' };
@@ -943,17 +1028,133 @@ body::after {
   }
 
   function updateResponderDot(user_id, lat, lng) {
-    if (!leafletMap) return;
-    const existing = responderMarkers.get(String(user_id));
-    if (existing) { leafletMap.removeLayer(existing); }
+    // Legacy responder.moved fallback — treat as beacon ping with no device_id
+    updateBeaconDot('user-' + user_id, user_id, lat, lng, null, null);
+  }
+
+  function updateBeaconDot(deviceId, userId, lat, lng, accuracy, label) {
+    if (!leafletMap || lat == null || lng == null) return;
+
+    const key = String(deviceId || ('user-' + userId));
+    const existing = beaconMarkers.get(key);
+    if (existing) {
+      leafletMap.removeLayer(existing.marker);
+      if (existing.accuracyCircle) leafletMap.removeLayer(existing.accuracyCircle);
+      if (existing.labelMarker) leafletMap.removeLayer(existing.labelMarker);
+    }
+
+    // Accuracy ring
+    let accuracyCircle = null;
+    if (accuracy && accuracy > 0) {
+      accuracyCircle = L.circle([lat, lng], {
+        radius: accuracy,
+        color: '#00ffcc',
+        fillColor: '#00ffcc',
+        fillOpacity: 0.05,
+        weight: 1,
+        dashArray: '4 4',
+      }).addTo(leafletMap);
+    }
+
+    // Dot
+    const shortId = String(deviceId || userId).slice(-6);
+    const displayLabel = label || shortId;
     const icon = L.divIcon({
       className: '',
-      html: '<div style="width:10px;height:10px;border-radius:50%;background:#00ffff;border:1px solid #006666;opacity:0.9"></div>',
-      iconSize: [10, 10],
-      iconAnchor: [5, 5],
+      html: \`<div style="
+        width:14px;height:14px;border-radius:50%;
+        background:#00ffcc;border:2px solid rgba(0,255,204,0.6);
+        box-shadow:0 0 8px rgba(0,255,204,0.7);
+        animation:beaconPing 2s ease-out infinite;
+      "></div>\`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
     });
-    const m = L.marker([lat, lng], { icon }).addTo(leafletMap);
-    responderMarkers.set(String(user_id), m);
+    const marker = L.marker([lat, lng], { icon }).addTo(leafletMap);
+    marker.bindPopup(\`
+      <div class="map-popup-title">📡 Beacon</div>
+      <div class="map-popup-row">Device <span>\${displayLabel}</span></div>
+      <div class="map-popup-row">Coords <span>\${lat.toFixed(5)}, \${lng.toFixed(5)}</span></div>
+      \${accuracy ? \`<div class="map-popup-row">Accuracy <span>±\${Math.round(accuracy)}m</span></div>\` : ''}
+    \`);
+
+    // Label marker (floating text above dot)
+    const labelIcon = L.divIcon({
+      className: '',
+      html: \`<div style="font-family:'Fira Code',monospace;font-size:9px;color:#00ffcc;letter-spacing:0.08em;white-space:nowrap;text-shadow:0 0 4px rgba(0,0,0,0.9);margin-top:-18px;margin-left:8px;">\${displayLabel}</div>\`,
+      iconSize: [80, 14],
+      iconAnchor: [0, 14],
+    });
+    const labelMarker = L.marker([lat, lng], { icon: labelIcon, interactive: false }).addTo(leafletMap);
+
+    beaconMarkers.set(key, { marker, accuracyCircle, labelMarker, lastSeen: Date.now(), userId, lat, lng, deviceId });
+    updateBeaconPanel();
+  }
+
+  function removeBeaconDot(deviceId, userId) {
+    const key = String(deviceId || ('user-' + userId));
+    const existing = beaconMarkers.get(key);
+    if (!existing) return;
+    leafletMap && leafletMap.removeLayer(existing.marker);
+    existing.accuracyCircle && leafletMap && leafletMap.removeLayer(existing.accuracyCircle);
+    existing.labelMarker && leafletMap && leafletMap.removeLayer(existing.labelMarker);
+    beaconMarkers.delete(key);
+    updateBeaconPanel();
+  }
+
+  // Prune stale beacons every 30s
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, b] of beaconMarkers) {
+      if (now - b.lastSeen > BEACON_STALE_MS) removeBeaconDot(b.deviceId, b.userId);
+    }
+  }, 30000);
+
+  // ---- Beacon panel (sidebar) ----
+  function updateBeaconPanel() {
+    const panel = document.getElementById('beacon-units-list');
+    if (!panel) return;
+    if (beaconMarkers.size === 0) {
+      panel.innerHTML = '<div style="padding:12px 16px;font-size:11px;color:var(--muted,#5a5a6e);">No active beacons</div>';
+      document.getElementById('beacon-units-count').textContent = '0';
+      return;
+    }
+    document.getElementById('beacon-units-count').textContent = String(beaconMarkers.size);
+    panel.innerHTML = [...beaconMarkers.values()].map(b => {
+      const age = Math.round((Date.now() - b.lastSeen) / 1000);
+      const ageStr = age < 60 ? age + 's ago' : Math.round(age/60) + 'm ago';
+      const shortId = String(b.deviceId || b.userId).slice(-6);
+      return \`<div class="beacon-unit-row" onclick="flyToBeacon('\${b.lat}','\${b.lng}')">
+        <div style="width:8px;height:8px;border-radius:50%;background:#00ffcc;flex-shrink:0;box-shadow:0 0 6px #00ffcc;animation:beaconPing 2s infinite"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:#e8e8ea;font-family:'Fira Code',monospace;">\${shortId}</div>
+          <div style="font-size:10px;color:var(--muted,#5a5a6e);">\${b.lat.toFixed(4)}, \${b.lng.toFixed(4)}</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted,#5a5a6e);flex-shrink:0;">\${ageStr}</div>
+      </div>\`;
+    }).join('');
+  }
+  window.flyToBeacon = function(lat, lng) {
+    if (!leafletMap) { switchTab('map'); setTimeout(() => leafletMap && leafletMap.flyTo([+lat, +lng], 14), 300); return; }
+    switchTab('map');
+    leafletMap.flyTo([+lat, +lng], 14);
+  };
+
+  // ---- Alert flash ----
+  function flashAlert(lat, lng, note) {
+    if (!leafletMap) return;
+    const icon = L.divIcon({
+      className: '',
+      html: '<div style="width:24px;height:24px;border-radius:50%;background:#ff3333;border:3px solid #ff6666;box-shadow:0 0 20px rgba(255,50,50,0.8);animation:alertFlash 0.4s ease-in-out infinite alternate;"></div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+    const m = L.marker([lat, lng], { icon })
+      .bindPopup('<div class="map-popup-title" style="color:#ff5f5f">🚨 ALERT</div><div class="map-popup-row">' + (note || 'Operator triggered') + '</div>')
+      .addTo(leafletMap);
+    m.openPopup();
+    // Remove after 60s
+    setTimeout(() => { try { leafletMap.removeLayer(m); } catch {} }, 60000);
   }
 
   // ---- SSE ----
@@ -974,12 +1175,64 @@ body::after {
     };
   }
 
+  function connectSignalSSE() {
+    const es = new EventSource('/v1/signals/stream?api_key=' + _apiKey, { withCredentials: true });
+    es.onerror = () => { es.close(); setTimeout(connectSignalSSE, 5000); };
+    es.onmessage = (e) => {
+      try { handleSignalEvent(JSON.parse(e.data)); } catch {}
+    };
+  }
+
+  function handleSignalEvent(evt) {
+    const { type, payload } = evt;
+    if (!payload) return;
+    let meta = {};
+    try { meta = JSON.parse(payload.meta || '{}'); } catch {}
+    const deviceId = meta.device_id || ('user-' + payload.user_id);
+
+    if (type === 'signal.beacon') {
+      if (payload.lat != null) {
+        if (!mapInitialized && beaconMarkers.size === 0) {
+          // First beacon — auto-switch to map
+          switchTab('map');
+          setTimeout(() => updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, meta.device_id), 400);
+        } else {
+          updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, meta.device_id);
+        }
+      }
+      addFeedItem('beacon', '📡 Beacon · ' + deviceId.slice(-6) + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
+    } else if (type === 'signal.beacon_off') {
+      removeBeaconDot(deviceId, payload.user_id);
+      addFeedItem('beacon', '📡 Beacon off · user ' + payload.user_id);
+    } else if (type === 'signal.alert') {
+      if (payload.lat != null && mapInitialized) flashAlert(+payload.lat, +payload.lng, payload.note);
+      addFeedItem('alert', '🚨 ALERT · ' + (payload.note || 'operator triggered'));
+    } else if (type === 'signal.capture') {
+      addFeedItem('beacon', '📷 Capture · device ' + deviceId.slice(-6));
+    } else if (type === 'signal.note') {
+      addFeedItem('beacon', '📝 Note · ' + (payload.note || '').slice(0, 60));
+    }
+  }
+
+  function addFeedItem(kind, text) {
+    const feed = document.getElementById('wr-feed');
+    if (!feed) return;
+    const now = new Date().toISOString().slice(11,19);
+    const dot = kind === 'alert' ? '#ff5f5f' : kind === 'beacon' ? '#00ffcc' : 'var(--muted)';
+    const item = document.createElement('div');
+    item.className = 'sitrep-feed-item';
+    item.innerHTML = \`<div class="sitrep-feed-dot" style="background:\${dot}"></div><div style="flex:1"><span style="color:var(--muted);font-family:'Fira Code',monospace;font-size:10px;">\${now} </span><span style="font-size:12px;">\${text}</span></div>\`;
+    feed.insertBefore(item, feed.firstChild);
+    while (feed.children.length > 50) feed.removeChild(feed.lastChild);
+  }
+
   function handleEvent(evt) {
     const { type, payload } = evt;
     if (type === 'incident.created') {
       incidents.unshift(payload);
       renderList();
       if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); fitMapToMarkers(true); checkGeoEmpty(); }
+      addFeedItem('incident', '🔴 Incident · ' + (payload.title || payload.subject || '#' + payload.Id));
     } else if (type === 'incident.updated' || type === 'incident.breached') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
@@ -987,11 +1240,13 @@ body::after {
       renderList();
       if (selectedId === String(payload.Id)) selectIncident(selectedId);
       if (mapInitialized) updateIncidentMarker(payload);
+      if (type === 'incident.breached') addFeedItem('alert', '⚠️ SLA breached · #' + payload.Id);
     } else if (type === 'incident.resolved') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
       renderList();
       if (mapInitialized) { removeIncidentMarker(payload.Id); fitMapToMarkers(true); }
+      addFeedItem('beacon', '✅ Resolved · #' + payload.Id);
     } else if (type === 'reply.added' && String(payload.ticket_id) === selectedId) {
       const replies = repliesCache[selectedId] || [];
       replies.push(payload.reply);
@@ -1005,8 +1260,30 @@ body::after {
   // ---- Init ----
   renderList();
   connectSSE();
+  connectSignalSSE();
 })();
 </script>
+<style>
+@keyframes beaconPing {
+  0%, 100% { box-shadow: 0 0 4px rgba(0,255,204,0.5); }
+  50% { box-shadow: 0 0 16px rgba(0,255,204,0.9), 0 0 32px rgba(0,255,204,0.3); }
+}
+@keyframes alertFlash {
+  from { box-shadow: 0 0 10px rgba(255,50,50,0.6); }
+  to   { box-shadow: 0 0 30px rgba(255,50,50,1); }
+}
+.beacon-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border, #1e1e28);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.beacon-unit-row:hover { background: rgba(0,255,204,0.04); }
+.beacon-unit-row:last-child { border-bottom: none; }
+</style>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
