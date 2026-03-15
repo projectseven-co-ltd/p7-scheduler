@@ -69,16 +69,25 @@ export default async function billingRoutes(fastify) {
       metadata: { user_id: String(user.Id), plan },
     });
 
-    const invoice = subscription.latest_invoice;
-    const paymentIntent = typeof invoice === 'object' ? invoice?.payment_intent : null;
+    // Finalize invoice if payment_intent not yet created
+    let invoice = subscription.latest_invoice;
+    if (typeof invoice === 'string') {
+      invoice = await stripe.invoices.retrieve(invoice, { expand: ['payment_intent'] });
+    }
+    let paymentIntent = invoice?.payment_intent;
 
-    if (!paymentIntent?.client_secret) {
-      fastify.log.error({ sub: subscription.id, invoice_id: subscription.latest_invoice?.id || subscription.latest_invoice, pi: paymentIntent }, 'Billing: no client_secret on subscription');
-      return reply.code(500).send({ error: 'Payment setup failed — could not initialize payment intent. Please try again.' });
+    if (!paymentIntent) {
+      // Finalize the invoice to trigger PaymentIntent creation
+      const finalized = await stripe.invoices.finalizeInvoice(invoice.id, { expand: ['payment_intent'] });
+      paymentIntent = finalized.payment_intent;
     }
 
-    const clientSecret = paymentIntent.client_secret;
-    return { clientSecret, subscriptionId: subscription.id };
+    if (!paymentIntent?.client_secret) {
+      fastify.log.error({ sub: subscription.id, inv: invoice?.id }, 'Billing: no client_secret after finalize');
+      return reply.code(500).send({ error: 'Payment setup failed. Please try again.' });
+    }
+
+    return { clientSecret: paymentIntent.client_secret, subscriptionId: subscription.id };
   });
 
   // GET /v1/billing/portal — Stripe Customer Portal
