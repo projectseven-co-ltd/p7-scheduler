@@ -3495,170 +3495,324 @@ window.addEventListener('load', () => initPush());
      BEACON SCREEN — full-screen overlay when wake lock active
      ═══════════════════════════════════════════════════ -->
 <style>
+/* ── Beacon Screen Shell ─────────────────────────── */
 #beacon-screen {
   display: none;
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: #0a0a0b;
+  background: #05080a;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px);
-  padding-top: max(env(safe-area-inset-top), 20px);
-  padding-bottom: max(env(safe-area-inset-bottom), 24px);
-  font-family: var(--font-mono, 'Fira Code', monospace);
+  padding-top: max(env(safe-area-inset-top, 0px), 16px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+  padding-left: max(env(safe-area-inset-left, 0px), 20px);
+  padding-right: max(env(safe-area-inset-right, 0px), 20px);
+  font-family: 'Fira Code', monospace;
+  overflow: hidden;
 }
 #beacon-screen.visible { display: flex; }
+
+/* Subtle grid background */
+#beacon-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(223,255,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(223,255,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ── Header ─────────────────────────────────────── */
 #bscr-header {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 #bscr-title {
-  font-size: 11px;
-  letter-spacing: 0.15em;
-  color: var(--muted, #5a5a6e);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(223,255,0,0.5);
   text-transform: uppercase;
+}
+#bscr-title-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #DFFF00;
+  animation: bscrBlink 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes bscrBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
 }
 #bscr-close {
   background: none;
-  border: 1px solid var(--border, #1e1e24);
-  color: var(--muted, #5a5a6e);
-  font-family: var(--font-mono, 'Fira Code', monospace);
-  font-size: 10px;
-  padding: 4px 10px;
-  letter-spacing: 0.1em;
+  border: 1px solid rgba(223,255,0,0.15);
+  color: rgba(223,255,0,0.4);
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  padding: 5px 12px;
+  letter-spacing: 0.15em;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s;
 }
-#bscr-pulse-ring {
+#bscr-close:hover { border-color: rgba(223,255,0,0.4); color: rgba(223,255,0,0.8); }
+
+/* ── Radar ───────────────────────────────────────── */
+#bscr-radar-wrap {
   position: relative;
-  width: 160px;
-  height: 160px;
+  flex-shrink: 0;
+  width: 220px;
+  height: 220px;
+  z-index: 1;
+}
+#bscr-radar-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.bscr-radar-ring {
+  fill: none;
+  stroke: rgba(223,255,0,0.12);
+  stroke-width: 1;
+}
+.bscr-radar-cross {
+  stroke: rgba(223,255,0,0.1);
+  stroke-width: 0.5;
+}
+.bscr-radar-sweep {
+  transform-origin: 110px 110px;
+  animation: radarSpin 3s linear infinite;
+}
+@keyframes radarSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+/* Radar blip — shown after GPS fix */
+#bscr-radar-blip {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 8px; height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #DFFF00;
+  box-shadow: 0 0 12px 4px rgba(223,255,0,0.6);
+  animation: blipFade 3s ease-out infinite;
+  opacity: 0;
+}
+@keyframes blipFade {
+  0%  { opacity: 0; transform: scale(0.5); }
+  10% { opacity: 1; transform: scale(1); }
+  60% { opacity: 0.6; }
+  100%{ opacity: 0; transform: scale(1.5); }
+}
+/* Crosshair center */
+#bscr-crosshair {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  pointer-events: none;
 }
-#bscr-pulse-ring::before,
-#bscr-pulse-ring::after {
+#bscr-crosshair::before,
+#bscr-crosshair::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(223,255,0,0.2);
-  animation: bscrPulse 2s ease-out infinite;
+  background: rgba(223,255,0,0.25);
 }
-#bscr-pulse-ring::after { animation-delay: 1s; }
-@keyframes bscrPulse {
-  0% { transform: scale(0.6); opacity: 0.8; }
-  100% { transform: scale(1.2); opacity: 0; }
-}
-#bscr-icon {
-  font-size: 56px;
-  z-index: 1;
-  filter: drop-shadow(0 0 20px rgba(223,255,0,0.4));
-}
+#bscr-crosshair::before { width: 1px; height: 20px; }
+#bscr-crosshair::after  { width: 20px; height: 1px; }
+
+/* ── Coords Block ────────────────────────────────── */
 #bscr-coords {
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 #bscr-coords-main {
-  font-size: 18px;
-  color: var(--accent, #DFFF00);
-  letter-spacing: 0.05em;
+  font-size: 22px;
+  color: #DFFF00;
+  letter-spacing: 0.04em;
   margin-bottom: 6px;
   font-weight: 700;
+  text-shadow: 0 0 20px rgba(223,255,0,0.4);
 }
 #bscr-coords-sub {
-  font-size: 11px;
-  color: var(--muted, #5a5a6e);
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: rgba(223,255,0,0.35);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 #bscr-last-ping {
-  font-size: 11px;
-  color: var(--muted, #5a5a6e);
-  letter-spacing: 0.08em;
-}
-#bscr-actions {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.bscr-btn {
-  width: 100%;
-  padding: 16px;
-  font-family: var(--font-mono, 'Fira Code', monospace);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 10px;
+  color: rgba(223,255,0,0.3);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: opacity 0.15s;
+  position: relative;
+  z-index: 1;
 }
-.bscr-btn:active { opacity: 0.7; transform: scale(0.98); }
-#bscr-capture-btn {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid var(--border, #1e1e24);
-  color: var(--text, #e8e8ea);
-}
-#bscr-alert-btn {
-  background: rgba(255,95,95,0.15);
-  border: 1px solid rgba(255,95,95,0.4);
-  color: #ff5f5f;
-}
-#bscr-stop-btn {
-  background: rgba(223,255,0,0.1);
-  border: 1px solid rgba(223,255,0,0.3);
-  color: var(--accent, #DFFF00);
-}
-/* Feed log inside beacon screen */
+
+/* ── Feed ────────────────────────────────────────── */
 #bscr-feed {
   width: 100%;
-  max-height: 120px;
+  max-height: 90px;
   overflow-y: auto;
-  border-top: 1px solid var(--border, #1e1e24);
-  padding-top: 10px;
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(223,255,0,0.08);
+  border-bottom: 1px solid rgba(223,255,0,0.08);
+  padding: 6px 0;
 }
 #bscr-feed::-webkit-scrollbar { display: none; }
 .bscr-feed-item {
   font-size: 10px;
-  color: var(--muted, #5a5a6e);
-  padding: 3px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: rgba(223,255,0,0.25);
+  padding: 2px 0;
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  line-height: 1.4;
 }
 .bscr-feed-item .bscr-feed-time { flex-shrink: 0; }
-.bscr-feed-item .bscr-feed-msg { color: var(--text, #e8e8ea); }
+.bscr-feed-item .bscr-feed-msg { color: rgba(223,255,0,0.55); }
+.bscr-feed-item.alert .bscr-feed-msg { color: #ff5f5f; }
+
+/* ── Buttons ─────────────────────────────────────── */
+#bscr-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.bscr-btn {
+  width: 100%;
+  padding: 18px 16px;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s;
+  position: relative;
+  overflow: hidden;
+}
+/* Scanline shimmer on tap */
+.bscr-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.bscr-btn:active::after { opacity: 1; }
+.bscr-btn:active { transform: scale(0.985); }
+
+#bscr-capture-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+}
+#bscr-capture-btn:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+
+#bscr-alert-btn {
+  background: rgba(255,60,60,0.08);
+  border: 1px solid rgba(255,60,60,0.35);
+  color: #ff5f5f;
+  box-shadow: inset 0 0 30px rgba(255,60,60,0.04);
+}
+#bscr-alert-btn:hover { background: rgba(255,60,60,0.15); border-color: rgba(255,60,60,0.6); }
+
+#bscr-stop-btn {
+  background: rgba(223,255,0,0.06);
+  border: 1px solid rgba(223,255,0,0.25);
+  color: #DFFF00;
+  box-shadow: inset 0 0 30px rgba(223,255,0,0.03);
+}
+#bscr-stop-btn:hover { background: rgba(223,255,0,0.12); border-color: rgba(223,255,0,0.5); }
 </style>
 
 <div id="beacon-screen">
+  <!-- Header -->
   <div id="bscr-header">
-    <div id="bscr-title">📡 SchedKit · Beacon Active</div>
-    <button id="bscr-close" onclick="hideBeaconScreen()">BACK TO DASHBOARD</button>
+    <div id="bscr-title">
+      <div id="bscr-title-dot"></div>
+      SCHEDKIT · BEACON ACTIVE
+    </div>
+    <button id="bscr-close" onclick="hideBeaconScreen()">← Dashboard</button>
   </div>
 
-  <div id="bscr-pulse-ring">
-    <div id="bscr-icon">📡</div>
+  <!-- Radar -->
+  <div id="bscr-radar-wrap">
+    <svg id="bscr-radar-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- Rings -->
+      <circle class="bscr-radar-ring" cx="110" cy="110" r="90"/>
+      <circle class="bscr-radar-ring" cx="110" cy="110" r="63"/>
+      <circle class="bscr-radar-ring" cx="110" cy="110" r="36"/>
+      <!-- Crosshair lines -->
+      <line class="bscr-radar-cross" x1="110" y1="20" x2="110" y2="200"/>
+      <line class="bscr-radar-cross" x1="20" y1="110" x2="200" y2="110"/>
+      <line class="bscr-radar-cross" x1="46" y1="46" x2="174" y2="174" opacity="0.5"/>
+      <line class="bscr-radar-cross" x1="174" y1="46" x2="46" y2="174" opacity="0.5"/>
+      <!-- Sweep -->
+      <g class="bscr-radar-sweep">
+        <defs>
+          <radialGradient id="sweepGrad" cx="0%" cy="50%" r="100%">
+            <stop offset="0%" stop-color="rgba(223,255,0,0)" />
+            <stop offset="100%" stop-color="rgba(223,255,0,0.25)" />
+          </radialGradient>
+          <radialGradient id="sweepFade" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(223,255,0,0.0)" />
+            <stop offset="80%" stop-color="rgba(223,255,0,0.12)" />
+            <stop offset="100%" stop-color="rgba(223,255,0,0)" />
+          </radialGradient>
+        </defs>
+        <!-- Sweep wedge ~60° -->
+        <path d="M110,110 L110,20 A90,90 0 0,1 188,155 Z" fill="url(#sweepGrad)" opacity="0.7"/>
+        <!-- Leading edge line -->
+        <line x1="110" y1="110" x2="110" y2="20" stroke="rgba(223,255,0,0.6)" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <!-- Crosshair center -->
+    <div id="bscr-crosshair"></div>
+    <!-- Blip dot -->
+    <div id="bscr-radar-blip"></div>
   </div>
 
+  <!-- Coords -->
   <div id="bscr-coords">
-    <div id="bscr-coords-main">Acquiring GPS...</div>
-    <div id="bscr-coords-sub">device <span id="bscr-device-id">—</span></div>
+    <div id="bscr-coords-main">Acquiring GPS…</div>
+    <div id="bscr-coords-sub">±— · device <span id="bscr-device-id">—</span></div>
   </div>
 
+  <!-- Last ping -->
   <div id="bscr-last-ping">—</div>
 
+  <!-- Feed -->
   <div id="bscr-feed"></div>
 
+  <!-- Actions -->
   <div id="bscr-actions">
-    <button class="bscr-btn" id="bscr-capture-btn" onclick="triggerCapture()">📷 Capture &amp; Send</button>
-    <button class="bscr-btn" id="bscr-alert-btn" onclick="sendAlertSignal()">🚨 Send Alert</button>
-    <button class="bscr-btn" id="bscr-stop-btn" onclick="stopBeacon(); hideBeaconScreen()">■ Stop Beacon</button>
+    <button class="bscr-btn" id="bscr-capture-btn" onclick="triggerCapture()">[ 📷 Capture &amp; Send ]</button>
+    <button class="bscr-btn" id="bscr-alert-btn" onclick="sendAlertSignal()">[ 🚨 Send Alert ]</button>
+    <button class="bscr-btn" id="bscr-stop-btn" onclick="stopBeacon(); hideBeaconScreen()">[ ■ Stop Beacon ]</button>
   </div>
 </div>
 <style>
@@ -3927,6 +4081,9 @@ async function startBeacon() {
         ' ±' + Math.round(pos.coords.accuracy) + 'm';
       document.getElementById('beacon-coords-text').textContent = coordStr;
       updateBeaconScreenCoords();
+      // Show radar blip once we have a fix
+      const blip = document.getElementById('bscr-radar-blip');
+      if (blip) blip.style.animationPlayState = 'running';
     },
     err => { console.warn('GPS error:', err); },
     { enableHighAccuracy: true, maximumAge: 5000 }
