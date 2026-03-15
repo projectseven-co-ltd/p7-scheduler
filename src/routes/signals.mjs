@@ -18,6 +18,21 @@ import { requireSession } from '../middleware/session.mjs';
 // Map: orgId (string) → Set of reply objects
 const signalClientsByOrg = new Map();
 
+// ── Active beacon tracking (server-side) ─────────────
+// Map: deviceId (string) → { userId, orgId, firstSeen: ms }
+// Used to detect beacon_on (first ping from device) without a DB read per ping.
+// Cleared on beacon_off or stale prune (>5min since last ping).
+const _activeBeacons = new Map();
+const BEACON_STALE_MS = 5 * 60 * 1000; // 5 minutes
+
+// Prune stale beacons every 2 minutes
+setInterval(() => {
+  const cutoff = Date.now() - BEACON_STALE_MS;
+  for (const [k, v] of _activeBeacons) {
+    if (v.lastSeen < cutoff) _activeBeacons.delete(k);
+  }
+}, 120_000);
+
 export function broadcastSignal(orgId, event) {
   const clients = signalClientsByOrg.get(String(orgId));
   if (!clients) return;
@@ -76,10 +91,34 @@ export default async function signalsRoutes(fastify) {
     let orgId = req.body.org_id || null;
     if (!orgId) orgId = await getPrimaryOrgId(req.user.Id);
 
-    // ── Beacon fast-path: skip DB write, broadcast only ──────────────────
+    // ── Beacon fast-path: skip DB write for pings, broadcast only ────────
     // Beacon pings are ephemeral — only the live position matters.
-    // Captures, notes, alerts, and checkins are persisted normally.
+    // EXCEPT: first ping from a device writes a beacon_on log entry.
     if (type === 'beacon') {
+      const deviceId = (meta && meta.device_id) ? meta.device_id : null;
+      const beaconKey = deviceId || `user-${req.user.Id}`;
+      const isNew = !_activeBeacons.has(beaconKey);
+
+      _activeBeacons.set(beaconKey, { userId: req.user.Id, orgId, lastSeen: Date.now() });
+
+      // First ping — write beacon_on to DB
+      if (isNew) {
+        try {
+          await db.create(tables.signals, {
+            user_id: req.user.Id,
+            org_id: orgId || null,
+            type: 'beacon_on',
+            lat: lat ?? null,
+            lng: lng ?? null,
+            accuracy: accuracy ?? null,
+            meta: JSON.stringify({ device_id: deviceId }),
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          fastify.log.warn('beacon_on db write failed: ' + e.message);
+        }
+      }
+
       const result = {
         Id: null,
         user_id: req.user.Id,
@@ -191,6 +230,9 @@ export default async function signalsRoutes(fastify) {
   }, async (req) => {
     const orgId = await getPrimaryOrgId(req.user.Id);
     const deviceId = req.body?.device_id || req.query?.device_id || null;
+    const beaconKey = deviceId || `user-${req.user.Id}`;
+    // Clear active beacon tracker so next start logs beacon_on again
+    _activeBeacons.delete(beaconKey);
     // Persist beacon_off to DB for audit trail
     let logEntry = null;
     try {
