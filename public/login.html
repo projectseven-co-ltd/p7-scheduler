@@ -56,7 +56,7 @@
 <body>
 <div class="card">
   <div class="logo" style="display:flex;align-items:center;gap:10px;"><svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="96" fill="#0A0A0B"/><line x1="128" y1="96" x2="208" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/><line x1="272" y1="96" x2="352" y2="416" stroke="#DFFF00" stroke-width="72" stroke-linecap="round"/></svg> sched<span>kit</span></div>
-  <h1>Sign in</h1>
+  <h1 id="loginHeading">Sign in</h1>
   <p id="introCopy">Enter your email and we'll send you a magic link. On iPhone, you can also enter the 6-digit code from the email directly in the app.</p>
   <form id="form">
     <label for="email">Email address</label>
@@ -79,6 +79,11 @@
 <script>
 // If already have a valid session, redirect to destination
 const _nextUrl = new URLSearchParams(window.location.search).get('next') || '/dashboard';
+const _isUpgrade = _nextUrl.includes('upgrade=');
+if (_isUpgrade) {
+  document.getElementById('loginHeading').textContent = 'Create your account';
+  document.getElementById('introCopy').textContent = 'Enter your email to get started. We\'ll send you a magic link — no password needed.';
+}
 (async () => {
   try {
     const res = await fetch('/v1/auth/me', { credentials: 'include' });
