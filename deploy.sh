@@ -24,6 +24,11 @@ echo "[deploy] SHA: $NEW_SHA"
 echo "[deploy] Installing production dependencies..."
 "$NPM" install --omit=dev --prefer-offline
 
+# Load env vars so pm2 inherits them
+if [ -f "$APP_DIR/.env" ]; then
+  export $(grep -v '^#' "$APP_DIR/.env" | grep -v '^$' | xargs)
+fi
+
 echo "[deploy] Restarting app via pm2..."
 if "$NODE" "$PM2_BIN" list 2>/dev/null | grep -q schedkit; then
   "$NODE" "$PM2_BIN" restart schedkit --update-env
@@ -33,3 +38,4 @@ else
 fi
 
 echo "[deploy] Done. App is live."
+
