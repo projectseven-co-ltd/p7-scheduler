@@ -544,28 +544,28 @@
 <section class="how">
   <div class="container">
     <div class="section-label">How it works</div>
-    <h2>Up and running in minutes</h2>
-    <p class="section-sub">No complex setup. One API key per client, their own booking link, done.</p>
+    <h2>Deploy in minutes. Signal forever.</h2>
+    <p class="section-sub">One API key. Any signal source. Any output device. Your first endpoint is live in minutes.</p>
     <div class="steps">
       <div class="step">
         <div class="step-num">01</div>
         <h3>Create a user</h3>
-        <p>One API call creates a client account with their own slug and API key.</p>
+        <p>One API call provisions a unit with its own slug, API key, and permissions.</p>
       </div>
       <div class="step">
         <div class="step-num">02</div>
-        <h3>Set availability</h3>
-        <p>Define working hours and event types. Timezone-aware, buffer times included.</p>
+        <h3>Configure signals</h3>
+        <p>Define what events you care about — bookings, alerts, sensor triggers, or custom webhooks.</p>
       </div>
       <div class="step">
         <div class="step-num">03</div>
-        <h3>Share the link</h3>
-        <p>Send clients to <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">schedkit.net/book/slug/event</code> - or point their own domain at it.</p>
+        <h3>Connect outputs</h3>
+        <p>Route signals to push notifications, webhooks, physical relays, or your own code via <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">/v1/signals</code>.</p>
       </div>
       <div class="step">
         <div class="step-num">04</div>
-        <h3>Bookings come in</h3>
-        <p>Confirmations, cancellations, and reschedules handled automatically. Webhook on every event.</p>
+        <h3>Coordinate in real time</h3>
+        <p>Every signal fans out instantly — push, SMS, relay, or webhook. Physical and digital, simultaneously.</p>
       </div>
     </div>
   </div>
@@ -682,7 +682,7 @@
       <div>
         <div class="section-label">API-first</div>
         <h2>Fits into your stack</h2>
-        <p class="section-sub">Provision clients, configure availability, and pull bookings from your own code. REST API, standard JSON, no SDK required.</p>
+        <p class="section-sub">Route signals, manage units, and coordinate responses from your own code. REST API, standard JSON, no SDK required.</p>
         <a href="#request-access" class="btn-primary">Get API access</a>
       </div>
       <div class="code-block">
@@ -721,8 +721,8 @@
 <section id="embed" style="padding:100px 24px;">
   <div class="container">
     <div class="section-label">Embed anywhere</div>
-    <h2>One line. Any site.</h2>
-    <p class="section-sub">Drop a booking form into any React app, static site, or client portal. Three modes - inline, popup, or floating widget. No configuration required.</p>
+    <h2>Embed anywhere.</h2>
+    <p class="section-sub">Drop a booking form or signal interface into any React app, static site, or client portal. Inline, popup, or floating widget. No configuration required.</p>
 
     <!-- Tab switcher -->
     <div id="embedTabs" style="display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;">
@@ -858,28 +858,28 @@
 <section>
   <div class="container">
     <div class="section-label">Who it's for</div>
-    <h2>Built for agencies and resellers</h2>
-    <p class="section-sub">If you manage more than one client and are tired of per-seat scheduling costs, this is for you.</p>
+    <h2>Built for operators who coordinate real things</h2>
+    <p class="section-sub">Whether you're dispatching field teams, managing incidents, or building real-time coordination tools — SchedKit is your signal layer.</p>
     <div class="usecases">
       <div class="usecase">
-        <div class="usecase-icon">🏢</div>
-        <h3>Digital agencies</h3>
-        <p>Offer branded booking pages as part of your service stack. One flat cost, unlimited clients.</p>
-      </div>
-      <div class="usecase">
-        <div class="usecase-icon">🩺</div>
-        <h3>Healthcare & wellness</h3>
-        <p>Appointment booking for clinics, therapists, and coaches. HIPAA-friendly self-hosted option available.</p>
+        <div class="usecase-icon">🚨</div>
+        <h3>Emergency response</h3>
+        <p>Coordinate field teams with live GPS beacon tracking, incident ticketing, and physical alert devices.</p>
       </div>
       <div class="usecase">
         <div class="usecase-icon">🏗️</div>
-        <h3>SaaS builders</h3>
-        <p>Embed scheduling into your product via API. No third-party branding leaking into your UX.</p>
+        <h3>Field operations</h3>
+        <p>Operators check in via beacon, supervisors see the live map. Alerts fire the moment something goes silent.</p>
       </div>
       <div class="usecase">
-        <div class="usecase-icon">📞</div>
-        <h3>Sales teams</h3>
-        <p>Every rep gets their own booking link. Shared availability, individual pages, one dashboard.</p>
+        <div class="usecase-icon">🛠️</div>
+        <h3>SaaS builders</h3>
+        <p>Add booking, ticketing, and alerting to your product via one API. No third-party branding in your UX.</p>
+      </div>
+      <div class="usecase">
+        <div class="usecase-icon">📡</div>
+        <h3>IoT &amp; hardware</h3>
+        <p>Wire ESP32s, sensors, and relay boards directly to the Signals API. Physical devices become first-class signal sources.</p>
       </div>
     </div>
   </div>
@@ -907,7 +907,7 @@
       <div class="plan-name">Free</div>
       <div class="plan-price">$0<span>/mo</span></div>
       <div class="plan-price-annual">&nbsp;</div>
-      <div class="plan-desc">For individuals who just need a booking link.</div>
+      <div class="plan-desc">Start experimenting. Full API access, no credit card.</div>
       <ul>
         <li>1 user, personal only</li>
         <li>3 event types</li>
@@ -925,7 +925,7 @@
       <div class="plan-price"><span class="price-val">$29</span><span>/mo</span></div>
       <div class="plan-price-annual price-annual" style="display:none">$24/mo billed annually</div>
       <div class="plan-price-annual price-monthly">&nbsp;</div>
-      <div class="plan-desc">For small teams and solo developers who need white-label.</div>
+      <div class="plan-desc">For small teams building real coordination workflows.</div>
       <ul>
         <li>1 org, up to 5 members</li>
         <li>Unlimited event types</li>
@@ -943,7 +943,7 @@
       <div class="plan-price"><span class="price-val">$99</span><span>/mo</span></div>
       <div class="plan-price-annual price-annual" style="display:none">$82/mo billed annually</div>
       <div class="plan-price-annual price-monthly">&nbsp;</div>
-      <div class="plan-desc">For agencies managing scheduling for multiple clients.</div>
+      <div class="plan-desc">For teams coordinating across multiple orgs and field units.</div>
       <ul>
         <li>10 orgs (resell to clients)</li>
         <li>Unlimited members</li>
@@ -960,7 +960,7 @@
       <div class="plan-name">Enterprise</div>
       <div class="plan-price">Custom</div>
       <div class="plan-price-annual">&nbsp;</div>
-      <div class="plan-desc">For larger teams that need custom contracts and dedicated support.</div>
+      <div class="plan-desc">For large-scale deployments with SLA, dedicated infra, and custom contracts.</div>
       <ul>
         <li>Unlimited orgs</li>
         <li>Unlimited members</li>
@@ -991,7 +991,7 @@ function toggleBilling() {
   <div class="container">
     <div class="cta-card" style="text-align:center;">
       <div class="section-label" style="margin-bottom:16px">Beta - Free While We Build</div>
-      <h2>Sign up. It's free.</h2>
+      <h2>Start signaling.</h2>
       <p style="color:var(--muted);margin-bottom:32px;">SchedKit is live and in beta. No billing yet - first accounts get enterprise tier locked in at no cost when we do.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
         <button class="plan-pill active" style="font-size:14px;padding:10px 24px;" onclick="openSignup('free')">Get started free →</button>
@@ -1313,7 +1313,7 @@ function openSchedKitDemo() {
       <input id="modal-email" type="email" placeholder="Work email" required
         style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
         onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
-      <input id="modal-company" type="text" placeholder="Company or agency name"
+      <input id="modal-company" type="text" placeholder="Company or team name"
         style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;display:none;"
         onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
       <div id="modal-error" style="color:#ff5f5f;font-size:13px;display:none;"></div>
@@ -1381,7 +1381,7 @@ function openSchedKitDemo() {
 const planConfig = {
   free:       { badge: "Free Plan", heading: "Get started free", sub: "No waitlist. No credit card. Your booking page is ready in seconds.", btn: "Get started free →", company: false, successText: "You're in.", successSub: "Check your inbox - welcome note from OlSon on the way." },
   starter:    { badge: "Starter — $29/mo", heading: "Get started on Starter", sub: "Free during beta. We'll reach out to get you set up.", btn: "Request access →", company: true, successText: "Request received.", successSub: "We'll be in touch shortly." },
-  agency:     { badge: "Agency - $99/mo", heading: "Request Agency access", sub: "Built for agencies. Tell us how many clients you're managing.", btn: "Request access →", company: true, successText: "Request received.", successSub: "We'll be in touch shortly." },
+  agency:     { badge: "Agency - $99/mo", heading: "Request Agency access", sub: "Built for field ops and coordination teams. Tell us what you\'re building.", btn: "Request access →", company: true, successText: "Request received.", successSub: "We'll be in touch shortly." },
 };
 
 function openSignup(plan) {
