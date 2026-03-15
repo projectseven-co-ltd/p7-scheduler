@@ -641,14 +641,14 @@ body::after {
     <!-- Beacon units overlay on map -->
     <div id="map-beacon-panel">
       <div class="mbp-header">
-        <span>📡 ACTIVE BEACONS</span>
+        <span>[+] ACTIVE BEACONS</span>
         <span id="beacon-units-count" class="mbp-count">0</span>
       </div>
       <div id="beacon-units-list"></div>
     </div>
     <!-- Live feed overlay on map -->
     <div id="map-feed-panel">
-      <div class="mbp-header">ACTIVITY</div>
+      <div class="mbp-header">[~] ACTIVITY</div>
       <div id="wr-feed"></div>
     </div>
   </div>
@@ -1150,7 +1150,7 @@ body::after {
       iconAnchor: [12, 12],
     });
     const m = L.marker([lat, lng], { icon })
-      .bindPopup('<div class="map-popup-title" style="color:#ff5f5f">🚨 ALERT</div><div class="map-popup-row">' + (note || 'Operator triggered') + '</div>')
+      .bindPopup('<div class="map-popup-title" style="color:#ff5f5f">[!] ALERT</div><div class="map-popup-row">' + (note || 'Operator triggered') + '</div>')
       .addTo(leafletMap);
     m.openPopup();
     // Remove after 60s
@@ -1202,18 +1202,18 @@ body::after {
           updateBeaconDot(deviceId, payload.user_id, +payload.lat, +payload.lng, payload.accuracy, deviceId);
         }
       }
-      addFeedItem('beacon', '📡 Beacon · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
+      addFeedItem('beacon', '[+] Beacon · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     } else if (type === 'signal.beacon_off') {
       removeBeaconDot(deviceId, payload.user_id);
-      addFeedItem('muted', '📡 Offline · ' + shortId);
+      addFeedItem('muted', '[-] Offline · ' + shortId);
     } else if (type === 'signal.alert') {
       if (payload.lat != null && mapInitialized) flashAlert(+payload.lat, +payload.lng, payload.note);
-      addFeedItem('alert', '🚨 Alert · ' + shortId + (payload.note ? ' · ' + payload.note : ''));
+      addFeedItem('alert', '[!] Alert · ' + shortId + (payload.note ? ' · ' + payload.note : ''));
     } else if (type === 'signal.capture') {
       if (payload.lat != null && mapInitialized) addCapturePin(payload, deviceId);
-      addFeedItem('capture', '📷 Capture · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
+      addFeedItem('capture', '[▲] Capture · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     } else if (type === 'signal.note') {
-      addFeedItem('muted', '📝 Note · ' + shortId + ' · ' + (payload.note || '').slice(0, 60));
+      addFeedItem('muted', '[~] Note · ' + shortId + ' · ' + (payload.note || '').slice(0, 60));
     }
   }
 
@@ -1224,7 +1224,7 @@ body::after {
     const hasImage = !!(payload.image_url && payload.image_url.length > 0);
     const icon = L.divIcon({
       className: '',
-      html: '<div style="width:20px;height:20px;border-radius:4px;background:#8b5cf6;border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 0 8px rgba(139,92,246,0.6);">\u{1F4F7}</div>',
+      html: '<div style="width:20px;height:20px;border-radius:2px;background:#8b5cf6;border:1px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:\'Fira Code\',monospace;font-weight:700;color:#e8e8ea;letter-spacing:0;box-shadow:0 0 8px rgba(139,92,246,0.5);">▲</div>',
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     });
@@ -1250,7 +1250,7 @@ body::after {
     const dot = kind === 'alert' ? '#ff5f5f' : kind === 'capture' ? '#a78bfa' : kind === 'ok' ? '#4ade80' : kind === 'muted' ? 'var(--muted,#5a5a6e)' : kind === 'incident' ? '#60a5fa' : '#00ffcc';
     const item = document.createElement('div');
     item.className = 'sitrep-feed-item';
-    item.innerHTML = \`<div class="sitrep-feed-dot" style="background:\${dot}"></div><div style="flex:1"><span style="color:var(--muted);font-family:'Fira Code',monospace;font-size:10px;">\${now} </span><span style="font-size:12px;">\${text}</span></div>\`;
+    item.innerHTML = \`<div class="sitrep-feed-dot" style="background:\${dot}"></div><div style="flex:1;font-family:'Fira Code',monospace;"><span style="color:var(--muted,#5a5a6e);font-size:9px;">\${now} </span><span style="font-size:11px;letter-spacing:0.02em;">\${text}</span></div>\`;
     feed.insertBefore(item, feed.firstChild);
     while (feed.children.length > 50) feed.removeChild(feed.lastChild);
   }
@@ -1261,7 +1261,7 @@ body::after {
       incidents.unshift(payload);
       renderList();
       if (mapInitialized && payload.lat != null) { addIncidentMarker(payload); fitMapToMarkers(true); checkGeoEmpty(); }
-      addFeedItem('incident', '🔴 Incident · ' + (payload.title || payload.subject || '#' + payload.Id) + ' · ' + (payload.priority || 'normal').toUpperCase());
+      addFeedItem('incident', '[■] Incident · ' + (payload.title || payload.subject || '#' + payload.Id) + ' · ' + (payload.priority || 'normal').toUpperCase());
     } else if (type === 'incident.updated' || type === 'incident.breached') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
@@ -1269,13 +1269,13 @@ body::after {
       renderList();
       if (selectedId === String(payload.Id)) selectIncident(selectedId);
       if (mapInitialized) updateIncidentMarker(payload);
-      if (type === 'incident.breached') addFeedItem('alert', '⚠️ SLA breach · ' + (payload.title || '#' + payload.Id));
+      if (type === 'incident.breached') addFeedItem('alert', '[×] SLA breach · ' + (payload.title || '#' + payload.Id));
     } else if (type === 'incident.resolved') {
       const idx = incidents.findIndex(i => String(i.Id) === String(payload.Id));
       if (idx >= 0) incidents[idx] = { ...incidents[idx], ...payload };
       renderList();
       if (mapInitialized) { removeIncidentMarker(payload.Id); fitMapToMarkers(true); }
-      addFeedItem('ok', '✅ Resolved · ' + (payload.title || '#' + payload.Id));
+      addFeedItem('ok', '[✓] Resolved · ' + (payload.title || '#' + payload.Id));
     } else if (type === 'reply.added' && String(payload.ticket_id) === selectedId) {
       const replies = repliesCache[selectedId] || [];
       replies.push(payload.reply);
