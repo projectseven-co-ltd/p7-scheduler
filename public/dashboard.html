@@ -3258,30 +3258,156 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 init();
 </script>
 
-<!-- PWA: install prompt -->
-<div id="pwa-install-bar" style="display:none;position:fixed;bottom:16px;right:16px;z-index:999;background:#111114;border:1px solid #DFFF00;border-radius:8px;padding:12px 16px;font-family:'Fira Code',monospace;font-size:12px;color:#e8e8ea;box-shadow:0 4px 24px rgba(0,0,0,0.4);align-items:center;gap:12px;">
-  <span style="color:#DFFF00;">⚡</span>
-  <span>Install SchedKit as an app</span>
-  <button id="pwa-install-btn" style="background:#DFFF00;color:#0a0a0b;border:none;border-radius:4px;padding:6px 12px;font-family:'Fira Code',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.05em;">INSTALL</button>
-  <button onclick="document.getElementById('pwa-install-bar').style.display='none'" style="background:none;border:none;color:#5a5a6e;cursor:pointer;font-size:16px;padding:0 4px;">×</button>
+<!-- PWA: install banner (Android) + iOS instructions -->
+<div id="pwa-install-bar" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;z-index:999;background:#111114;border:1px solid #DFFF00;border-radius:12px;padding:14px 16px;font-family:'Fira Code',monospace;font-size:12px;color:#e8e8ea;box-shadow:0 8px 32px rgba(0,0,0,0.6);align-items:center;gap:12px;max-width:420px;margin:0 auto;">
+  <span style="font-size:20px">📡</span>
+  <div style="flex:1">
+    <div style="font-weight:700;color:#DFFF00;margin-bottom:2px">Install SchedKit</div>
+    <div id="pwa-install-desc" style="color:#5a5a6e;font-size:11px">Add to home screen for the full field ops experience</div>
+  </div>
+  <button id="pwa-install-btn" style="background:#DFFF00;color:#0a0a0b;border:none;border-radius:6px;padding:7px 14px;font-family:'Fira Code',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.05em;white-space:nowrap">INSTALL</button>
+  <button id="pwa-install-dismiss" style="background:none;border:none;color:#5a5a6e;cursor:pointer;font-size:18px;padding:0 2px;line-height:1">×</button>
 </div>
+
+<!-- Push notification prompt -->
+<div id="push-prompt-bar" style="display:none;position:fixed;top:16px;left:16px;right:16px;z-index:999;background:#111114;border:1px solid rgba(223,255,0,0.3);border-radius:12px;padding:14px 16px;font-family:'Fira Code',monospace;font-size:12px;color:#e8e8ea;box-shadow:0 8px 32px rgba(0,0,0,0.6);align-items:center;gap:12px;max-width:420px;margin:0 auto;">
+  <span style="font-size:20px">🔔</span>
+  <div style="flex:1">
+    <div style="font-weight:700;color:#DFFF00;margin-bottom:2px">Enable Push Alerts</div>
+    <div style="color:#5a5a6e;font-size:11px">Get notified on SLA breaches, urgent incidents, and assignments</div>
+  </div>
+  <button id="push-enable-btn" style="background:rgba(223,255,0,0.15);color:#DFFF00;border:1px solid rgba(223,255,0,0.3);border-radius:6px;padding:7px 14px;font-family:'Fira Code',monospace;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">ENABLE</button>
+  <button id="push-prompt-dismiss" style="background:none;border:none;color:#5a5a6e;cursor:pointer;font-size:18px;padding:0 2px;line-height:1">×</button>
+</div>
+
 <script>
+// ── Service Worker ────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(bindServiceWorkerRegistration).catch(() => {});
 }
+
+// ── Install Prompt ────────────────────────────────────
 let deferredPrompt;
+const installBar = document.getElementById('pwa-install-bar');
+const installDismissKey = 'pwa-install-dismissed-v1';
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+// Android: native install prompt
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  document.getElementById('pwa-install-bar').style.display = 'flex';
+  if (!localStorage.getItem(installDismissKey) && !isInStandaloneMode()) {
+    installBar.style.display = 'flex';
+  }
 });
+
 document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+  if (isIos()) {
+    // iOS: show instructions
+    document.getElementById('pwa-install-desc').textContent = 'Tap the Share button → "Add to Home Screen"';
+    document.getElementById('pwa-install-btn').style.display = 'none';
+    return;
+  }
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
   deferredPrompt = null;
-  document.getElementById('pwa-install-bar').style.display = 'none';
+  installBar.style.display = 'none';
+  if (outcome === 'accepted') localStorage.setItem(installDismissKey, '1');
 });
+
+document.getElementById('pwa-install-dismiss')?.addEventListener('click', () => {
+  installBar.style.display = 'none';
+  localStorage.setItem(installDismissKey, '1');
+});
+
+// iOS: show if not already installed and hasn't been dismissed
+if (isIos() && !isInStandaloneMode() && !localStorage.getItem(installDismissKey)) {
+  document.getElementById('pwa-install-desc').textContent = 'Tap Share → "Add to Home Screen" for the full ops experience';
+  installBar.style.display = 'flex';
+}
+
+// ── Web Push ──────────────────────────────────────────
+const pushPromptBar = document.getElementById('push-prompt-bar');
+const pushDismissKey = 'push-prompt-dismissed-v1';
+
+async function initPush() {
+  if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'granted') {
+    await subscribePush();
+    return;
+  }
+  if (Notification.permission === 'denied') return;
+  // Show prompt if not dismissed
+  if (!localStorage.getItem(pushDismissKey)) {
+    setTimeout(() => { pushPromptBar.style.display = 'flex'; }, 3000);
+  }
+}
+
+async function subscribePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await savePushSubscription(existing);
+      return;
+    }
+    // Get VAPID public key
+    const res = await apiFetch('/v1/push/vapid-public');
+    if (!res?.ok) return;
+    const { publicKey } = await res.json();
+    if (!publicKey) return;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    await savePushSubscription(sub);
+  } catch (err) {
+    console.warn('Push subscription failed:', err);
+  }
+}
+
+async function savePushSubscription(sub) {
+  try {
+    await apiFetch('/v1/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+  } catch {}
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+document.getElementById('push-enable-btn')?.addEventListener('click', async () => {
+  pushPromptBar.style.display = 'none';
+  const permission = await Notification.requestPermission();
+  if (permission === 'granted') {
+    await subscribePush();
+    toast('Push alerts enabled — you\'re online', 'ok');
+  }
+});
+
+document.getElementById('push-prompt-dismiss')?.addEventListener('click', () => {
+  pushPromptBar.style.display = 'none';
+  localStorage.setItem(pushDismissKey, '1');
+});
+
+// Init push after page loads
+window.addEventListener('load', () => initPush());
 </script>
 </body>
 </html>

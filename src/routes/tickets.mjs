@@ -55,6 +55,13 @@ async function tryBroadcast(type, payload) {
   } catch {}
 }
 
+async function tryPush(userId, opts) {
+  try {
+    const { sendPushToUser } = await import('./push.mjs');
+    await sendPushToUser(userId, opts);
+  } catch {}
+}
+
 async function tryNtfy(title, message, priority = 'default') {
   try {
     const topic = process.env.NTFY_DEFAULT_TOPIC || process.env.NTFY_TOPIC || 'schedkit-leads';
@@ -228,7 +235,7 @@ export default async function ticketsRoutes(fastify) {
     // SSE broadcast
     tryBroadcast('incident.created', result);
 
-    // ntfy push for urgent/high or alert source
+    // Web push + ntfy for urgent/high or alert source
     if (priority === 'urgent' || priority === 'high' || source === 'alert') {
       tryUserNtfy(req.user.Id, title, description, priority, source);
       tryNtfy(
@@ -236,6 +243,13 @@ export default async function ticketsRoutes(fastify) {
         `Priority: ${priority.toUpperCase()}\nSource: ${source}\n${description || ''}`,
         priority === 'urgent' ? 'urgent' : 'high'
       );
+      tryPush(req.user.Id, {
+        title: `🚨 ${priority.toUpperCase()} — ${title}`,
+        body: description || `New ${source} incident`,
+        url: '/dashboard',
+        tag: `incident-${ticket.Id}`,
+        requireInteraction: priority === 'urgent',
+      });
     }
 
     return reply.code(201).send(result);
@@ -341,6 +355,13 @@ export default async function ticketsRoutes(fastify) {
         `Priority: ${(updated.priority || 'normal').toUpperCase()}\nTicket #${updated.Id}`,
         'urgent'
       );
+      tryPush(existing.user_id, {
+        title: `⚠️ SLA Breached`,
+        body: `${updated.title} — response time exceeded`,
+        url: '/dashboard',
+        tag: `sla-${updated.Id}`,
+        requireInteraction: true,
+      });
     } else if (isTerminal) {
       tryBroadcast('incident.resolved', result);
     } else {

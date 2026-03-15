@@ -1,18 +1,55 @@
 {
   "name": "SchedKit",
   "short_name": "SchedKit",
-  "description": "API-first scheduling and incident response platform",
+  "description": "API-first field operations platform",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0b",
   "theme_color": "#0a0a0b",
   "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "/brand/logo-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/brand/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "SchedKit SITREP Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "SITREP",
+      "short_name": "SITREP",
+      "url": "/dashboard#sitrep",
+      "icons": [{ "src": "/brand/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Incident",
+      "short_name": "Incident",
+      "url": "/dashboard#new-incident",
+      "icons": [{ "src": "/brand/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

@@ -6,6 +6,8 @@ export const tables = {};
 // tickets: mh3shq07jve4boh
 // ticket_responders: mvmka9czpxr135k
 // ticket_replies: mrnbdc0zi78ki2l
+// push_subscriptions: mbvs3axseplv86g
 tables.tickets = 'mh3shq07jve4boh';
 tables.ticket_responders = 'mvmka9czpxr135k';
 tables.ticket_replies = 'mrnbdc0zi78ki2l';
+tables.pushSubscriptions = 'mbvs3axseplv86g';

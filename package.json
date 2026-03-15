@@ -18,7 +18,8 @@
     "fastify": "^5.8.2",
     "nanoid": "^5.0.7",
     "node-mailjet": "^6.0.11",
-    "pm2": "^6.0.14"
+    "pm2": "^6.0.14",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "sharp": "^0.34.5"
