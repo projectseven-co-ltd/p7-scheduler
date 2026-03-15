@@ -599,6 +599,7 @@ body::after {
       <button class="tab-btn" id="tab-map" onclick="switchTab('map')">MAP</button>
     </div>
     <div id="clock">--:--:--</div>
+    <button class="wr-mode-btn" title="Long-press for day mode" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'Fira Code',monospace;font-size:10px;letter-spacing:.08em;color:#5a5a6e;display:flex;align-items:center;gap:6px;touch-action:none;user-select:none"><span class="wr-mode-sigil">[◑]</span><span class="wr-mode-label">NITE</span></button>
     <div id="conn-status">● CONNECTING</div>
   </div>
   <div id="view-list">
@@ -1224,7 +1225,7 @@ body::after {
     const hasImage = !!(payload.image_url && payload.image_url.length > 0);
     const icon = L.divIcon({
       className: '',
-      html: '<div style="width:20px;height:20px;border-radius:2px;background:#8b5cf6;border:1px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:\'Fira Code\',monospace;font-weight:700;color:#e8e8ea;letter-spacing:0;box-shadow:0 0 8px rgba(139,92,246,0.5);">▲</div>',
+      html: `<div style="width:20px;height:20px;border-radius:2px;background:#8b5cf6;border:1px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'Fira Code',monospace;font-weight:700;color:#e8e8ea;letter-spacing:0;box-shadow:0 0 8px rgba(139,92,246,0.5);">▲</div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     });
@@ -1312,12 +1313,51 @@ body::after {
 }
 .beacon-unit-row:hover { background: rgba(0,255,204,0.04); }
 .beacon-unit-row:last-child { border-bottom: none; }
+
+/* ── NITE mode ── */
+[data-lights="nite"] #app { filter: saturate(0.15) brightness(0.55); }
+[data-lights="nite"] * { animation-play-state: paused !important; }
+
+/* ── NVG mode ── */
+[data-lights="nvg"] #app { filter: saturate(0.05) brightness(0.3); }
+[data-lights="nvg"] * { animation-play-state: paused !important; }
+[data-lights="nvg"] .leaflet-container { filter: saturate(0.05) brightness(0.25) hue-rotate(160deg); }
 </style>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 </script>
+<script>
+// ── Display mode (tactical cycle — same as dashboard) ──────────────────────
+(function(){
+  const TACTICAL=['dark','nite','nvg'];
+  const MLABELS={dark:'NITE',day:'DARK',nite:'NVG',nvg:'DARK'};
+  const MSIGILS={dark:'[◑]',day:'[☀]',nite:'[▌]',nvg:'[◈]'};
+  let stored=localStorage.getItem('p7-display-mode')||'dark';
+  if(stored==='off'||stored==='on')stored=stored==='on'?'day':'dark';
+  let mode=['dark','day','nite','nvg'].includes(stored)?stored:'dark';
+  let _preDay='dark';
+  function applyMode(m){
+    mode=m;localStorage.setItem('p7-display-mode',m);
+    document.documentElement.setAttribute('data-lights',m);
+    document.querySelectorAll('.wr-mode-btn').forEach(b=>{
+      b.querySelector('.wr-mode-sigil').textContent=MSIGILS[m]||'[◑]';
+      b.querySelector('.wr-mode-label').textContent=MLABELS[m]||'NITE';
+    });
+  }
+  applyMode(mode);
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.wr-mode-btn').forEach(b=>{
+      let _t=null;
+      b.addEventListener('pointerdown',()=>{_t=setTimeout(()=>{_t=null;if(mode==='day')applyMode(_preDay);else{_preDay=mode;applyMode('day');}},500);});
+      b.addEventListener('pointerup',()=>{if(!_t)return;clearTimeout(_t);_t=null;if(mode==='day')applyMode(_preDay);else applyMode(TACTICAL[(TACTICAL.indexOf(mode)+1)%TACTICAL.length]);});
+      b.addEventListener('pointercancel',()=>{clearTimeout(_t);_t=null;});
+      b.addEventListener('contextmenu',e=>e.preventDefault());
+    });
+  });
+})();
+</script>
 </body>
-</html>`;
+</html>\`;
 }
