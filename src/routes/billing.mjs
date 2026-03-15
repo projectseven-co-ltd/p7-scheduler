@@ -69,21 +69,40 @@ export default async function billingRoutes(fastify) {
       metadata: { user_id: String(user.Id), plan },
     });
 
-    // Finalize invoice if payment_intent not yet created
+    // Retrieve invoice and payment_intent
     let invoice = subscription.latest_invoice;
     if (typeof invoice === 'string') {
       invoice = await stripe.invoices.retrieve(invoice, { expand: ['payment_intent'] });
     }
-    let paymentIntent = invoice?.payment_intent;
+    let paymentIntent = typeof invoice?.payment_intent === 'object' ? invoice.payment_intent : null;
+
+    if (!paymentIntent && invoice?.payment_intent) {
+      // payment_intent is a string ID — retrieve it directly
+      paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent);
+    }
 
     if (!paymentIntent) {
-      // Finalize the invoice to trigger PaymentIntent creation
-      const finalized = await stripe.invoices.finalizeInvoice(invoice.id, { expand: ['payment_intent'] });
-      paymentIntent = finalized.payment_intent;
+      // Invoice not yet finalized — finalize to create the PaymentIntent
+      try {
+        const finalized = await stripe.invoices.finalizeInvoice(invoice.id, { expand: ['payment_intent'] });
+        paymentIntent = typeof finalized.payment_intent === 'object'
+          ? finalized.payment_intent
+          : finalized.payment_intent
+            ? await stripe.paymentIntents.retrieve(finalized.payment_intent)
+            : null;
+      } catch(e) {
+        // Already finalized — retrieve payment_intent from invoice directly
+        const inv = await stripe.invoices.retrieve(invoice.id, { expand: ['payment_intent'] });
+        paymentIntent = typeof inv.payment_intent === 'object'
+          ? inv.payment_intent
+          : inv.payment_intent
+            ? await stripe.paymentIntents.retrieve(inv.payment_intent)
+            : null;
+      }
     }
 
     if (!paymentIntent?.client_secret) {
-      fastify.log.error({ sub: subscription.id, inv: invoice?.id }, 'Billing: no client_secret after finalize');
+      fastify.log.error({ sub: subscription.id, inv: invoice?.id }, 'Billing: no client_secret after all attempts');
       return reply.code(500).send({ error: 'Payment setup failed. Please try again.' });
     }
 
