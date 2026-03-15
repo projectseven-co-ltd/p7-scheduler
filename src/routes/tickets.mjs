@@ -126,6 +126,7 @@ export default async function ticketsRoutes(fastify) {
               type: 'array',
               items: {
                 type: 'object',
+                additionalProperties: true,
                 properties: {
                   sla_due_at: { type: 'string', nullable: true },
                   sla_breached: { type: 'boolean' },
@@ -180,6 +181,7 @@ export default async function ticketsRoutes(fastify) {
       response: {
         201: {
           type: 'object',
+          additionalProperties: true,
           description: 'Created ticket/incident',
           properties: {
             Id: { type: 'integer' },
@@ -251,6 +253,7 @@ export default async function ticketsRoutes(fastify) {
       response: {
         200: {
           type: 'object',
+          additionalProperties: true,
           properties: {
             sla_due_at: { type: 'string', nullable: true },
             sla_breached: { type: 'boolean' },
