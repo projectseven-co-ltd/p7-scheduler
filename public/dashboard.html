@@ -4073,6 +4073,8 @@ function bscrFeedPush(msg) {
 }
 
 function toggleBeaconPanel() {
+  // If beacon is running, FAB reopens the beacon screen
+  if (beaconActive) { showBeaconScreen(); return; }
   beaconPanelOpen = !beaconPanelOpen;
   document.getElementById('beacon-panel').style.display = beaconPanelOpen ? 'block' : 'none';
 }
