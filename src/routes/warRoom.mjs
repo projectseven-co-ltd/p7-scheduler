@@ -742,19 +742,26 @@ body::after {
 .map-popup-row span { color: #e8e8ea; }
 .map-popup-btn {
   display: block;
-  margin-top: 10px;
-  background: #DFFF00;
-  color: #0a0a0b;
-  border: none;
-  padding: 8px 14px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  font-weight: bold;
-  letter-spacing: 2px;
+  margin-top: 6px;
+  background: transparent;
+  color: var(--acid);
+  border: 1px solid rgba(223,255,0,0.25);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  font-weight: normal;
+  letter-spacing: 0.12em;
   cursor: pointer;
   text-transform: uppercase;
   text-decoration: none;
   text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.map-popup-btn:hover {
+  background: rgba(223,255,0,0.07);
+  border-color: rgba(223,255,0,0.5);
+  color: var(--acid);
 }
 /* Urgent pulse animation for Leaflet markers */
 @keyframes urgentPulse {
@@ -1512,8 +1519,8 @@ body::after {
       <div class="map-popup-row">Coords <span>\${lat.toFixed(5)}, \${lng.toFixed(5)}</span></div>
       \${accuracy ? \`<div class="map-popup-row">Accuracy <span>±\${Math.round(accuracy)}m</span></div>\` : ''}
       <div class="map-popup-row">Track pts <span>\${(_beaconTracks[key]?.points?.length || 1)}</span></div>
-      <a class="map-popup-btn" onclick="toggleTrack('\${key}');return false;" href="#">TOGGLE TRACK</a>
-      <a class="map-popup-btn" style="color:#ff5f5f;border-color:#ff5f5f44;" onclick="clearTrack('\${key}');return false;" href="#">CLEAR TRACK</a>
+      <a class="map-popup-btn" onclick="toggleTrack(\${JSON.stringify(key)});return false;" href="#">[~] TOGGLE TRACK</a>
+      <a class="map-popup-btn" style="color:#ff5f5f88;border-color:#ff5f5f22;" onmouseover="this.style.background='rgba(255,95,95,0.07)'" onmouseout="this.style.background='transparent'" onclick="clearTrack(\${JSON.stringify(key)});return false;" href="#">[×] CLEAR TRACK</a>
     \`);
 
     updateBeaconPanel();
