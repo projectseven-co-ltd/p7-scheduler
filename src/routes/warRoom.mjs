@@ -171,8 +171,8 @@ body::after {
 .tab-btn:hover { color: var(--text); border-color: var(--acid); }
 .tab-btn.active { color: var(--acid); border-color: var(--acid); background: var(--acid-dim); }
 /* VIEWS */
-#view-list { display: grid; grid-template-columns: 1fr 420px; overflow: hidden; height: 100%; }
-#view-map { display: none; height: 100%; position: relative; }
+#view-list { display: none; grid-template-columns: 1fr 420px; overflow: hidden; height: 100%; }
+#view-map { display: block; height: 100%; position: relative; }
 /* INCIDENT LIST */
 #incident-list-wrap {
   overflow-y: auto;
@@ -621,8 +621,8 @@ body::after {
     <h1>[!] WAR ROOM</h1>
     <div id="incident-count">0 ACTIVE</div>
     <div id="tab-bar">
-      <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">LIST</button>
-      <button class="tab-btn" id="tab-map" onclick="switchTab('map')">MAP</button>
+      <button class="tab-btn" id="tab-list" onclick="switchTab('list')">LIST</button>
+      <button class="tab-btn active" id="tab-map" onclick="switchTab('map')">MAP</button>
     </div>
     <div id="clock">--:--:--</div>
     <button class="wr-mode-btn" onclick="wrCycleMode()" title="Long-press for day" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:monospace;font-size:10px;letter-spacing:.08em;color:#5a5a6e;touch-action:none;user-select:none"><span id="wr-mode-label">[&#9681;] NITE</span></button>
@@ -715,7 +715,7 @@ body::after {
   let repliesCache = {};
 
   // ---- Tab switching ----
-  let currentTab = 'list';
+  let currentTab = 'map';
   let mapInitialized = false;
   window.switchTab = function(tab) {
     currentTab = tab;
@@ -1645,6 +1645,9 @@ body::after {
   renderList();
     connectSSE();
   connectSignalSSE();
+  // Default to map view — init immediately
+  mapInitialized = true;
+  initMap();
   window.setCaptureRange = setCaptureRange;
   window.applyCaptureCustomRange = applyCaptureCustomRange;
   window.clearCaptures = clearCaptures;
