@@ -1303,8 +1303,11 @@ async function init() {
 
   await loadSection('sitrep');
   populateTimezones();
+  window._liveBeacons = {};
   connectTicketStream();
   connectSignalStream();
+  // Refresh SITREP tiles every 60s
+  setInterval(() => { if (document.getElementById('section-sitrep')?.style.display !== 'none') loadSitrep(); }, 60000);
 }
 
 
@@ -1477,6 +1480,7 @@ async function loadSection(name) {
 }
 
 // ── SITREP ───────────────────────────────────────────
+let _etCache = {}; // event type id → name cache
 const sitrepFeed = [];
 const SITREP_MAX_FEED = 40;
 
@@ -1522,10 +1526,17 @@ function fmtShortTime(iso) {
 
 async function loadSitrep() {
   // Fire requests in parallel
-  const [asgRes, tickRes] = await Promise.all([
+  const [asgRes, tickRes, etRes] = await Promise.all([
     apiFetch('/v1/bookings?limit=100'),
     apiFetch('/v1/tickets?limit=100'),
+    apiFetch('/v1/event-types'),
   ]);
+
+  // Build event type name cache
+  if (etRes?.ok) {
+    const { event_types = [] } = await etRes.json();
+    event_types.forEach(et => { _etCache[et.Id] = et.title || et.name || '—'; });
+  }
 
   const now = new Date();
   const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
@@ -1552,7 +1563,7 @@ async function loadSitrep() {
       .slice(0, 5)
       .forEach(b => sitrepFeed.push({
         kind: 'assignment',
-        text: `[✓] Assignment · ${b.attendee_name || 'Attendee'} · ${b.event_type_name || 'Event'}`,
+        text: `[✓] Assignment · ${b.attendee_name || 'Attendee'} · ${_etCache[b.event_type_id] || b.event_type_name || 'Event'}`,
         ts: b.created_at || b.CreatedAt,
       }));
   }
@@ -1575,7 +1586,7 @@ async function loadSitrep() {
           <div class="nextup-time">${esc(fmtShortTime(b.start_time))}</div>
           <div>
             <div class="nextup-name">${esc(b.attendee_name || 'Attendee')}</div>
-            <div class="nextup-sub">${esc(b.event_type_name || b.event_type_id || '—')}</div>
+            <div class="nextup-sub">${esc(_etCache[b.event_type_id] || b.event_type_name || `Event #${b.event_type_id}`)}</div>
           </div>
         </div>`).join('');
     }
