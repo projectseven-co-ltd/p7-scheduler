@@ -677,6 +677,7 @@ body::after {
         <button class="cfbtn" data-range="lastmonth" onclick="setCaptureRange('lastmonth')">LAST MONTH</button>
         <button class="cfbtn" data-range="3mo" onclick="setCaptureRange('3mo')">3 MONTHS</button>
         <button class="cfbtn" data-range="custom" onclick="setCaptureRange('custom')">CUSTOM</button>
+        <button class="cfbtn" style="border-color:#ff5f5f44;color:#ff5f5f88;" onclick="clearCaptures()">[×] CLEAR</button>
       </div>
       <div id="capture-filter-custom" style="display:none;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
         <input type="date" id="cfrom" style="background:#111114;border:1px solid #2a2a36;color:#e8e8ea;font-family:'Fira Code',monospace;font-size:10px;padding:3px 6px;border-radius:4px;">
@@ -994,8 +995,8 @@ body::after {
     // Recluster captures on zoom change
     leafletMap.on('zoomend', onMapZoomEnd);
 
-    // Right-click on map → reset to "3 months" to show all captures
-    leafletMap.on('contextmenu', () => setCaptureRange('3mo'));
+    // Right-click on map → clear all captures from map
+    leafletMap.on('contextmenu', () => clearCaptures());
 
     // Load today's captures by default
     const { since } = getCaptureRangeDates('today');
@@ -1342,6 +1343,17 @@ body::after {
     }
   }
 
+  function clearCaptures() {
+    _captures.length = 0;
+    _clusterMarkers.forEach(m => leafletMap.removeLayer(m));
+    _clusterMarkers = [];
+    clearSpider();
+    document.querySelectorAll('.cfbtn').forEach(b => b.classList.remove('active'));
+    const countEl = document.getElementById('capture-filter-count');
+    if (countEl) countEl.textContent = '';
+    checkGeoEmpty();
+  }
+
   function setCaptureRange(range) {
     _activeCaptureRange = range;
     document.querySelectorAll('.cfbtn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
@@ -1635,6 +1647,7 @@ body::after {
   connectSignalSSE();
   window.setCaptureRange = setCaptureRange;
   window.applyCaptureCustomRange = applyCaptureCustomRange;
+  window.clearCaptures = clearCaptures;
 })();
 </script>
 <style>
