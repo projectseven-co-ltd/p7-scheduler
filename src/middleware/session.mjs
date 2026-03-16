@@ -50,17 +50,3 @@ export async function getSessionUser(req) {
     return await db.get(tables.users, session.user_id);
   } catch { return null; }
 }
-
-// Helper: get session user from cookie (returns null if not authed)
-export async function getSessionUser(req) {
-  try {
-    const cookieHeader = req.headers['cookie'] || '';
-    const match = cookieHeader.match(/sk_session=([^;]+)/);
-    if (!match) return null;
-    const result = await db.find(tables.sessions, `(token,eq,${match[1]})`);
-    if (!result.list?.length) return null;
-    const session = result.list[0];
-    if (new Date(session.expires_at) < new Date()) return null;
-    return await db.get(tables.users, session.user_id);
-  } catch { return null; }
-}
