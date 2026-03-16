@@ -1215,10 +1215,10 @@ body::after {
   // Load historical captures + recent beacons from REST, pin on map
   async function loadHistoricalSignals(since, before) {
     try {
-      let url = '/v1/signals?type=capture&limit=500&sort=-Id';
+      let url = '/v1/signals?type=capture&limit=500&sort=-Id&api_key=' + encodeURIComponent(_apiKey);
       if (since) url += '&since=' + encodeURIComponent(since);
       if (before) url += '&before=' + encodeURIComponent(before);
-      const res = await fetch(url, { headers: { 'x-api-key': _apiKey } });
+      const res = await fetch(url);
       if (!res.ok) return;
       const { signals = [] } = await res.json();
 
