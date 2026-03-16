@@ -171,23 +171,19 @@ body::after {
 .tab-btn:hover { color: var(--text); border-color: var(--acid); }
 .tab-btn.active { color: var(--acid); border-color: var(--acid); background: var(--acid-dim); }
 /* VIEWS */
-#view-list { display: none; grid-template-columns: 1fr 420px; overflow: hidden; height: 100%; }
+#view-list { display: none; flex-direction: column; overflow: hidden; height: 100%; }
+#incident-list-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 #view-map { display: block; height: 100%; position: relative; }
 /* INCIDENT LIST */
-#incident-list-wrap {
-  overflow-y: auto;
-  padding: 16px;
-}
-#incident-list-wrap::-webkit-scrollbar { width: 4px; }
-#incident-list-wrap::-webkit-scrollbar-track { background: var(--bg); }
-#incident-list-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+/* ── Command board ─────────────────────────────────────────────── */
 #list-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 #list-header span {
   font-size: 10px;
@@ -195,6 +191,138 @@ body::after {
   letter-spacing: 2px;
   text-transform: uppercase;
 }
+#board-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.bfbtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bfbtn:hover { color: var(--text); border-color: #3a3a4e; }
+.bfbtn.active { color: var(--acid); border-color: rgba(223,255,0,0.3); background: rgba(223,255,0,0.05); }
+#board-columns {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  min-height: 0;
+}
+.board-col {
+  flex: 1;
+  min-width: 200px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.board-col:last-child { border-right: none; }
+.col-label {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.col-cards {
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.col-cards::-webkit-scrollbar { width: 3px; }
+.col-cards::-webkit-scrollbar-thumb { background: var(--border); }
+/* Board cards */
+.bc {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.bc:hover { border-color: rgba(223,255,0,0.25); background: rgba(223,255,0,0.03); }
+.bc.selected { border-color: var(--acid); background: rgba(223,255,0,0.05); }
+.bc.breached { border-color: rgba(255,95,95,0.4); }
+.bc.breached::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--red);
+  border-radius: 6px 0 0 6px;
+}
+.bc-title {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+.bc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bc-status {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.bc-status.open { color: var(--acid); border-color: rgba(223,255,0,0.2); }
+.bc-status.in_progress { color: #60a5fa; border-color: rgba(96,165,250,0.2); }
+.bc-sla {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-left: auto;
+}
+.bc-sla.sla-warn { color: #fbbf24; }
+.bc-sla.sla-crit { color: var(--red); animation: slaBlink 1s step-start infinite; }
+.bc-sla.sla-breach { color: var(--red); font-weight: 700; }
+@keyframes slaBlink { 50% { opacity: 0.3; } }
+.bc-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.bc-btn {
+  font-family: 'Fira Code', monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bc-btn:hover { color: var(--text); border-color: #444456; }
+.bc-btn.resolve { color: #4ade80; border-color: rgba(74,222,128,0.2); }
+.bc-btn.resolve:hover { background: rgba(74,222,128,0.08); }
+.bc-btn.escalate { color: #fb923c; border-color: rgba(251,146,60,0.2); }
+.bc-btn.escalate:hover { background: rgba(251,146,60,0.08); }
+.bc-btn.map-pin { color: #60a5fa; border-color: rgba(96,165,250,0.2); }
+.bc-btn.map-pin:hover { background: rgba(96,165,250,0.08); }
+
 .incident-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -652,10 +780,39 @@ body::after {
   </div>
   <div id="view-list">
     <div id="incident-list-wrap">
+      <!-- Command board header -->
       <div id="list-header">
-        <span>ACTIVE INCIDENTS</span>
+        <span id="board-active-count">0 ACTIVE</span>
+        <span id="board-breach-count" style="display:none;color:#ff5f5f;font-size:9px;letter-spacing:0.1em"></span>
+        <div style="flex:1"></div>
+        <!-- Filter rail -->
+        <div id="board-filters">
+          <button class="bfbtn active" data-f="all" onclick="setBoardFilter('all')">ALL</button>
+          <button class="bfbtn" data-f="urgent" onclick="setBoardFilter('urgent')">[!] URGENT</button>
+          <button class="bfbtn" data-f="open" onclick="setBoardFilter('open')">OPEN</button>
+          <button class="bfbtn" data-f="in_progress" onclick="setBoardFilter('in_progress')">IN PROGRESS</button>
+          <button class="bfbtn" data-f="breached" onclick="setBoardFilter('breached')">[×] BREACHED</button>
+        </div>
       </div>
-      <div id="incident-list"></div>
+      <!-- Board columns -->
+      <div id="board-columns">
+        <div class="board-col" id="col-urgent">
+          <div class="col-label"><span>[!]</span> URGENT</div>
+          <div class="col-cards" id="cards-urgent"></div>
+        </div>
+        <div class="board-col" id="col-high">
+          <div class="col-label"><span style="color:#fbbf24">[▲]</span> HIGH</div>
+          <div class="col-cards" id="cards-high"></div>
+        </div>
+        <div class="board-col" id="col-normal">
+          <div class="col-label"><span style="color:#5a5a6e">[~]</span> NORMAL</div>
+          <div class="col-cards" id="cards-normal"></div>
+        </div>
+        <div class="board-col" id="col-low">
+          <div class="col-label"><span style="color:#3a3a4e">[–]</span> LOW</div>
+          <div class="col-cards" id="cards-low"></div>
+        </div>
+      </div>
       <div id="empty-board" style="display:none">
         <div class="big">[✓]</div>
         <p>ALL CLEAR — NO ACTIVE INCIDENTS</p>
@@ -741,7 +898,7 @@ body::after {
   let mapInitialized = false;
   window.switchTab = function(tab) {
     currentTab = tab;
-    document.getElementById('view-list').style.display = tab === 'list' ? 'grid' : 'none';
+    document.getElementById('view-list').style.display = tab === 'list' ? 'flex' : 'none';
     document.getElementById('view-map').style.display = tab === 'map' ? 'block' : 'none';
     document.getElementById('tab-list').classList.toggle('active', tab === 'list');
     document.getElementById('tab-map').classList.toggle('active', tab === 'map');
@@ -794,58 +951,110 @@ body::after {
     return '<span class="status-dot status-' + s + '"></span>';
   }
 
+  let _boardFilter = 'all';
+  window.setBoardFilter = function(f) {
+    _boardFilter = f;
+    document.querySelectorAll('.bfbtn').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+    renderList();
+  };
+
   function renderList() {
-    const list = document.getElementById('incident-list');
     const empty = document.getElementById('empty-board');
     const countEl = document.getElementById('incident-count');
-    const active = incidents.filter(i => i.status === 'open' || i.status === 'in_progress');
-    countEl.textContent = active.length + ' ACTIVE';
-    if (!active.length) {
-      list.innerHTML = '';
+    const boardCount = document.getElementById('board-active-count');
+    const boardBreach = document.getElementById('board-breach-count');
+
+    let active = incidents.filter(i => i.status === 'open' || i.status === 'in_progress');
+    const totalActive = active.length;
+    const totalBreached = active.filter(i => i.sla_status === 'breached').length;
+
+    countEl.textContent = totalActive + ' ACTIVE';
+    if (boardCount) boardCount.textContent = totalActive + ' ACTIVE';
+    if (boardBreach) {
+      boardBreach.style.display = totalBreached > 0 ? '' : 'none';
+      boardBreach.textContent = '[×] ' + totalBreached + ' BREACHED';
+    }
+
+    // Apply filter
+    if (_boardFilter === 'urgent') active = active.filter(i => i.priority === 'urgent');
+    else if (_boardFilter === 'open') active = active.filter(i => i.status === 'open');
+    else if (_boardFilter === 'in_progress') active = active.filter(i => i.status === 'in_progress');
+    else if (_boardFilter === 'breached') active = active.filter(i => i.sla_status === 'breached');
+
+    const cols = { urgent: [], high: [], normal: [], low: [] };
+    for (const inc of active) cols[inc.priority || 'normal']?.push(inc) || cols.normal.push(inc);
+
+    if (!totalActive) {
+      document.getElementById('board-columns').style.display = 'none';
       empty.style.display = 'flex';
       return;
     }
+    document.getElementById('board-columns').style.display = 'flex';
     empty.style.display = 'none';
 
-    const existingIds = new Set([...list.querySelectorAll('.incident-card')].map(el => el.dataset.id));
-    const incomingIds = new Set(active.map(i => String(i.Id)));
+    for (const [priority, list] of Object.entries(cols)) {
+      const container = document.getElementById('cards-' + priority);
+      if (!container) continue;
+      container.innerHTML = '';
+      for (const inc of list) {
+        const id = String(inc.Id);
+        const rem = slaRemaining(inc);
+        const sc = slaClass(inc);
+        const slaText = rem !== null ? fmtDuration(rem) : '--';
+        const isBreached = inc.sla_status === 'breached';
+        const hasGeo = inc.lat != null && inc.lng != null;
 
-    for (const el of list.querySelectorAll('.incident-card')) {
-      if (!incomingIds.has(el.dataset.id)) el.remove();
-    }
-
-    for (const inc of active) {
-      const id = String(inc.Id);
-      let card = list.querySelector('[data-id="' + id + '"]');
-      const rem = slaRemaining(inc);
-      const sc = slaClass(inc);
-      const slaText = rem !== null ? fmtDuration(rem) : '--';
-
-      const inner = '<div class="card-top">' +
-        statusDot(inc.status) +
-        '<div class="card-title">' + escHtml(inc.title) + '</div>' +
-        priorityBadge(inc.priority || 'normal') +
-      '</div>' +
-      '<div class="card-meta">' +
-        '<span class="sla-timer ' + sc + '" data-sla-id="' + id + '">' + slaText + '</span>' +
-        sourceBadge(inc.source) +
-        '<span class="responders-mini" id="resp-' + id + '">…</span>' +
-      '</div>';
-
-      if (!card) {
-        card = document.createElement('div');
-        card.className = 'incident-card' + (existingIds.size > 0 ? ' new-flash' : '');
+        const card = document.createElement('div');
+        card.className = 'bc' + (isBreached ? ' breached' : '') + (id === selectedId ? ' selected' : '');
         card.dataset.id = id;
-        card.innerHTML = inner;
+        card.innerHTML =
+          '<div class="bc-title">' + escHtml(inc.title || 'Untitled') + '</div>' +
+          '<div class="bc-meta">' +
+            '<span class="bc-status ' + inc.status + '">' + (inc.status === 'in_progress' ? 'IN PROGRESS' : 'OPEN') + '</span>' +
+            '<span class="bc-sla ' + sc + '" data-sla-id="' + id + '">' + (isBreached ? '[×] BREACHED' : slaText) + '</span>' +
+          '</div>' +
+          '<div class="bc-actions">' +
+            '<button class="bc-btn" onclick="event.stopPropagation();selectIncident(\'' + id + '\')">DETAILS</button>' +
+            (hasGeo ? '<button class="bc-btn map-pin" onclick="event.stopPropagation();flyToIncident(\'' + id + '\')">MAP</button>' : '') +
+            (inc.status !== 'in_progress' ? '<button class="bc-btn escalate" onclick="event.stopPropagation();quickEscalate(\'' + id + '\')">ESCALATE</button>' : '') +
+            '<button class="bc-btn resolve" onclick="event.stopPropagation();quickResolve(\'' + id + '\')">RESOLVE</button>' +
+          '</div>';
+
         card.addEventListener('click', () => selectIncident(id));
-        list.insertBefore(card, list.firstChild);
-      } else {
-        card.innerHTML = inner;
-        card.onclick = () => selectIncident(id);
+        container.appendChild(card);
       }
-      if (id === selectedId) card.classList.add('selected');
+      if (!list.length) {
+        container.innerHTML = '<div style="color:#2a2a36;font-family:\'Fira Code\',monospace;font-size:9px;letter-spacing:0.1em;padding:8px 4px">— NONE —</div>';
+      }
     }
   }
+
+  window.flyToIncident = function(id) {
+    const inc = incidents.find(i => String(i.Id) === id);
+    if (!inc || inc.lat == null) return;
+    switchTab('map');
+    setTimeout(() => leafletMap && leafletMap.flyTo([inc.lat, inc.lng], 14, { duration: 1.2 }), 100);
+  };
+
+  window.quickEscalate = async function(id) {
+    const inc = incidents.find(i => String(i.Id) === id);
+    if (!inc) return;
+    const res = await apiFetch('/v1/incidents/' + id, { method: 'PATCH', body: JSON.stringify({ priority: 'urgent' }) });
+    if (res?.ok) { inc.priority = 'urgent'; renderList(); toast('[!] Escalated to URGENT', 'warn'); }
+    else toast('Escalate failed', 'err');
+  };
+
+  window.quickResolve = async function(id) {
+    if (!confirm('Mark this incident as resolved?')) return;
+    const res = await apiFetch('/v1/incidents/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }) });
+    if (res?.ok) {
+      const idx = incidents.findIndex(i => String(i.Id) === id);
+      if (idx !== -1) incidents[idx].status = 'resolved';
+      renderList();
+      removeIncidentMarker(id);
+      toast('[✓] Incident resolved', 'ok');
+    } else toast('Resolve failed', 'err');
+  };
 
   function escHtml(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
