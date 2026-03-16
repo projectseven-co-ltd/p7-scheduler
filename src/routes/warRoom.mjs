@@ -1041,8 +1041,11 @@ body::after {
   }
 
   function checkGeoEmpty() {
+    const hasIncidents = incidentMarkers.size > 0;
+    const hasBeacons = Object.keys(window._liveBeacons || {}).length > 0;
+    const hasCaptures = (_captures || []).length > 0;
     document.getElementById('map-no-geo').style.display =
-      incidentMarkers.size === 0 ? 'block' : 'none';
+      (hasIncidents || hasBeacons || hasCaptures) ? 'none' : 'block';
   }
 
   function fitMapToMarkers(animate = false) {
@@ -1118,6 +1121,7 @@ body::after {
 
     beaconMarkers.set(key, { marker, accuracyCircle, labelMarker, lastSeen: Date.now(), userId, lat, lng, deviceId });
     updateBeaconPanel();
+    checkGeoEmpty();
   }
 
   function removeBeaconDot(deviceId, userId) {
@@ -1129,6 +1133,7 @@ body::after {
     existing.labelMarker && leafletMap && leafletMap.removeLayer(existing.labelMarker);
     beaconMarkers.delete(key);
     updateBeaconPanel();
+    checkGeoEmpty();
   }
 
   // Prune stale beacons every 30s
