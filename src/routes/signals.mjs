@@ -242,11 +242,29 @@ export default async function signalsRoutes(fastify) {
     }
 
     if (type) where += `~and(type,eq,${type})`;
-    if (since) where += `~and(created_at,gt,${since})`;
-    if (before) where += `~and(created_at,lt,${before})`;
+    // Note: NocoDB v0.301.3 does not support datetime gt/lt filtering.
+    // Fetch all and filter by date in JS below.
 
     const result = await db.list(tables.signals, { where, sort: '-created_at', limit });
-    return { signals: result.list || [], total: result.pageInfo?.totalRows ?? 0 };
+    let signals = result.list || [];
+
+    // Apply since/before filtering in JS (NocoDB doesn't support datetime comparison)
+    if (since) {
+      const sinceMs = new Date(since).getTime();
+      signals = signals.filter(s => {
+        const t = new Date(s.created_at || s.CreatedAt || 0).getTime();
+        return !isNaN(t) && t >= sinceMs;
+      });
+    }
+    if (before) {
+      const beforeMs = new Date(before).getTime();
+      signals = signals.filter(s => {
+        const t = new Date(s.created_at || s.CreatedAt || 0).getTime();
+        return !isNaN(t) && t < beforeMs;
+      });
+    }
+
+    return { signals, total: signals.length };
   });
 
   // DELETE /v1/signals/beacon — stop beacon, persist beacon_off log entry
