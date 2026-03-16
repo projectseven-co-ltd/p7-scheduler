@@ -639,6 +639,27 @@ body::after {
   <div id="view-map">
     <div id="map-container"></div>
     <div id="map-no-geo">NO GEO DATA — INCLUDE lat/lng WHEN CREATING INCIDENTS</div>
+    <!-- Capture date filter toolbar -->
+    <div id="capture-filter-bar">
+      <span style="font-size:9px;letter-spacing:0.1em;color:#555568;font-family:'Fira Code',monospace;">[▲] CAPTURES</span>
+      <div id="capture-filter-btns">
+        <button class="cfbtn active" data-range="today" onclick="setCaptureRange('today')">TODAY</button>
+        <button class="cfbtn" data-range="yesterday" onclick="setCaptureRange('yesterday')">YESTERDAY</button>
+        <button class="cfbtn" data-range="week" onclick="setCaptureRange('week')">THIS WEEK</button>
+        <button class="cfbtn" data-range="lastweek" onclick="setCaptureRange('lastweek')">LAST WEEK</button>
+        <button class="cfbtn" data-range="month" onclick="setCaptureRange('month')">THIS MONTH</button>
+        <button class="cfbtn" data-range="lastmonth" onclick="setCaptureRange('lastmonth')">LAST MONTH</button>
+        <button class="cfbtn" data-range="3mo" onclick="setCaptureRange('3mo')">3 MONTHS</button>
+        <button class="cfbtn" data-range="custom" onclick="setCaptureRange('custom')">CUSTOM</button>
+      </div>
+      <div id="capture-filter-custom" style="display:none;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+        <input type="date" id="cfrom" style="background:#111114;border:1px solid #2a2a36;color:#e8e8ea;font-family:'Fira Code',monospace;font-size:10px;padding:3px 6px;border-radius:4px;">
+        <span style="color:#555568;font-size:10px;">→</span>
+        <input type="date" id="cto" style="background:#111114;border:1px solid #2a2a36;color:#e8e8ea;font-family:'Fira Code',monospace;font-size:10px;padding:3px 6px;border-radius:4px;">
+        <button class="cfbtn" onclick="applyCaptureCustomRange()">[→] APPLY</button>
+      </div>
+      <div id="capture-filter-count" style="font-size:9px;font-family:'Fira Code',monospace;color:#555568;margin-top:4px;"></div>
+    </div>
     <!-- Beacon units overlay on map -->
     <div id="map-beacon-panel">
       <div class="mbp-header">
@@ -947,8 +968,9 @@ body::after {
     // Recluster captures on zoom change
     leafletMap.on('zoomend', onMapZoomEnd);
 
-    // Load historical captures and pin them
-    loadHistoricalSignals();
+    // Load today's captures by default
+    const { since } = getCaptureRangeDates('today');
+    loadHistoricalSignals(since);
   }
 
   function makeCircleMarker(inc) {
@@ -1191,39 +1213,122 @@ body::after {
   }
 
   // Load historical captures + recent beacons from REST, pin on map
-  async function loadHistoricalSignals() {
+  async function loadHistoricalSignals(since, before) {
     try {
-      const res = await fetch('/v1/signals?limit=200&sort=-Id', {
-        headers: { 'x-api-key': _apiKey }
-      });
+      let url = '/v1/signals?type=capture&limit=500&sort=-Id';
+      if (since) url += '&since=' + encodeURIComponent(since);
+      if (before) url += '&before=' + encodeURIComponent(before);
+      const res = await fetch(url, { headers: { 'x-api-key': _apiKey } });
       if (!res.ok) return;
       const { signals = [] } = await res.json();
-      const captures = signals.filter(s => s.type === 'capture' && s.lat != null);
+
+      // Clear existing captures and recluster
+      _captures.length = 0;
+      _clusterMarkers.forEach(m => leafletMap.removeLayer(m));
+      _clusterMarkers = [];
+      clearSpider();
+
+      const captures = signals.filter(s => s.lat != null);
       for (const c of captures) {
         let meta = {};
         try { meta = JSON.parse(c.meta || '{}'); } catch {}
         const deviceId = meta.device_id || ('user-' + c.user_id);
-        addCapturePin(c, deviceId, true);
+        const ts = c.created_at || c.CreatedAt || new Date().toISOString();
+        _captures.push({
+          lat: +c.lat,
+          lng: +c.lng,
+          deviceId,
+          shortId: deviceId.slice(-8),
+          hasImage: !!(c.image_url),
+          imgSrc: c.image_url ? (c.image_url.startsWith('/') ? c.image_url : '/captures/' + c.image_url.split('/').pop()) : null,
+          ts,
+          timeStr: new Date(ts).toISOString().slice(11,19) + ' UTC',
+          dateStr: new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          historical: true,
+        });
       }
-      if (captures.length > 0) {
+
+      // Update count badge
+      const countEl = document.getElementById('capture-filter-count');
+      if (countEl) countEl.textContent = captures.length ? \`\${captures.length} capture\${captures.length === 1 ? '' : 's'}\` : 'no captures in range';
+
+      if (_captures.length > 0) {
         document.getElementById('map-no-geo').style.display = 'none';
-        // Fit map to capture pins if no incidents had geo
-        const bounds = captures.map(c => [+c.lat, +c.lng]);
+        rebuildCaptureClusters();
+        const bounds = _captures.map(c => [c.lat, c.lng]);
         if (bounds.length === 1) {
           leafletMap.setView(bounds[0], 14);
-        } else if (bounds.length > 1) {
+        } else {
           leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         }
+      } else if (!incidents.some(i => i.lat != null)) {
+        document.getElementById('map-no-geo').style.display = 'block';
       }
-      // Also show recent beacon locations (last known position per device)
-      const beaconsByDevice = {};
-      signals.filter(s => s.type === 'beacon_on' && s.lat != null).forEach(s => {
-        let meta = {};
-        try { meta = JSON.parse(s.meta || '{}'); } catch {}
-        const did = meta.device_id || ('user-' + s.user_id);
-        if (!beaconsByDevice[did]) beaconsByDevice[did] = s;
-      });
     } catch (e) { console.warn('historical signals load failed', e); }
+  }
+
+  // ── Capture date filter ───────────────────────────────────────────
+  let _activeCaptureRange = 'today';
+
+  function getCaptureRangeDates(range) {
+    const now = new Date();
+    const startOfDay = d => { const r = new Date(d); r.setUTCHours(0,0,0,0); return r; };
+    switch (range) {
+      case 'today':
+        return { since: startOfDay(now).toISOString() };
+      case 'yesterday': {
+        const s = startOfDay(now); s.setUTCDate(s.getUTCDate() - 1);
+        const e = startOfDay(now);
+        return { since: s.toISOString(), before: e.toISOString() };
+      }
+      case 'week': {
+        const s = startOfDay(now); s.setUTCDate(s.getUTCDate() - s.getUTCDay());
+        return { since: s.toISOString() };
+      }
+      case 'lastweek': {
+        const s = startOfDay(now); s.setUTCDate(s.getUTCDate() - s.getUTCDay() - 7);
+        const e = startOfDay(now); e.setUTCDate(e.getUTCDate() - e.getUTCDay());
+        return { since: s.toISOString(), before: e.toISOString() };
+      }
+      case 'month': {
+        const s = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        return { since: s.toISOString() };
+      }
+      case 'lastmonth': {
+        const s = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+        const e = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        return { since: s.toISOString(), before: e.toISOString() };
+      }
+      case '3mo': {
+        const s = new Date(now); s.setUTCMonth(s.getUTCMonth() - 3);
+        return { since: s.toISOString() };
+      }
+      default:
+        return {};
+    }
+  }
+
+  function setCaptureRange(range) {
+    _activeCaptureRange = range;
+    document.querySelectorAll('.cfbtn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+    const customEl = document.getElementById('capture-filter-custom');
+    if (customEl) customEl.style.display = range === 'custom' ? 'flex' : 'none';
+    if (range !== 'custom') {
+      const { since, before } = getCaptureRangeDates(range);
+      loadHistoricalSignals(since, before);
+    }
+  }
+
+  function applyCaptureCustomRange() {
+    const from = document.getElementById('cfrom').value;
+    const to = document.getElementById('cto').value;
+    if (!from) return;
+    // Enforce 3-month max
+    const fromDate = new Date(from);
+    const toDate = to ? new Date(to + 'T23:59:59Z') : new Date();
+    const maxBack = new Date(toDate); maxBack.setUTCMonth(maxBack.getUTCMonth() - 3);
+    const clampedFrom = fromDate < maxBack ? maxBack : fromDate;
+    loadHistoricalSignals(clampedFrom.toISOString(), to ? toDate.toISOString() : undefined);
   }
 
   function handleSignalEvent(evt) {
@@ -1344,7 +1449,7 @@ body::after {
         const count = group.length;
         const icon = L.divIcon({
           className: '',
-          html: \`<div style="width:26px;height:26px;border-radius:50%;background:rgba(139,92,246,0.85);border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 12px rgba(139,92,246,0.7),0 0 24px rgba(139,92,246,0.3);cursor:pointer;">\${count}</div>\`,
+          html: \`<div style="width:26px;height:26px;border-radius:50%;background:rgba(139,92,246,0.85);border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 12px rgba(139,92,246,0.7),0 0 24px rgba(139,92,246,0.3);cursor:pointer;animation:clusterPulse 2.4s ease-in-out infinite;">\${count}</div>\`,
           iconSize: [26, 26],
           iconAnchor: [13, 13],
         });
@@ -1393,7 +1498,7 @@ body::after {
       // Arm marker (mini capture pin)
       const icon = L.divIcon({
         className: '',
-        html: \`<div style="width:20px;height:20px;border-radius:3px;background:#8b5cf6;border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:monospace;font-weight:700;color:#e8e8ea;box-shadow:0 0 8px rgba(139,92,246,0.6);cursor:pointer;">&#9650;</div>\`,
+        html: \`<div style="width:20px;height:20px;border-radius:3px;background:#8b5cf6;border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:monospace;font-weight:700;color:#e8e8ea;box-shadow:0 0 8px rgba(139,92,246,0.6);cursor:pointer;animation:spiderArmIn 0.18s ease-out \${armIdx * 0.04}s both;">&#9650;</div>\`,
         iconSize: [20, 20],
         iconAnchor: [10, 10],
       });
@@ -1492,8 +1597,10 @@ body::after {
 
   // ---- Init ----
   renderList();
-  connectSSE();
+    connectSSE();
   connectSignalSSE();
+  window.setCaptureRange = setCaptureRange;
+  window.applyCaptureCustomRange = applyCaptureCustomRange;
 })();
 </script>
 <style>
@@ -1516,6 +1623,48 @@ body::after {
 }
 .beacon-unit-row:hover { background: rgba(0,255,204,0.04); }
 .beacon-unit-row:last-child { border-bottom: none; }
+/* -- Capture filter bar -- */
+#capture-filter-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(10,10,11,0.92);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 10px;
+  padding: 8px 12px;
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 320px;
+  max-width: 90vw;
+}
+#capture-filter-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.cfbtn {
+  background: transparent;
+  border: 1px solid #2a2a36;
+  color: #555568;
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cfbtn:hover { border-color: #a78bfa; color: #a78bfa; }
+.cfbtn.active { border-color: #a78bfa; color: #a78bfa; background: rgba(139,92,246,0.12); }
+@keyframes clusterPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(139,92,246,0.7), 0 0 24px rgba(139,92,246,0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 18px rgba(139,92,246,0.9), 0 0 36px rgba(139,92,246,0.4); transform: scale(1.08); }
+}
+@keyframes spiderArmIn {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
 /* -- NITE mode -- */
 [data-lights="nite"] #app { filter: saturate(0.15) brightness(0.55); }
 [data-lights="nite"] * { animation-play-state: paused !important; }

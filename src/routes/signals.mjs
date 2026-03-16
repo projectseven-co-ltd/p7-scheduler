@@ -222,12 +222,13 @@ export default async function signalsRoutes(fastify) {
           org_id: { type: 'integer' },
           limit:  { type: 'integer', default: 100 },
           since:  { type: 'string' },
+          before: { type: 'string' },
         },
       },
       response: { 200: { type: 'object', additionalProperties: true, example: { signals: [signalResponseExample], total: 1 } } },
     },
   }, async (req) => {
-    const { type, org_id, limit = 100, since } = req.query;
+    const { type, org_id, limit = 100, since, before } = req.query;
 
     let orgIds = org_id ? [String(org_id)] : await getUserOrgIds(req.user.Id);
 
@@ -242,6 +243,7 @@ export default async function signalsRoutes(fastify) {
 
     if (type) where += `~and(type,eq,${type})`;
     if (since) where += `~and(created_at,gt,${since})`;
+    if (before) where += `~and(created_at,lt,${before})`;
 
     const result = await db.list(tables.signals, { where, sort: '-created_at', limit });
     return { signals: result.list || [], total: result.pageInfo?.totalRows ?? 0 };
@@ -300,7 +302,7 @@ export default async function signalsRoutes(fastify) {
       querystring: {
         type: 'object',
         properties: {
-          limit: { type: 'integer', default: 50, maximum: 200 },
+          limit: { type: 'integer', default: 50, maximum: 500 },
           offset: { type: 'integer', default: 0 },
           type: { type: 'string', description: 'Filter by signal type (e.g. beacon_off, alert, capture)' },
           device_id: { type: 'string' },
