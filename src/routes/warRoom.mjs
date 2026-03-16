@@ -576,7 +576,29 @@ body::after {
   0%, 100% { opacity: 0.15; transform: scaleY(0.4); }
   50%       { opacity: 1;    transform: scaleY(1);   }
 }
-/* Leaflet popup dark override */
+.wr-layer-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px;
+}
+.lyr-btn {
+  background: rgba(10,10,11,0.85);
+  border: 1px solid rgba(0,255,204,0.15);
+  color: #5a5a6e;
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+.lyr-btn:hover { color: #00ffcc; border-color: rgba(0,255,204,0.4); }
+.lyr-btn.active { color: #00ffcc; border-color: rgba(0,255,204,0.5); background: rgba(0,255,204,0.06); }
+
 .leaflet-popup-content-wrapper {
   background: #111114 !important;
   color: #e8e8ea !important;
@@ -975,10 +997,81 @@ body::after {
       attributionControl: false,
     }).setView([37.8, -96], 4); // Default: CONUS
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(leafletMap);
+    // ── Tile layers ────────────────────────────────────────────────────
+    const tileLayers = {
+      tactical: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', maxZoom: 19,
+      }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+      }),
+      terrain: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd', maxZoom: 19,
+      }),
+    };
+    let activeLayer = 'tactical';
+    tileLayers.tactical.addTo(leafletMap);
+
+    // ── Layer switcher ─────────────────────────────────────────────────
+    const layerSwitcher = L.control({ position: 'topright' });
+    layerSwitcher.onAdd = function() {
+      const div = L.DomUtil.create('div', 'wr-layer-switcher');
+      div.innerHTML = \`
+        <button class="lyr-btn active" data-lyr="tactical" onclick="setMapLayer('tactical')">TACTICAL</button>
+        <button class="lyr-btn" data-lyr="satellite" onclick="setMapLayer('satellite')">SATELLITE</button>
+        <button class="lyr-btn" data-lyr="terrain" onclick="setMapLayer('terrain')">TERRAIN</button>
+      \`;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    layerSwitcher.addTo(leafletMap);
+
+    window.setMapLayer = function(name) {
+      if (name === activeLayer) return;
+      leafletMap.removeLayer(tileLayers[activeLayer]);
+      tileLayers[name].addTo(leafletMap);
+      tileLayers[name].bringToBack();
+      activeLayer = name;
+      document.querySelectorAll('.lyr-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.lyr === name));
+    };
+
+    // ── Mini-map inset ─────────────────────────────────────────────────
+    const miniMapLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd', maxZoom: 19,
+    });
+    const miniMap = L.control({ position: 'bottomright' });
+    miniMap.onAdd = function() {
+      const wrap = L.DomUtil.create('div', 'wr-minimap-wrap');
+      wrap.id = 'minimap-container';
+      wrap.style.cssText = 'width:160px;height:110px;border:1px solid rgba(0,255,204,0.2);border-radius:6px;overflow:hidden;';
+      L.DomEvent.disableClickPropagation(wrap);
+      L.DomEvent.disableScrollPropagation(wrap);
+      return wrap;
+    };
+    miniMap.addTo(leafletMap);
+    // Init mini-map after container exists
+    setTimeout(() => {
+      const miniMapEl = document.getElementById('minimap-container');
+      if (!miniMapEl) return;
+      const mm = L.map('minimap-container', {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      }).setView(leafletMap.getCenter(), Math.max(1, leafletMap.getZoom() - 5));
+      miniMapLayer.addTo(mm);
+      // Track main map movement
+      leafletMap.on('move', () => mm.setView(leafletMap.getCenter(), Math.max(1, leafletMap.getZoom() - 5)));
+      // View indicator rectangle
+      const viewRect = L.rectangle(leafletMap.getBounds(), {
+        color: '#00ffcc', weight: 1, fillOpacity: 0.08, interactive: false,
+      }).addTo(mm);
+      leafletMap.on('moveend zoomend', () => viewRect.setBounds(leafletMap.getBounds()));
+    }, 200);
 
     const withGeo = incidents.filter(i =>
       (i.status === 'open' || i.status === 'in_progress') &&
