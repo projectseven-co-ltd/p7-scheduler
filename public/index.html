@@ -1192,5 +1192,226 @@ fetch('/version').then(r=>r.json()).then(d=>{
   }
 </script>
 
+
+<!-- SIGNUP MODAL -->
+<div id="signupModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+
+  <!-- Standard modal (free/starter/agency) -->
+  <div id="modal-standard" style="background:#111114;border:1px solid #2e2e3a;border-radius:16px;width:100%;max-width:420px;padding:36px 32px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+    <button onclick="closeSignup()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#5a5a6e;font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;">&#x2715;</button>
+    <div id="modal-badge" style="font-family:monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;color:#DFFF00;"></div>
+    <h3 id="modal-heading" style="margin:0 0 6px;font-size:22px;font-weight:700;color:#e8e8ea;"></h3>
+    <p id="modal-sub" style="margin:0 0 28px;font-size:14px;color:#5a5a6e;line-height:1.5;"></p>
+    <form id="modal-form" onsubmit="submitSignup(event)" style="display:flex;flex-direction:column;gap:12px;">
+      <input type="hidden" id="modal-plan">
+      <input id="modal-name" type="text" placeholder="Your name" required
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <input id="modal-email" type="email" placeholder="Work email" required
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <input id="modal-company" type="text" placeholder="Company or team name"
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;display:none;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <div id="modal-error" style="color:#ff5f5f;font-size:13px;display:none;"></div>
+      <button id="modal-btn" type="submit"
+        style="background:#DFFF00;color:#0a0a0b;border:none;border-radius:8px;padding:13px;font-family:monospace;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;"
+        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Get started free &#x2192;</button>
+    </form>
+    <div id="modal-success" style="display:none;text-align:center;padding:16px 0;">
+      <div style="font-size:32px;margin-bottom:12px;">&#x2713;</div>
+      <p id="modal-success-text" style="color:#e8e8ea;font-size:15px;margin:0 0 6px;font-weight:600;"></p>
+      <p id="modal-success-sub" style="color:#5a5a6e;font-size:13px;margin:0;"></p>
+    </div>
+  </div>
+
+  <!-- Enterprise modal -->
+  <div id="modal-enterprise" style="display:none;background:#111114;border:1px solid #2e2e3a;border-radius:16px;width:100%;max-width:520px;padding:36px 32px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+    <button onclick="closeSignup()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#5a5a6e;font-size:20px;cursor:pointer;line-height:1;padding:4px 8px;">&#x2715;</button>
+    <div style="font-family:monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;color:#DFFF00;">Enterprise</div>
+    <h3 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#e8e8ea;">Let&#x2019;s talk</h3>
+    <p style="margin:0 0 28px;font-size:14px;color:#5a5a6e;line-height:1.5;">Custom contracts, SLAs, dedicated onboarding. Pick how you want to connect.</p>
+
+    <div id="ent-options" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <button onclick="showEntForm()" style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:10px;padding:20px 16px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='#DFFF00'" onmouseout="this.style.borderColor='#2e2e3a'">
+        <div style="font-size:20px;margin-bottom:8px;">&#x2709;&#xFE0F;</div>
+        <div style="font-family:monospace;font-size:13px;color:#e8e8ea;font-weight:600;margin-bottom:4px;">Send a message</div>
+        <div style="font-size:12px;color:#5a5a6e;">We&#x2019;ll reply same day</div>
+      </button>
+      <button onclick="openEntBooking()" style="background:#0a0a0b;border:1px solid #DFFF00;border-radius:10px;padding:20px 16px;cursor:pointer;text-align:left;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        <div style="font-size:20px;margin-bottom:8px;">&#x1F4C5;</div>
+        <div style="font-family:monospace;font-size:13px;color:#DFFF00;font-weight:600;margin-bottom:4px;">Book a call</div>
+        <div style="font-size:12px;color:#5a5a6e;">30 min &#x2014; pick a time now</div>
+      </button>
+    </div>
+
+    <form id="ent-form" onsubmit="submitEntSignup(event)" style="display:none;flex-direction:column;gap:12px;margin-top:20px;">
+      <input id="ent-name" type="text" placeholder="Your name" required
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <input id="ent-email" type="email" placeholder="Work email" required
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <input id="ent-company" type="text" placeholder="Company name"
+        style="background:#0a0a0b;border:1px solid #2e2e3a;border-radius:8px;padding:12px 14px;color:#e8e8ea;font-size:14px;outline:none;font-family:inherit;"
+        onfocus="this.style.borderColor='#DFFF00'" onblur="this.style.borderColor='#2e2e3a'">
+      <div id="ent-error" style="color:#ff5f5f;font-size:13px;display:none;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" onclick="showEntOptions()" style="flex:0 0 auto;background:transparent;border:1px solid #2e2e3a;border-radius:8px;padding:12px 16px;color:#5a5a6e;font-family:monospace;font-size:13px;cursor:pointer;">&#x2190; Back</button>
+        <button id="ent-btn" type="submit"
+          style="flex:1;background:#DFFF00;color:#0a0a0b;border:none;border-radius:8px;padding:13px;font-family:monospace;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;"
+          onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Send message &#x2192;</button>
+      </div>
+    </form>
+
+    <div id="ent-success" style="display:none;text-align:center;padding:24px 0;">
+      <div style="font-size:32px;margin-bottom:12px;">&#x2713;</div>
+      <p style="color:#e8e8ea;font-size:15px;margin:0 0 6px;font-weight:600;">Message sent.</p>
+      <p style="color:#5a5a6e;font-size:13px;margin:0;">OlSon will follow up personally.</p>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+const planConfig = {
+  free:       { badge: "Free Plan", heading: "Get started free", sub: "No waitlist. No credit card. Your booking page is ready in seconds.", btn: "Get started free →", company: false, successText: "You're in.", successSub: "Check your inbox - welcome note from OlSon on the way." },
+  starter:    { badge: "Starter — $29/mo", heading: "Get started on Starter", sub: "Free during beta. We'll reach out to get you set up.", btn: "Request access →", company: true, successText: "Request received.", successSub: "We'll be in touch shortly." },
+  agency:     { badge: "Agency - $99/mo", heading: "Request Agency access", sub: "Built for field ops and coordination teams. Tell us what you\'re building.", btn: "Request access →", company: true, successText: "Request received.", successSub: "We'll be in touch shortly." },
+};
+
+function openSignup(plan) {
+  // Paid plans — check if logged in; if so go straight to upgrade, else login first
+  if (plan === 'starter' || plan === 'agency') {
+    fetch('/v1/auth/me', { credentials: 'include' }).then(r => {
+      if (r.ok) {
+        window.location.href = '/dashboard?upgrade=' + plan;
+      } else {
+        window.location.href = '/login?next=' + encodeURIComponent('/dashboard?upgrade=' + plan);
+      }
+    }).catch(() => {
+      window.location.href = '/login?next=' + encodeURIComponent('/dashboard?upgrade=' + plan);
+    });
+    return;
+  }
+
+  const modal = document.getElementById("signupModal");
+  modal.style.display = "flex";
+
+  if (plan === "enterprise") {
+    document.getElementById("modal-standard").style.display = "none";
+    document.getElementById("modal-enterprise").style.display = "block";
+    showEntOptions();
+    return;
+  }
+
+  document.getElementById("modal-enterprise").style.display = "none";
+  document.getElementById("modal-standard").style.display = "block";
+
+  const cfg = planConfig[plan] || planConfig.free;
+  document.getElementById("modal-plan").value = plan;
+  document.getElementById("modal-badge").textContent = cfg.badge;
+  document.getElementById("modal-heading").textContent = cfg.heading;
+  document.getElementById("modal-sub").textContent = cfg.sub;
+  document.getElementById("modal-btn").textContent = cfg.btn;
+  document.getElementById("modal-company").style.display = cfg.company ? "block" : "none";
+  document.getElementById("modal-name").value = "";
+  document.getElementById("modal-email").value = "";
+  document.getElementById("modal-company").value = "";
+  document.getElementById("modal-error").style.display = "none";
+  document.getElementById("modal-form").style.display = "flex";
+  document.getElementById("modal-success").style.display = "none";
+  document.getElementById("modal-btn").disabled = false;
+  requestAnimationFrame(() => document.getElementById("modal-name").focus());
+}
+
+function showEntOptions() {
+  document.getElementById("ent-options").style.display = "grid";
+  document.getElementById("ent-form").style.display = "none";
+  document.getElementById("ent-success").style.display = "none";
+}
+
+function showEntForm() {
+  document.getElementById("ent-options").style.display = "none";
+  document.getElementById("ent-form").style.display = "flex";
+  requestAnimationFrame(() => document.getElementById("ent-name").focus());
+}
+
+function openEntBooking() {
+  closeSignup();
+  const overlay = document.createElement("div");
+  overlay.id = "entBookingOverlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  overlay.innerHTML = '<div style="position:relative;width:100%;max-width:860px;height:85vh;border-radius:16px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6);background:#111114;border:1px solid #2e2e3a;"><button onclick="document.getElementById(\'entBookingOverlay\').remove()" style="position:absolute;top:14px;right:14px;z-index:1;background:rgba(0,0,0,0.6);border:none;color:#e8e8ea;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button><iframe src="https://schedkit.net/book/schedkit/leadership/enterprise-intro" style="width:100%;height:100%;border:none;display:block;" title="Book Enterprise Intro" loading="lazy"></iframe></div>';
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+  document.addEventListener("keydown", function esc(e) { if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", esc); } });
+  document.body.appendChild(overlay);
+}
+
+function closeSignup() {
+  document.getElementById("signupModal").style.display = "none";
+}
+
+document.getElementById("signupModal").addEventListener("click", function(e) {
+  if (e.target === this) closeSignup();
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") closeSignup();
+});
+
+async function submitSignup(e) {
+  e.preventDefault();
+  const plan = document.getElementById("modal-plan").value;
+  const name = document.getElementById("modal-name").value.trim();
+  const email = document.getElementById("modal-email").value.trim();
+  const company = document.getElementById("modal-company").value.trim();
+  const btn = document.getElementById("modal-btn");
+  const errEl = document.getElementById("modal-error");
+  btn.disabled = true; btn.textContent = "Sending...";
+  errEl.style.display = "none";
+  try {
+    const res = await fetch("/v1/request-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, company, plan }) });
+    if (!res.ok) throw new Error();
+    const cfg = planConfig[plan] || planConfig.free;
+    document.getElementById("modal-form").style.display = "none";
+    document.getElementById("modal-success-text").textContent = cfg.successText;
+    document.getElementById("modal-success-sub").textContent = cfg.successSub;
+    document.getElementById("modal-success").style.display = "block";
+    setTimeout(closeSignup, 3200);
+  } catch {
+    errEl.textContent = "Something went wrong. Email ceo@schedkit.net directly.";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = (planConfig[plan] || planConfig.free).btn;
+  }
+}
+
+async function submitEntSignup(e) {
+  e.preventDefault();
+  const name = document.getElementById("ent-name").value.trim();
+  const email = document.getElementById("ent-email").value.trim();
+  const company = document.getElementById("ent-company").value.trim();
+  const btn = document.getElementById("ent-btn");
+  const errEl = document.getElementById("ent-error");
+  btn.disabled = true; btn.textContent = "Sending...";
+  errEl.style.display = "none";
+  try {
+    const res = await fetch("/v1/request-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, company, plan: "enterprise" }) });
+    if (!res.ok) throw new Error();
+    document.getElementById("ent-form").style.display = "none";
+    document.getElementById("ent-success").style.display = "block";
+    setTimeout(closeSignup, 3200);
+  } catch {
+    errEl.textContent = "Something went wrong. Email ceo@schedkit.net directly.";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Send message →";
+  }
+}
+</script>
+
 </body>
 </html>
+
