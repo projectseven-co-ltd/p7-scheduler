@@ -204,6 +204,8 @@ export default async function ticketsRoutes(fastify) {
           lat: { type: 'number', nullable: true, description: 'Incident latitude' },
           lng: { type: 'number', nullable: true, description: 'Incident longitude' },
           location_name: { type: 'string', nullable: true, description: 'Human-readable location name' },
+          customer_email: { type: 'string', nullable: true, description: 'Email to notify — if set, confirmation goes here instead of the creator' },
+          customer_name: { type: 'string', nullable: true, description: 'Customer display name for the email' },
         },
         examples: [{
           title: 'Water main pressure drop',
@@ -240,7 +242,7 @@ export default async function ticketsRoutes(fastify) {
       },
     },
   }, async (req, reply) => {
-    const { title, description, priority = 'normal', source = 'api', source_ref, lat, lng, location_name } = req.body;
+    const { title, description, priority = 'normal', source = 'api', source_ref, lat, lng, location_name, customer_email, customer_name } = req.body;
     const customer_token = nanoid(24);
 
     const ticket = await db.create(tables.tickets, {
@@ -254,6 +256,8 @@ export default async function ticketsRoutes(fastify) {
       sla_due_at: calcSlaDueAt(priority),
       sla_breached: false,
       customer_token,
+      customer_email: customer_email || null,
+      customer_name: customer_name || null,
       lat: lat ?? null,
       lng: lng ?? null,
       location_name: location_name ?? null,
@@ -267,12 +271,13 @@ export default async function ticketsRoutes(fastify) {
     // SSE broadcast
     tryBroadcast('incident.created', result);
 
-    // Email customer confirmation
-    const creator = req.user;
-    if (creator?.email) {
+    // Email customer confirmation — use explicit customer_email if provided, else creator
+    const emailTo = customer_email || req.user?.email;
+    const emailName = customer_name || req.user?.name || emailTo;
+    if (emailTo) {
       sendTicketCreated({
-        to_email: creator.email,
-        to_name: creator.name || creator.email,
+        to_email: emailTo,
+        to_name: emailName,
         ticket_id: ticket.Id,
         title,
         priority,

@@ -851,6 +851,16 @@ tr:hover td{background:var(--surface2)}
         </select>
       </div>
     </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Customer Name <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" id="ticket-customer-name" placeholder="Jane Smith">
+      </div>
+      <div class="form-row">
+        <label>Customer Email <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="email" id="ticket-customer-email" placeholder="jane@example.com">
+      </div>
+    </div>
     <div class="form-row">
       <label>Description</label>
       <textarea id="ticket-description" placeholder="Describe what happened, what's blocked, and what needs to happen next."></textarea>
@@ -2083,6 +2093,8 @@ function openTicketModal() {
   document.getElementById('ticket-priority').value = 'normal';
   document.getElementById('ticket-source').value = 'api';
   document.getElementById('ticket-description').value = '';
+  document.getElementById('ticket-customer-name').value = '';
+  document.getElementById('ticket-customer-email').value = '';
   openModal('ticket-modal');
 }
 
@@ -2093,6 +2105,10 @@ async function saveTicket() {
     source: document.getElementById('ticket-source').value,
     description: v('ticket-description'),
   };
+  const customerEmail = v('ticket-customer-email');
+  const customerName = v('ticket-customer-name');
+  if (customerEmail) body.customer_email = customerEmail;
+  if (customerName) body.customer_name = customerName;
   if (!body.title) return toast('Ticket title required', 'err');
   const res = await apiFetch('/v1/tickets', { method: 'POST', body: JSON.stringify(body) });
   if (!res?.ok) return toast('Failed to create ticket', 'err');
