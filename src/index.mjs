@@ -51,10 +51,12 @@ fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bo
 
 // Swagger
 await fastify.register(swagger, {
-  transform: ({ schema, url, method }) => {
+  transform: ({ schema, url, route }) => {
     if (!schema) schema = {};
-    if (!schema.operationId && method && url) {
-      const id = (method.toLowerCase() + url.replace(/\//g, '_').replace(/[{}]/g, '').replace(/_+/g, '_').replace(/_$/, '')).replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+    const method = route?.method;
+    const m = Array.isArray(method) ? method[0] : method;
+    if (!schema.operationId && m && url) {
+      const id = (m.toLowerCase() + url.replace(/\//g, '_').replace(/[{}]/g, '').replace(/_+/g, '_').replace(/_$/, '')).replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
       schema = { ...schema, operationId: id };
     }
     return { schema, url };
