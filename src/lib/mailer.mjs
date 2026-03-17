@@ -85,10 +85,10 @@ function ghostBtn(url, text) {
   return `<a href="${url}" style="display:inline-block;background:#1a1a1f;color:#e8e8ea;padding:12px 22px;border-radius:8px;font-size:13px;text-decoration:none;border:1px solid #2e2e3a;">${text}</a>`;
 }
 
-async function send(to_email, to_name, subject, html, text) {
+async function send(to_email, to_name, subject, html, text, fromName) {
   await mj.post('send', { version: 'v3.1' }).request({
     Messages: [{
-      From: { Email: FROM_EMAIL, Name: FROM_NAME },
+      From: { Email: FROM_EMAIL, Name: fromName || FROM_NAME },
       To: [{ Email: to_email, Name: to_name || to_email }],
       Subject: subject,
       HTMLPart: html,
@@ -405,7 +405,7 @@ export async function sendTicketCreated({ to_email, to_name, ticket_id, title, p
     ${note('Bookmark this link — it always shows the latest status without logging in.')}
   `);
   try {
-    await send(to_email, to_name, `Ticket #${ticket_id} received: ${title}`, html);
+    await send(to_email, to_name, `Ticket #${ticket_id} received: ${title}`, html, null, `SchedKit-INC${ticket_id}`);
   } catch(e) { console.error('Ticket created email error:', e.message); }
 }
 
@@ -428,7 +428,7 @@ export async function sendTicketStatusChanged({ to_email, to_name, ticket_id, ti
     ${primaryBtn(status_url, 'View Ticket →')}
   `);
   try {
-    await send(to_email, to_name, `Ticket #${ticket_id} ${statusLabels[new_status] || new_status}: ${title}`, html);
+    await send(to_email, to_name, `Ticket #${ticket_id} ${statusLabels[new_status] || new_status}: ${title}`, html, null, `SchedKit-INC${ticket_id}`);
   } catch(e) { console.error('Ticket status email error:', e.message); }
 }
 
