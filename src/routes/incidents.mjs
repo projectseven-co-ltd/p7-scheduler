@@ -51,6 +51,7 @@ export default async function incidentsRoutes(fastify) {
 
   // GET /v1/incidents/stream — SSE stream (auth required)
   fastify.get('/incidents/stream', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     schema: {
       tags: ['Incidents'],
       summary: 'SSE event stream',

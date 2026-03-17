@@ -1413,7 +1413,7 @@ async function apiFetch(path, opts = {}) {
     try {
       const body = await res.clone().json();
       if (body.upgrade_url) {
-        toast(`${esc(body.error)} — <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="openBillingModal('agency')">Upgrade →</span>`, 'err', 6000, true);
+        toastUpgrade(esc(body.error));
       } else {
         toast(body.error || 'You don\'t have permission to do that', 'err');
       }
@@ -2328,7 +2328,7 @@ async function saveEventType() {
   } else {
     const err = await res.json().catch(() => ({}));
     if (err.upgrade_url) {
-      toast(`${esc(err.error)} — <span style="color:var(--accent);cursor:pointer;text-decoration:underline" onclick="openBillingModal('agency')">Upgrade →</span>`, 'err', 6000, true);
+      toastUpgrade(esc(err.error));
     } else {
       toast(err.error || err.message || `Save failed (${res.status})`, 'err');
     }
@@ -3480,9 +3480,23 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function copyText(text) { navigator.clipboard.writeText(text).then(() => toast('Copied!', 'ok')); }
-function toast(msg, type = 'ok', duration = 3000, html = false) {
+function toast(msg, type = 'ok', duration = 3000) {
   const t = document.getElementById('toast');
-  if (html) { t.innerHTML = msg; } else { t.textContent = msg; }
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+function toastUpgrade(msg, type = 'err', duration = 6000) {
+  const t = document.getElementById('toast');
+  t.textContent = '';
+  const span = document.createElement('span');
+  span.textContent = msg + ' — ';
+  const link = document.createElement('span');
+  link.textContent = 'Upgrade →';
+  link.style.cssText = 'color:var(--accent);cursor:pointer;text-decoration:underline';
+  link.onclick = () => openBillingModal('agency');
+  t.appendChild(span);
+  t.appendChild(link);
   t.className = `toast show ${type}`;
   setTimeout(() => t.classList.remove('show'), duration);
 }

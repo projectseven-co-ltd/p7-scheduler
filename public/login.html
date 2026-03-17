@@ -152,7 +152,7 @@ codeForm.addEventListener('submit', async e => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data.error || 'invalid_code');
-    window.location.replace(data.destination || _nextUrl);
+    window.location.replace(sanitizeNext(data.destination) || _nextUrl);
   } catch {
     err.textContent = 'Invalid or expired code. Request a new email and try again.';
     err.style.display = 'block';

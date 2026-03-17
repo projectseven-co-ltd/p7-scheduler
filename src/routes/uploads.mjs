@@ -13,6 +13,7 @@ export default async function uploadsRoutes(fastify) {
   // POST /v1/upload/capture
   // Accepts raw image/jpeg binary, saves to public/captures/, returns { url }
   fastify.post('/upload/capture', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     preHandler: requireSession,
     schema: {
       tags: ['Signals'],

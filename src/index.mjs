@@ -166,24 +166,24 @@ await fastify.register(uploadsRoutes, { prefix: '/v1' });
 await fastify.register(billingRoutes, { prefix: '/v1' });
 
 // Page routes (no prefix)
-fastify.get('/login', { schema: { hide: true } }, async (req, reply) => {
+fastify.get('/login', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/login.html')));
 });
-fastify.get('/google-callback', { schema: { hide: true } }, async (req, reply) => {
+fastify.get('/google-callback', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/google-callback.html')));
 });
-fastify.get('/dashboard', { schema: { hide: true } }, async (req, reply) => {
+fastify.get('/dashboard', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/dashboard.html')));
 });
 
-fastify.get('/olson', { schema: { hide: true } }, async (req, reply) => {
+fastify.get('/olson', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { hide: true } }, async (req, reply) => {
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/olson.html')));
 });
 
-fastify.get('/onboarding', { schema: { hide: true } }, async (req, reply) => {
+fastify.get('/onboarding', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { hide: true } }, async (req, reply) => {
   const { readFileSync } = await import('fs');
   return reply.type('text/html').send(readFileSync(join(__dirname, '../public/onboarding.html')));
 });
