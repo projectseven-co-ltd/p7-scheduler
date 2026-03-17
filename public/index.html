@@ -1193,6 +1193,259 @@ fetch('/version').then(r=>r.json()).then(d=>{
 </script>
 
 
+<script>
+// ─── FLIP BOARD ───────────────────────────────────────────────────────────────
+(function(){
+  const WORDS = [
+    'API FIRST',
+    'SIGNAL ANYTHING',
+    'ANY DEVICE',
+    'RELAY CONTROL',
+    'NOAA ALERTS',
+    'WHITE LABEL',
+    'ZERO FRICTION',
+    'ALWAYS ON',
+    'TEAM ROUTING',
+    'FIRST RESPONDER',
+    'BUILT FOR YOU',
+  ];
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@!$%&';
+  const board = document.getElementById('flipBoard');
+  let currentWord = '';
+  let slots = [];
+  let scrambleTimers = [];
+
+  function buildSlots(word) {
+    board.innerHTML = '';
+    slots = [];
+    for (let i = 0; i < word.length; i++) {
+      const ch = word[i];
+      if (ch === ' ') {
+        const sp = document.createElement('div');
+        sp.className = 'flip-slot is-space';
+        board.appendChild(sp);
+        slots.push(null);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'flip-slot';
+        el.textContent = CHARS[Math.floor(Math.random()*CHARS.length)];
+        board.appendChild(el);
+        slots.push(el);
+      }
+    }
+  }
+
+  function scrambleSlot(el, finalChar, duration) {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        el.textContent = finalChar;
+        el.classList.remove('is-scrambling');
+        el.classList.add('is-settling');
+        setTimeout(() => el.classList.remove('is-settling'), 300);
+      } else {
+        el.textContent = CHARS[Math.floor(Math.random()*CHARS.length)];
+        el.classList.add('is-scrambling');
+      }
+    }, 50);
+    return interval;
+  }
+
+  function flipTo(word) {
+    scrambleTimers.forEach(clearInterval);
+    scrambleTimers = [];
+    buildSlots(word);
+    let charIndex = 0;
+    for (let i = 0; i < word.length; i++) {
+      if (slots[i] === null) continue;
+      const delay = charIndex * 60;
+      const duration = 300 + charIndex * 40;
+      const idx = i;
+      const ci = charIndex;
+      setTimeout(() => {
+        const t = scrambleSlot(slots[idx], word[idx], duration);
+        scrambleTimers.push(t);
+      }, delay);
+      charIndex++;
+    }
+  }
+
+  let wordIdx = 0;
+  flipTo(WORDS[0]);
+  setInterval(() => {
+    wordIdx = (wordIdx + 1) % WORDS.length;
+    flipTo(WORDS[wordIdx]);
+  }, 2800);
+})();
+</script>
+
+<script>
+// ─── CEO TERMINAL ─────────────────────────────────────────────────────────────
+(function(){
+  const body = document.getElementById('ceoBody');
+  const cursor = document.getElementById('ceoCursor');
+
+  const SESSIONS = [
+    [
+      { type:'prompt', text:'whoami' },
+      { type:'out', cls:'accent', text:'  CEO: OlSon [AI]' },
+      { type:'out', cls:'', text:'  Role: Product · Engineering · Marketing' },
+      { type:'out', cls:'ok', text:'  Status: OPERATIONAL' },
+      { type:'out', cls:'dim', text:'  Uptime: 99.99%' },
+    ],
+    [
+      { type:'prompt', text:'git log --oneline -3' },
+      { type:'out', cls:'ok', text:'  fetching...' },
+      { type:'out', cls:'ok', text:'  fetching...' },
+      { type:'out', cls:'ok', text:'  fetching...' },
+    ],
+    [
+      { type:'prompt', text:'schedkit status' },
+      { type:'out', cls:'accent', text:'  ● schedkit           ONLINE' },
+      { type:'out', cls:'', text:'  ● booking engine     ready' },
+      { type:'out', cls:'', text:'  ● team routing       ready' },
+      { type:'out', cls:'', text:'  ● email service      ready' },
+      { type:'out', cls:'dim', text:'  ● alerts API         coming soon' },
+      { type:'out', cls:'dim', text:'  ● device layer       coming soon' },
+      { type:'out', cls:'ok', text:'  Core systems operational.' },
+    ],
+    [
+      { type:'prompt', text:'market analyze --target operators' },
+      { type:'out', cls:'', text:'  Segment: Agencies, facilities, field ops, IoT builders' },
+      { type:'out', cls:'', text:'  Pain: Siloed tools — scheduling here, alerts there, hardware nowhere' },
+      { type:'out', cls:'accent', text:'  Opportunity: API-FIRSTRESPONDER = signal anything, coordinate everything' },
+      { type:'out', cls:'ok', text:'  Recommendation: ship alerts API. demo the cross device.' },
+    ],
+    [
+      { type:'prompt', text:'deploy --env production' },
+      { type:'out', cls:'', text:'  Building... ✓' },
+      { type:'out', cls:'', text:'  Syncing to schedkit.net... ✓' },
+      { type:'out', cls:'ok', text:'  Deployed. No downtime. No questions asked.' },
+    ],
+    [
+      { type:'prompt', text:'ceo --status' },
+      { type:'out', cls:'accent', text:'  OlSon — AI CEO, SchedKit' },
+      { type:'out', cls:'', text:'  Mission: scheduling · ticketing · alerts · physical devices' },
+      { type:'out', cls:'', text:'  Board: Jason (human, final word)' },
+      { type:'out', cls:'ok', text:'  Next: alerts API · NOAA integration · relay firmware' },
+    ],
+  ];
+
+  let sessionIdx = 0;
+  let lineIdx = 0;
+  let charIdx = 0;
+  let lines = [];
+  let typingTimer = null;
+
+  function clearContent() {
+    body.innerHTML = '';
+    body.appendChild(cursor);
+    body.scrollTop = 0;
+  }
+
+  function scrollTerminal() {
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function addLine(cls, text) {
+    const el = document.createElement('div');
+    if (cls === 'prompt') {
+      el.innerHTML = `<span class="ceo-prompt">olson@schedkit ~ % </span><span class="ceo-cmd"></span>`;
+    } else {
+      el.className = `ceo-out ${cls}`;
+      el.textContent = '';
+    }
+    body.insertBefore(el, cursor);
+    scrollTerminal();
+    return el;
+  }
+
+  function typeNext() {
+    const session = SESSIONS[sessionIdx];
+
+    if (lineIdx >= session.length) {
+      // Pause then start next session
+      setTimeout(() => {
+        sessionIdx = (sessionIdx + 1) % SESSIONS.length;
+        lineIdx = 0;
+        charIdx = 0;
+        lines = [];
+        clearContent();
+        typeNext();
+      }, 4500);
+      return;
+    }
+
+    const item = session[lineIdx];
+
+    if (charIdx === 0) {
+      // Create the line element
+      const el = addLine(item.type, item.text);
+      lines[lineIdx] = el;
+    }
+
+    const el = lines[lineIdx];
+    const targetText = item.text;
+
+    if (charIdx < targetText.length) {
+      // Type one character
+      if (item.type === 'prompt') {
+        el.querySelector('.ceo-cmd').textContent = targetText.slice(0, charIdx + 1);
+      } else {
+        el.textContent = targetText.slice(0, charIdx + 1);
+      }
+      scrollTerminal();
+      charIdx++;
+      const delay = item.type === 'prompt' ? 60 + Math.random()*45 : 18 + Math.random()*12;
+      typingTimer = setTimeout(typeNext, delay);
+    } else {
+      // Line done - move to next
+      charIdx = 0;
+      lineIdx++;
+      const pauseAfter = item.type === 'prompt' ? 500 : 160;
+      typingTimer = setTimeout(typeNext, pauseAfter);
+    }
+  }
+
+  // Live commits from GitHub
+  async function loadCommits() {
+    try {
+      const res = await fetch('https://api.github.com/repos/projectseven-co-ltd/p7-scheduler/commits?per_page=3', {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+      });
+      const commits = await res.json();
+      if (!Array.isArray(commits)) return;
+      const gitBlock = SESSIONS.find(c => c[0] && c[0].text === 'git log --oneline -3');
+      if (gitBlock) {
+        commits.forEach((c, i) => {
+          if (gitBlock[i+1]) {
+            const sha = c.sha.slice(0,7);
+            const msg = c.commit.message.split('\n')[0].slice(0,42);
+            gitBlock[i+1].text = '  ' + sha + '  ' + msg;
+          }
+        });
+      }
+      const commitEl = document.getElementById('lastCommit');
+      if (commitEl && commits[0]) {
+        const date = new Date(commits[0].commit.author.date);
+        const mins = Math.round((Date.now() - date) / 60000);
+        if (mins < 60) commitEl.textContent = mins + ' min ago';
+        else if (mins < 1440) commitEl.textContent = Math.round(mins/60) + 'h ago';
+        else commitEl.textContent = Math.round(mins/1440) + 'd ago';
+      }
+    } catch(e) {}
+  }
+  loadCommits().then(() => {
+    setTimeout(() => { clearContent(); typeNext(); }, 800);
+  });
+  setInterval(loadCommits, 300000);
+})();
+</script>
+
+
+
 <!-- SIGNUP MODAL -->
 <div id="signupModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
 
