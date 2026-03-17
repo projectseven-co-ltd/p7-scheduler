@@ -53,9 +53,8 @@ fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bo
 await fastify.register(swagger, {
   transform: ({ schema, url, method }) => {
     if (!schema) schema = {};
-    if (!schema.operationId) {
-      // generate from method + path: "GET /v1/event-types/{id}" → "getV1EventTypesId"
-      const id = (method.toLowerCase() + url.replace(/\//g, '_').replace(/[{}]/g, '').replace(/_+/g, '_').replace(/_$/, '')).replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    if (!schema.operationId && method && url) {
+      const id = (method.toLowerCase() + url.replace(/\//g, '_').replace(/[{}]/g, '').replace(/_+/g, '_').replace(/_$/, '')).replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
       schema = { ...schema, operationId: id };
     }
     return { schema, url };
