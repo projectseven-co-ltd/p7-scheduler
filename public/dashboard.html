@@ -851,6 +851,12 @@ tr:hover td{background:var(--surface2)}
         </select>
       </div>
     </div>
+    <div id="ticket-org-row" class="form-row" style="display:none">
+      <label>Organization <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+      <select id="ticket-org">
+        <option value="">— Personal / No Org —</option>
+      </select>
+    </div>
     <div class="form-grid">
       <div class="form-row">
         <label>Customer Name <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
@@ -2095,6 +2101,18 @@ function openTicketModal() {
   document.getElementById('ticket-description').value = '';
   document.getElementById('ticket-customer-name').value = '';
   document.getElementById('ticket-customer-email').value = '';
+
+  // Populate org selector from cached orgs
+  const orgRow = document.getElementById('ticket-org-row');
+  const orgSel = document.getElementById('ticket-org');
+  const orgs = window._cachedOrgs || [];
+  orgSel.innerHTML = '<option value="">— Personal / No Org —</option>' +
+    orgs.map(o => `<option value="${o.Id}">${esc(o.name)}</option>`).join('');
+  // Auto-select if only one org; hide if none
+  if (orgs.length === 1) { orgSel.value = orgs[0].Id; orgRow.style.display = ''; }
+  else if (orgs.length > 1) { orgRow.style.display = ''; }
+  else { orgRow.style.display = 'none'; }
+
   openModal('ticket-modal');
 }
 
@@ -2107,8 +2125,10 @@ async function saveTicket() {
   };
   const customerEmail = v('ticket-customer-email');
   const customerName = v('ticket-customer-name');
+  const orgId = document.getElementById('ticket-org')?.value;
   if (customerEmail) body.customer_email = customerEmail;
   if (customerName) body.customer_name = customerName;
+  if (orgId) body.org_id = Number(orgId);
   if (!body.title) return toast('Ticket title required', 'err');
   const res = await apiFetch('/v1/tickets', { method: 'POST', body: JSON.stringify(body) });
   if (!res?.ok) return toast('Failed to create ticket', 'err');
@@ -2614,6 +2634,7 @@ async function loadOrgs() {
   const res = await apiFetch('/v1/orgs');
   if (!res?.ok) return;
   const { orgs } = await res.json();
+  window._cachedOrgs = orgs; // cache for ticket modal org selector
   const container = document.getElementById('orgs-list');
   if (!orgs.length) {
     if (!canCreateOrg) {

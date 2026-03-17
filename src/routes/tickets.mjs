@@ -217,6 +217,7 @@ export default async function ticketsRoutes(fastify) {
           location_name: { type: 'string', nullable: true, description: 'Human-readable location name' },
           customer_email: { type: 'string', nullable: true, description: 'Email to notify — if set, confirmation goes here instead of the creator' },
           customer_name: { type: 'string', nullable: true, description: 'Customer display name for the email' },
+          org_id: { type: 'integer', nullable: true, description: 'Org this ticket belongs to — determines email branding' },
         },
         examples: [{
           title: 'Water main pressure drop',
@@ -253,7 +254,7 @@ export default async function ticketsRoutes(fastify) {
       },
     },
   }, async (req, reply) => {
-    const { title, description, priority = 'normal', source = 'api', source_ref, lat, lng, location_name, customer_email, customer_name } = req.body;
+    const { title, description, priority = 'normal', source = 'api', source_ref, lat, lng, location_name, customer_email, customer_name, org_id } = req.body;
     const customer_token = nanoid(24);
 
     const ticket = await db.create(tables.tickets, {
@@ -272,6 +273,7 @@ export default async function ticketsRoutes(fastify) {
       lat: lat ?? null,
       lng: lng ?? null,
       location_name: location_name ?? null,
+      org_id: org_id ?? null,
     });
 
     const result = withSlaStatus({
@@ -286,7 +288,7 @@ export default async function ticketsRoutes(fastify) {
     const emailTo = customer_email || req.user?.email;
     const emailName = customer_name || req.user?.name || emailTo;
     if (emailTo) {
-      const org = await getPrimaryOrg(req.user?.Id);
+      const org = ticket.org_id ? await db.get(tables.organizations, ticket.org_id) : null;
       sendTicketCreated({
         to_email: emailTo,
         to_name: emailName,
@@ -423,7 +425,7 @@ export default async function ticketsRoutes(fastify) {
     if (status && status !== existing.status) {
       const owner = await db.get(tables.users, existing.user_id);
       if (owner?.email) {
-        const org = await getPrimaryOrg(existing.user_id);
+        const org = existing.org_id ? await db.get(tables.organizations, existing.org_id) : null;
         sendTicketStatusChanged({
           to_email: owner.email,
           to_name: owner.name || owner.email,
