@@ -1804,14 +1804,11 @@ body::after {
   }
 
   function handleSignalEvent(evt) {
-    // SSE sends { event: 'signal', signal: {...} } — normalize both formats
-    const signal = evt.signal || evt.payload || evt;
-    const type = evt.event === 'signal' ? ('signal.' + signal.type) : (evt.type || '');
-    const payload = signal;
-    if (!payload || !type) return;
+    const { type, payload } = evt;
+    if (!payload) return;
     let meta = {};
     try { meta = JSON.parse(payload.meta || '{}'); } catch {}
-    // device_id can come directly on signal or in meta
+    // device_id can come from meta (beacon pings) or directly on payload (beacon_off)
     const deviceId = payload.device_id || meta.device_id || ('user-' + payload.user_id);
     const shortId = deviceId.slice(-8);
 
@@ -1841,8 +1838,6 @@ body::after {
       addFeedItem('capture', \`[▲] Capture · \${shortId}\${coords}\`, clickHandler);
     } else if (type === 'signal.note') {
       addFeedItem('muted', '[~] Note · ' + shortId + ' · ' + (payload.note || '').slice(0, 60));
-    } else if (type === 'signal.status_ok') {
-      addFeedItem('ok', '[✓] Check-in · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     }
   }
 
