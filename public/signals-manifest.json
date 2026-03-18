@@ -3,6 +3,7 @@
   "short_name": "Signals",
   "description": "Field signal sender — beacon, capture, SOS, NOAA alerts",
   "start_url": "/signals",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0b",
   "theme_color": "#00ffcc",
