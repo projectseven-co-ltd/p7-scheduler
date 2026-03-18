@@ -7,32 +7,29 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Beacon">
-<meta name="theme-color" content="#00ffcc">
+<meta name="theme-color" content="#DFFF00">
 <title>Beacon — SchedKit</title>
 <link rel="icon" href="/signals-icon.svg" type="image/svg+xml">
 <link rel="manifest" href="/signals-manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* Exact same vars as dashboard */
   :root {
-    --bg: #070e0d;
-    --surface: #0c1a18;
-    --border: rgba(0,255,204,0.12);
-    --accent: #00ffcc;
-    --accent-dim: rgba(0,255,204,0.08);
-    --text: #c8ded9;
-    --muted: #3a5a54;
-    --red: #ff5f5f;
-    --orange: #ffaa00;
-    --mono: 'Fira Code', monospace;
+    --bg:#0a0a0b;--surface:#111114;--surface2:#16161a;--border:#1e1e24;
+    --accent:#DFFF00;--accent-dim:rgba(223,255,0,0.08);--accent-border:rgba(223,255,0,0.2);
+    --text:#e8e8ea;--muted:#5a5a6e;--red:#ff5f5f;--green:#4ade80;
+    --font-sans:'Space Grotesk',sans-serif;--font-mono:'Fira Code',monospace;
   }
-  [data-night="1"] {
-    --bg: #020505;
-    --surface: #060d0b;
-    --border: rgba(0,255,204,0.06);
-    --accent: #009977;
-    --text: #5a8a7a;
-    --muted: #1a3530;
+  [data-lights="nite"] {
+    --bg:#0d0000;--surface:#130000;--surface2:#1a0000;--border:#2a0000;
+    --accent:#ff3300;--accent-dim:rgba(255,51,0,0.08);--accent-border:rgba(255,51,0,0.2);
+    --text:#ffaa88;--muted:#662200;--red:#ff4400;--green:#882200;
+  }
+  [data-lights="nvg"] {
+    --bg:#000508;--surface:#010c12;--surface2:#021018;--border:#031820;
+    --accent:#4a7a8a;--accent-dim:rgba(74,122,138,0.06);--accent-border:rgba(74,122,138,0.12);
+    --text:#4a7a8a;--muted:#1e3a44;--red:#2a5a6a;--green:#2a5a6a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -40,352 +37,381 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--mono);
+    font-family: var(--font-sans);
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     overscroll-behavior: none;
-    transition: background 0.3s, color 0.3s;
   }
 
-  /* ── NAV ── */
+  /* ── NAV ── same style as dashboard top bar */
   nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--surface);
     position: sticky;
     top: 0;
     z-index: 100;
   }
-  .nav-left { display: flex; align-items: center; gap: 10px; }
   .nav-logo {
-    font-size: 13px;
+    font-family: var(--font-mono);
+    font-size: 14px;
     color: var(--accent);
-    letter-spacing: 0.1em;
     text-decoration: none;
     font-weight: 700;
-  }
-  .nav-right { display: flex; align-items: center; gap: 12px; }
-  .nav-conn { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-  .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-  .conn-dot.live { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: blink 2s infinite; }
-  .night-btn {
-    background: none; border: 1px solid var(--border); color: var(--muted);
-    font-family: var(--mono); font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer;
     letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .night-btn:active { background: var(--accent-dim); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .conn-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .conn-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .lights-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+    border-radius: 20px; border: 1px solid var(--accent-border); background: transparent;
+    color: var(--muted); font-family: var(--font-mono); font-size: 0.62rem;
+    letter-spacing: 0.08em; cursor: pointer;
+  }
+  .lights-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ── BEACON STATUS BLOCK ── */
-  .beacon-block {
-    border-bottom: 1px solid var(--border);
-    padding: 16px;
+  /* ── BEACON STATUS PANEL — same card style as dashboard ── */
+  .beacon-panel {
+    margin: 16px;
     background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
   }
-  .beacon-header {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  .beacon-panel.active { border-color: var(--accent-border); }
+  .beacon-panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  .beacon-title { font-size: 11px; color: var(--muted); letter-spacing: 0.15em; }
-  .beacon-state {
-    font-size: 12px; font-weight: 700; letter-spacing: 0.1em; padding: 3px 8px;
-    border-radius: 4px; border: 1px solid var(--border); color: var(--muted);
+  .beacon-panel-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
-  .beacon-state.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
-  .beacon-state.paused { color: var(--orange); border-color: var(--orange); background: rgba(255,170,0,0.08); }
+  .beacon-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .beacon-badge.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent-border);
+    animation: pulse 2s infinite;
+  }
+  .beacon-badge.paused { background: rgba(255,95,95,0.08); color: var(--red); border-color: rgba(255,95,95,0.2); }
 
-  .beacon-rows { display: flex; flex-direction: column; gap: 6px; }
-  .beacon-row { display: flex; gap: 8px; font-size: 12px; }
-  .beacon-key { color: var(--muted); min-width: 56px; }
-  .beacon-val { color: var(--text); flex: 1; }
-  .beacon-val.live { color: var(--accent); }
+  .beacon-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+  .beacon-stat {
+    background: var(--surface);
+    padding: 12px 16px;
+  }
+  .beacon-stat-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 4px; letter-spacing: 0.05em; }
+  .beacon-stat-value { font-size: 13px; color: var(--text); font-family: var(--font-mono); font-weight: 500; }
+  .beacon-stat-value.live { color: var(--accent); }
 
-  .beacon-progress {
-    margin-top: 12px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden;
-  }
-  .beacon-progress-fill {
-    height: 100%; width: 0%; background: var(--accent); border-radius: 1px;
-    transition: width 15s linear;
-  }
+  .beacon-progress-wrap { height: 2px; background: var(--border); }
+  .beacon-progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 15s linear; }
 
-  .beacon-hold-bar {
-    display: none; margin-top: 12px;
-    height: 32px; border: 1px solid var(--orange); border-radius: 4px;
-    background: rgba(255,170,0,0.06); align-items: center; justify-content: center;
-    font-size: 11px; color: var(--orange); letter-spacing: 0.1em; gap: 8px;
+  .beacon-action {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
   }
-  .beacon-hold-fill {
-    position: absolute; left: 0; top: 0; height: 100%;
-    background: rgba(255,170,0,0.15); border-radius: 4px;
-    transition: width 1.5s linear;
+  .pause-btn {
+    flex: 1; background: none; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted); font-family: var(--font-mono);
+    font-size: 11px; padding: 10px; cursor: pointer; letter-spacing: 0.06em;
+    text-align: center; position: relative; overflow: hidden;
+    -webkit-tap-highlight-color: transparent; user-select: none;
   }
-  .hold-wrap { position: relative; width: 100%; overflow: hidden; border-radius: 4px; }
+  .pause-btn-fill {
+    position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+    background: rgba(255,95,95,0.15); transition: none; border-radius: 8px;
+  }
+  .pause-btn-label { position: relative; z-index: 1; }
 
-  /* ── ACTION ROW ── */
-  .action-row {
+  /* ── ACTION TILES — same as old signals design ── */
+  .action-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 0 16px 8px;
   }
-  .action-btn {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
-    color: var(--text); font-family: var(--mono); font-size: 11px; font-weight: 700;
-    padding: 10px 4px; cursor: pointer; letter-spacing: 0.05em; text-align: center;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  .action-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer; text-align: center;
     -webkit-tap-highlight-color: transparent; user-select: none;
+    font-family: var(--font-mono);
   }
-  .action-btn .ab-icon { font-size: 15px; }
-  .action-btn:active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-  .action-btn.danger { border-color: rgba(255,95,95,0.3); color: var(--red); }
-  .action-btn.danger:active { background: rgba(255,95,95,0.1); }
-  .action-btn.sending { border-color: var(--accent); animation: flash 0.4s ease; }
+  .action-tile:active { background: var(--surface2); border-color: var(--accent-border); }
+  .action-tile .tile-icon { font-size: 20px; }
+  .action-tile .tile-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; font-weight: 600; }
+  .action-tile.sending { border-color: var(--accent-border); animation: flash 0.4s; }
+
+  /* SOS */
+  .sos-wrap { padding: 0 16px 16px; }
   .sos-btn {
-    grid-column: 1 / -1;
-    background: rgba(255,95,95,0.06); border: 1px solid rgba(255,95,95,0.25);
-    border-radius: 6px; color: var(--red); font-family: var(--mono); font-size: 12px;
-    font-weight: 700; padding: 14px; cursor: pointer; letter-spacing: 0.12em;
-    text-align: center; user-select: none; -webkit-tap-highlight-color: transparent;
-    position: relative; overflow: hidden;
+    width: 100%; background: rgba(255,95,95,0.06); border: 1px solid rgba(255,95,95,0.2);
+    border-radius: 10px; color: var(--red); font-family: var(--font-mono);
+    font-size: 13px; font-weight: 700; padding: 16px; cursor: pointer;
+    letter-spacing: 0.12em; text-align: center; user-select: none;
+    -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
   }
-  .sos-btn .sos-fill {
+  .sos-fill {
     position: absolute; left: 0; top: 0; height: 100%; width: 0%;
     background: rgba(255,95,95,0.15); transition: width 2s linear;
   }
-  .sos-btn.active { background: rgba(255,95,95,0.2); }
   .sos-text { position: relative; z-index: 1; }
-
-  /* ── GPS STRIP ── */
-  .gps-strip {
-    display: flex; align-items: center; gap: 12px; padding: 10px 16px;
-    border-bottom: 1px solid var(--border); font-size: 11px;
-  }
-  .gps-key { color: var(--muted); letter-spacing: 0.1em; }
-  .gps-val { color: var(--text); flex: 1; }
-  .gps-acc { color: var(--muted); }
+  .sos-btn.fired { background: rgba(255,95,95,0.2); }
 
   /* ── NOAA ── */
-  .noaa-section { flex: 1; padding: 12px 16px; }
+  .noaa-section { padding: 0 16px 24px; }
   .noaa-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .noaa-title { font-size: 11px; color: var(--muted); letter-spacing: 0.15em; }
-  .noaa-refresh { background: none; border: none; color: var(--muted); font-family: var(--mono); font-size: 11px; cursor: pointer; }
-  .noaa-empty { font-size: 11px; color: var(--muted); padding: 8px 0; }
+  .noaa-title { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .noaa-refresh { background: none; border: none; color: var(--muted); font-family: var(--font-mono); font-size: 12px; cursor: pointer; padding: 4px 8px; }
+  .noaa-empty { font-size: 13px; color: var(--muted); padding: 8px 0; font-family: var(--font-mono); }
   .alert-card {
-    border-left: 2px solid var(--muted); padding: 8px 10px; margin-bottom: 8px;
-    background: var(--surface); border-radius: 0 4px 4px 0; cursor: pointer; font-size: 11px;
+    border-left: 3px solid var(--muted); padding: 10px 12px; margin-bottom: 8px;
+    background: var(--surface); border-radius: 0 8px 8px 0; cursor: pointer;
+    font-size: 13px;
   }
   .alert-card.severe, .alert-card.extreme { border-left-color: var(--red); }
-  .alert-card.moderate { border-left-color: var(--orange); }
-  .alert-card.minor { border-left-color: var(--muted); }
-  .alert-event { color: var(--text); font-weight: 700; margin-bottom: 2px; }
-  .alert-area { color: var(--muted); font-size: 10px; }
-  .alert-sev { display: inline-block; font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-left: 6px; }
+  .alert-card.moderate { border-left-color: #ffaa00; }
+  .alert-event { color: var(--text); font-weight: 600; margin-bottom: 2px; }
+  .alert-area { color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+  .alert-sev { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-left: 8px; text-transform: uppercase; }
 
-  /* ── VIDEO OVERLAY ── */
-  .video-overlay {
-    display: none; position: fixed; inset: 0; background: #000; z-index: 200; flex-direction: column;
+  /* ── INSTALL BAR ── */
+  #signals-install-bar {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent-border);
+    padding: 12px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    flex-direction: column;
+    gap: 10px;
   }
-  .video-overlay.open { display: flex; }
-  .video-preview { flex: 1; object-fit: cover; }
-  .video-controls {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px; background: rgba(0,0,0,0.8); gap: 12px;
-  }
-  .video-btn {
-    background: none; border: 1px solid var(--border); color: var(--text);
-    font-family: var(--mono); font-size: 12px; padding: 8px 14px; border-radius: 4px; cursor: pointer;
-  }
-  .video-btn.record { border-color: var(--red); color: var(--red); }
-  .video-btn.record.recording { background: rgba(255,95,95,0.15); animation: blink 1s infinite; }
-  .video-status { flex: 1; text-align: center; font-size: 11px; color: var(--muted); }
+  #signals-ios-steps { display: none; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
 
   /* ── TOAST ── */
   .toast {
-    position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%;
-    transform: translateX(-50%) translateY(60px); background: var(--surface);
-    border: 1px solid var(--border); border-radius: 4px; padding: 8px 16px;
-    font-size: 12px; color: var(--text); z-index: 999; transition: transform 0.2s, opacity 0.2s;
-    opacity: 0; white-space: nowrap; pointer-events: none; letter-spacing: 0.05em;
+    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%;
+    transform: translateX(-50%) translateY(60px); background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 18px;
+    font-size: 13px; font-family: var(--font-mono); color: var(--text);
+    z-index: 999; transition: transform 0.2s, opacity 0.2s;
+    opacity: 0; white-space: nowrap; pointer-events: none; letter-spacing: 0.04em;
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-  .toast.ok { border-color: var(--accent); color: var(--accent); }
-  .toast.err { border-color: var(--red); color: var(--red); }
-  .toast.warn { border-color: var(--orange); color: var(--orange); }
+  .toast.ok { border-color: var(--accent-border); color: var(--accent); }
+  .toast.err { border-color: rgba(255,95,95,0.4); color: var(--red); }
+  .toast.warn { border-color: rgba(255,170,0,0.4); color: #ffaa00; }
 
-  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  @keyframes flash { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.5} }
 </style>
 </head>
 <body>
 
-<!-- Install banner (in-flow, above nav) -->
-<div id="signals-install-bar" style="display:none;background:var(--surface);border-bottom:2px solid var(--accent);padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--text);flex-direction:column;gap:12px;">
+<!-- Install banner — in-flow above nav so nothing intercepts touches -->
+<div id="signals-install-bar" style="display:none">
   <div style="display:flex;align-items:center;gap:12px">
     <div style="flex:1">
-      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:2px;letter-spacing:0.05em">[ INSTALL BEACON ]</div>
-      <div id="signals-install-desc" style="color:var(--muted);font-size:11px">Add to home screen for best experience</div>
+      <div style="font-weight:700;color:var(--accent);font-size:13px;margin-bottom:2px">Install Beacon</div>
+      <div id="signals-install-desc" style="color:var(--muted)">Add to home screen for best experience</div>
     </div>
-    <button id="signals-install-btn" style="background:var(--accent);color:#070e0d;border:none;border-radius:4px;padding:8px 14px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.08em">INSTALL</button>
-    <button id="signals-install-dismiss" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:0 4px;line-height:1">×</button>
+    <button id="signals-install-btn" style="background:var(--accent);color:#0a0a0b;border:none;border-radius:8px;padding:8px 16px;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.08em">INSTALL</button>
+    <button id="signals-install-dismiss" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;padding:0 4px;line-height:1">×</button>
   </div>
-  <div id="signals-ios-steps" style="display:none;flex-direction:column;gap:10px;border-top:1px solid var(--border);padding-top:12px;font-size:11px;">
-    <div style="color:var(--muted);letter-spacing:0.1em">HOW TO INSTALL ON iPHONE</div>
-    <div style="color:var(--text)">1. Tap the <strong style="color:var(--accent)">Share</strong> button in Safari</div>
-    <div style="color:var(--text)">2. Tap <strong style="color:var(--accent)">"Add to Home Screen"</strong></div>
-    <div style="color:var(--text)">3. Tap <strong style="color:var(--accent)">"Add"</strong> — you're live</div>
+  <div id="signals-ios-steps">
+    <div style="color:var(--muted);letter-spacing:0.1em;font-size:10px">HOW TO INSTALL ON iPHONE</div>
+    <div>1. Tap the <strong style="color:var(--accent)">Share</strong> button in Safari</div>
+    <div>2. Tap <strong style="color:var(--accent)">"Add to Home Screen"</strong></div>
+    <div>3. Tap <strong style="color:var(--accent)">"Add"</strong></div>
   </div>
 </div>
 
 <nav>
-  <div class="nav-left">
-    <a href="/dashboard" class="nav-logo">[ BEACON ]</a>
-  </div>
+  <a href="/dashboard" class="nav-logo">
+    <svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <rect width="512" height="512" rx="80" fill="#0a0a0b"/>
+      <rect x="158" y="128" width="72" height="256" rx="20" fill="#DFFF00"/>
+      <rect x="282" y="128" width="72" height="256" rx="20" fill="#DFFF00"/>
+    </svg>
+    BEACON
+  </a>
   <div class="nav-right">
-    <div class="nav-conn">
-      <div class="conn-dot" id="connDot"></div>
-      <span id="connText">—</span>
-    </div>
-    <button class="night-btn" id="nightBtn" onclick="toggleNight()">[NITE]</button>
+    <div class="conn-dot" id="connDot"></div>
+    <span class="conn-label" id="connLabel">—</span>
+    <button class="lights-btn" id="lightsBtn" onclick="cycleLights()">◐ LIGHTS</button>
   </div>
 </nav>
 
 <main>
-  <!-- Beacon status block -->
-  <div class="beacon-block">
-    <div class="beacon-header">
-      <div class="beacon-title">// BEACON STATUS</div>
-      <div class="beacon-state" id="beaconState">INACTIVE</div>
+  <!-- Beacon status panel -->
+  <div class="beacon-panel" id="beaconPanel">
+    <div class="beacon-panel-header">
+      <div class="beacon-panel-title">// Beacon</div>
+      <div class="beacon-badge" id="beaconBadge">INACTIVE</div>
     </div>
-    <div class="beacon-rows">
-      <div class="beacon-row">
-        <div class="beacon-key">DEVICE</div>
-        <div class="beacon-val" id="bDeviceId">—</div>
+    <div class="beacon-stats">
+      <div class="beacon-stat">
+        <div class="beacon-stat-label">DEVICE</div>
+        <div class="beacon-stat-value" id="bDevice">—</div>
       </div>
-      <div class="beacon-row">
-        <div class="beacon-key">LAST TX</div>
-        <div class="beacon-val" id="bLastTx">—</div>
+      <div class="beacon-stat">
+        <div class="beacon-stat-label">COUNT</div>
+        <div class="beacon-stat-value" id="bCount">0</div>
       </div>
-      <div class="beacon-row">
-        <div class="beacon-key">COUNT</div>
-        <div class="beacon-val" id="bCount">0</div>
+      <div class="beacon-stat">
+        <div class="beacon-stat-label">LAST TX</div>
+        <div class="beacon-stat-value" id="bLastTx">—</div>
       </div>
-      <div class="beacon-row">
-        <div class="beacon-key">GPS</div>
-        <div class="beacon-val" id="bGps">acquiring…</div>
+      <div class="beacon-stat">
+        <div class="beacon-stat-label">NEXT TX</div>
+        <div class="beacon-stat-value" id="bNextTx">—</div>
       </div>
-      <div class="beacon-row">
-        <div class="beacon-key">NEXT TX</div>
-        <div class="beacon-val" id="bNextTx">—</div>
+      <div class="beacon-stat" style="grid-column:1/-1">
+        <div class="beacon-stat-label">GPS</div>
+        <div class="beacon-stat-value" id="bGps">acquiring…</div>
       </div>
     </div>
-    <div class="beacon-progress" id="beaconProgressWrap">
+    <div class="beacon-progress-wrap">
       <div class="beacon-progress-fill" id="beaconProgress"></div>
     </div>
-    <!-- Long-press to pause -->
-    <div style="margin-top:12px;position:relative;">
-      <button id="beaconPauseBtn" style="width:100%;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:10px;cursor:pointer;letter-spacing:0.08em;text-align:center;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;">
-        <div id="beaconPauseFill" style="position:absolute;left:0;top:0;height:100%;width:0%;background:rgba(255,170,0,0.15);transition:none;border-radius:4px;"></div>
-        <span id="beaconPauseLabel" style="position:relative;z-index:1">[ HOLD TO PAUSE ]</span>
+    <div class="beacon-action">
+      <button class="pause-btn" id="pauseBtn">
+        <div class="pause-btn-fill" id="pauseFill"></div>
+        <span class="pause-btn-label" id="pauseLabel">HOLD TO PAUSE</span>
       </button>
     </div>
   </div>
 
-  <!-- Action row -->
-  <div class="action-row">
-    <button class="action-btn" id="btnCapture" onclick="sendCapture()">
-      <div class="ab-icon">[▣]</div>
-      <div>CAPTURE</div>
-    </button>
-    <button class="action-btn" id="btnStatus" onclick="sendStatus()">
-      <div class="ab-icon">[✦]</div>
-      <div>CHECK IN</div>
-    </button>
-    <button class="action-btn" id="btnVideo" onclick="openVideo()">
-      <div class="ab-icon">[▶]</div>
-      <div>VIDEO</div>
-    </button>
+  <!-- Action tiles -->
+  <div class="action-grid">
+    <div class="action-tile" id="tileCapture" onclick="sendCapture()">
+      <div class="tile-icon">📷</div>
+      <div class="tile-label">CAPTURE</div>
+    </div>
+    <div class="action-tile" id="tileCheckin" onclick="sendCheckin()">
+      <div class="tile-icon">✅</div>
+      <div class="tile-label">CHECK IN</div>
+    </div>
+    <div class="action-tile" id="tileNote" onclick="sendNote()">
+      <div class="tile-icon">✏️</div>
+      <div class="tile-label">NOTE</div>
+    </div>
+  </div>
+
+  <div class="sos-wrap">
     <button class="sos-btn" id="sosBtnEl">
       <div class="sos-fill" id="sosFill"></div>
-      <span class="sos-text">[ HOLD 2s — SOS ]</span>
+      <span class="sos-text">HOLD 2s — SOS</span>
     </button>
   </div>
 
   <!-- NOAA alerts -->
   <div class="noaa-section">
     <div class="noaa-header">
-      <div class="noaa-title">// NOAA ALERTS</div>
-      <button class="noaa-refresh" onclick="loadNOAA()">[↻]</button>
+      <div class="noaa-title">// NOAA Alerts</div>
+      <button class="noaa-refresh" onclick="loadNOAA()">↻ refresh</button>
     </div>
     <div id="noaaFeed"><div class="noaa-empty">loading…</div></div>
   </div>
 </main>
 
-<!-- Video overlay -->
-<div class="video-overlay" id="videoOverlay">
-  <video class="video-preview" id="videoPreview" autoplay muted playsinline></video>
-  <div class="video-controls">
-    <button class="video-btn" onclick="closeVideo()">✕</button>
-    <div class="video-status" id="videoStatus">ready</div>
-    <button class="video-btn record" id="recordBtn" onclick="toggleRecord()">⏺ REC</button>
+<!-- Note modal -->
+<div id="noteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:flex-end">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;padding-bottom:calc(20px + env(safe-area-inset-bottom))">
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.1em;margin-bottom:12px">// SEND NOTE</div>
+    <textarea id="noteText" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:13px;padding:10px;resize:none;" placeholder="Field note…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button onclick="closeNote()" style="flex:1;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--font-mono);font-size:12px;padding:10px;cursor:pointer">CANCEL</button>
+      <button onclick="submitNote()" style="flex:2;background:var(--accent);border:none;border-radius:8px;color:#0a0a0b;font-family:var(--font-mono);font-size:12px;font-weight:700;padding:10px;cursor:pointer">SEND</button>
+    </div>
   </div>
 </div>
 
 <input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none" onchange="uploadCapture(this)">
-<div id="toast" class="toast"></div>
+<div id="toastEl" class="toast"></div>
 
 <script>
-// ── Night mode ──
-function toggleNight() {
-  const on = document.body.getAttribute('data-night') === '1';
-  document.body.setAttribute('data-night', on ? '0' : '1');
-  localStorage.setItem('beacon-night', on ? '0' : '1');
-  document.getElementById('nightBtn').textContent = on ? '[NITE]' : '[DAY]';
+// ── Lights (same cycle as dashboard) ──
+const LIGHTS_CYCLE = ['on', 'nite', 'nvg'];
+let _lights = localStorage.getItem('beacon-lights') || 'on';
+function applyLights() {
+  document.documentElement.setAttribute('data-lights', _lights);
+  document.getElementById('lightsBtn').textContent = { on: '◐ LIGHTS', nite: '🔴 NITE', nvg: '🟢 NVG' }[_lights] || '◐ LIGHTS';
 }
-(function initNight() {
-  const saved = localStorage.getItem('beacon-night');
-  if (saved === '1') {
-    document.body.setAttribute('data-night', '1');
-    document.getElementById('nightBtn').textContent = '[DAY]';
-  }
-})();
+function cycleLights() {
+  _lights = LIGHTS_CYCLE[(LIGHTS_CYCLE.indexOf(_lights) + 1) % LIGHTS_CYCLE.length];
+  localStorage.setItem('beacon-lights', _lights);
+  applyLights();
+}
+applyLights();
 
-// ── Auth ──
+// ── Auth — redirect if not logged in ──
+let _me = null;
 (async () => {
   try {
     const r = await fetch('/v1/auth/me', { credentials: 'include' });
     if (!r.ok) { window.location.replace('/login?next=/signals'); return; }
-    const me = await r.json();
-    window._me = me;
-    setConn('live', me.name || me.email || 'online');
-    document.getElementById('bDeviceId').textContent = deviceId();
-    startBeacon(); // auto-start always
-    loadNOAA();
+    _me = (await r.json());
+    setConn(true, _me.name || _me.email || 'online');
+    document.getElementById('bDevice').textContent = deviceId();
     startLocationWatch();
+    startBeacon();
+    loadNOAA();
   } catch {
-    setConn('err', 'offline');
+    setConn(false, 'offline');
   }
 })();
 
-// ── Conn status ──
-function setConn(state, text) {
-  const dot = document.getElementById('connDot');
-  const label = document.getElementById('connText');
-  dot.className = 'conn-dot ' + (state === 'live' ? 'live' : '');
-  label.textContent = text;
+// ── Conn ──
+function setConn(live, text) {
+  document.getElementById('connDot').className = 'conn-dot' + (live ? ' live' : '');
+  document.getElementById('connLabel').textContent = text;
 }
 
 // ── Toast ──
-let _toastTimer;
+let _toastT;
 function toast(msg, type = 'ok', ms = 2500) {
-  const t = document.getElementById('toast');
+  const t = document.getElementById('toastEl');
   t.textContent = msg; t.className = 'toast show ' + type;
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  clearTimeout(_toastT); _toastT = setTimeout(() => t.classList.remove('show'), ms);
 }
 
 // ── Device ID ──
@@ -401,26 +427,46 @@ function startLocationWatch() {
   if (!navigator.geolocation) { document.getElementById('bGps').textContent = 'unavailable'; return; }
   navigator.geolocation.watchPosition(pos => {
     _lastPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
-    const gps = `${_lastPos.lat.toFixed(5)}, ${_lastPos.lng.toFixed(5)} ±${Math.round(_lastPos.acc)}m`;
-    document.getElementById('bGps').textContent = gps;
+    document.getElementById('bGps').textContent =
+      `${_lastPos.lat.toFixed(5)}, ${_lastPos.lng.toFixed(5)} ±${Math.round(_lastPos.acc)}m`;
   }, () => {
     document.getElementById('bGps').textContent = 'denied';
   }, { enableHighAccuracy: true, maximumAge: 10000 });
 }
 
+// ── Signal helper ──
+async function postSignal(payload) {
+  const body = JSON.stringify({
+    device_id: deviceId(),
+    source: 'phone',
+    lat: _lastPos?.lat ?? null,
+    lng: _lastPos?.lng ?? null,
+    accuracy: _lastPos?.acc ?? null,
+    ...payload,
+  });
+  const r = await fetch('/v1/signals', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
 // ── Beacon ──
-let _beaconInterval = null, _beaconActive = false, _beaconCount = 0;
-let _progressTimer = null, _nextTxTimer = null;
+let _beaconActive = false, _beaconCount = 0, _beaconInterval = null, _nextTxSecs = 0;
 
 function startBeacon() {
   if (_beaconActive) return;
   _beaconActive = true;
   localStorage.setItem('signals_beacon', '1');
-  document.getElementById('beaconState').textContent = 'ACTIVE';
-  document.getElementById('beaconState').className = 'beacon-state active';
-  document.getElementById('beaconPauseLabel').textContent = '[ HOLD TO PAUSE ]';
-  sendBeaconPing();
-  _beaconInterval = setInterval(sendBeaconPing, 15000);
+  document.getElementById('beaconPanel').classList.add('active');
+  document.getElementById('beaconBadge').className = 'beacon-badge active';
+  document.getElementById('beaconBadge').textContent = 'ACTIVE';
+  document.getElementById('pauseLabel').textContent = 'HOLD TO PAUSE';
+  pingBeacon();
+  _beaconInterval = setInterval(pingBeacon, 15000);
   requestWakeLock();
 }
 
@@ -429,169 +475,152 @@ function pauseBeacon() {
   _beaconActive = false;
   localStorage.removeItem('signals_beacon');
   clearInterval(_beaconInterval); _beaconInterval = null;
-  clearTimeout(_progressTimer); clearTimeout(_nextTxTimer);
-  document.getElementById('beaconState').textContent = 'PAUSED';
-  document.getElementById('beaconState').className = 'beacon-state paused';
+  document.getElementById('beaconPanel').classList.remove('active');
+  document.getElementById('beaconBadge').className = 'beacon-badge paused';
+  document.getElementById('beaconBadge').textContent = 'PAUSED';
   document.getElementById('bNextTx').textContent = '—';
+  document.getElementById('beaconProgress').style.transition = 'none';
   document.getElementById('beaconProgress').style.width = '0%';
-  document.getElementById('beaconPauseLabel').textContent = '[ TAP TO RESUME ]';
-  fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ type: 'beacon_off', source: 'phone', device_id: deviceId() }) }).catch(() => {});
-  toast('[◫] Beacon paused', 'warn');
+  document.getElementById('pauseLabel').textContent = 'TAP TO RESUME';
+  // sendBeacon fires even as page closes — guaranteed delivery
+  navigator.sendBeacon('/v1/signals', new Blob([JSON.stringify({
+    type: 'beacon_off', source: 'phone', device_id: deviceId(),
+  })], { type: 'application/json' }));
+  toast('Beacon paused', 'warn');
 }
 
-function startCountdown() {
-  // progress bar 0→100% over 15s
-  const bar = document.getElementById('beaconProgress');
-  bar.style.transition = 'none'; bar.style.width = '0%';
-  requestAnimationFrame(() => {
-    bar.style.transition = 'width 15s linear'; bar.style.width = '100%';
-  });
-  // next TX countdown
-  let secs = 15;
-  document.getElementById('bNextTx').textContent = `${secs}s`;
-  clearInterval(_nextTxTimer);
-  _nextTxTimer = setInterval(() => {
-    secs--;
-    if (secs <= 0) { clearInterval(_nextTxTimer); document.getElementById('bNextTx').textContent = 'now'; }
-    else document.getElementById('bNextTx').textContent = `${secs}s`;
-  }, 1000);
-}
-
-async function sendBeaconPing() {
-  const payload = { type: 'beacon', source: 'phone', device_id: deviceId() };
-  if (_lastPos) { payload.lat = _lastPos.lat; payload.lng = _lastPos.lng; payload.accuracy = _lastPos.acc; }
+async function pingBeacon() {
   try {
-    await fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    await postSignal({ type: 'beacon' });
     _beaconCount++;
-    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    document.getElementById('bLastTx').textContent = now;
-    document.getElementById('bLastTx').className = 'beacon-val live';
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const val = document.getElementById('bLastTx');
+    val.textContent = now; val.className = 'beacon-stat-value live';
+    setTimeout(() => { val.className = 'beacon-stat-value'; }, 3000);
     document.getElementById('bCount').textContent = _beaconCount;
     startCountdown();
-    setTimeout(() => { document.getElementById('bLastTx').className = 'beacon-val'; }, 3000);
   } catch {
-    document.getElementById('bLastTx').textContent = 'TX FAILED';
+    document.getElementById('bLastTx').textContent = 'FAILED';
   }
 }
 
+let _cdInterval = null;
+function startCountdown() {
+  const bar = document.getElementById('beaconProgress');
+  bar.style.transition = 'none'; bar.style.width = '0%';
+  requestAnimationFrame(() => { bar.style.transition = 'width 15s linear'; bar.style.width = '100%'; });
+  clearInterval(_cdInterval); _nextTxSecs = 15;
+  document.getElementById('bNextTx').textContent = '15s';
+  _cdInterval = setInterval(() => {
+    _nextTxSecs--;
+    document.getElementById('bNextTx').textContent = _nextTxSecs > 0 ? `${_nextTxSecs}s` : 'now';
+    if (_nextTxSecs <= 0) clearInterval(_cdInterval);
+  }, 1000);
+}
+
 // Hold-to-pause button
-const _pauseBtn = document.getElementById('beaconPauseBtn');
-let _pauseHoldTimer = null;
-function _pauseStart() {
+const _pauseBtn = document.getElementById('pauseBtn');
+let _pauseTimer = null;
+_pauseBtn.addEventListener('pointerdown', () => {
   if (!_beaconActive) { startBeacon(); return; }
-  const fill = document.getElementById('beaconPauseFill');
+  const fill = document.getElementById('pauseFill');
   fill.style.transition = 'none'; fill.style.width = '0%';
   requestAnimationFrame(() => { fill.style.transition = 'width 1.5s linear'; fill.style.width = '100%'; });
-  _pauseHoldTimer = setTimeout(() => { pauseBeacon(); fill.style.width = '0%'; }, 1500);
-}
-function _pauseEnd() {
-  if (_pauseHoldTimer) { clearTimeout(_pauseHoldTimer); _pauseHoldTimer = null; }
-  const fill = document.getElementById('beaconPauseFill');
+  _pauseTimer = setTimeout(() => { pauseBeacon(); fill.style.transition='none'; fill.style.width='0%'; }, 1500);
+});
+['pointerup','pointerleave','pointercancel'].forEach(ev => _pauseBtn.addEventListener(ev, () => {
+  if (_pauseTimer) { clearTimeout(_pauseTimer); _pauseTimer = null; }
+  const fill = document.getElementById('pauseFill');
   fill.style.transition = 'none'; fill.style.width = '0%';
-}
-_pauseBtn.addEventListener('pointerdown', _pauseStart);
-_pauseBtn.addEventListener('pointerup', _pauseEnd);
-_pauseBtn.addEventListener('pointerleave', _pauseEnd);
+}));
 _pauseBtn.addEventListener('contextmenu', e => e.preventDefault());
 
+// Send beacon_off via sendBeacon on page close — works even when tab is killed
+function sendOffline() {
+  if (!_beaconActive) return;
+  navigator.sendBeacon('/v1/signals', new Blob([JSON.stringify({
+    type: 'beacon_off', source: 'phone', device_id: deviceId(),
+  })], { type: 'application/json' }));
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') sendOffline();
+  if (document.visibilityState === 'visible' && _beaconActive) requestWakeLock();
+});
+window.addEventListener('pagehide', sendOffline);
+
 // ── SOS ──
-let _sosTimer2 = null;
-const _sosBtnEl = document.getElementById('sosBtnEl');
-_sosBtnEl.addEventListener('pointerdown', () => {
+const _sosBtn = document.getElementById('sosBtnEl');
+let _sosTimer = null;
+_sosBtn.addEventListener('pointerdown', () => {
   const fill = document.getElementById('sosFill');
   fill.style.transition = 'none'; fill.style.width = '0%';
   requestAnimationFrame(() => { fill.style.transition = 'width 2s linear'; fill.style.width = '100%'; });
-  _sosTimer2 = setTimeout(async () => {
-    _sosTimer2 = null; _sosBtnEl.classList.add('active');
+  _sosTimer = setTimeout(async () => {
+    _sosTimer = null; _sosBtn.classList.add('fired');
     try {
-      await fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ type: 'sos', source: 'phone', device_id: deviceId(), severity: 'critical', lat: _lastPos?.lat, lng: _lastPos?.lng }) });
-      toast('[!] SOS SENT', 'err', 5000);
-    } catch { toast('[×] SOS FAILED', 'err'); }
-    setTimeout(() => { _sosBtnEl.classList.remove('active'); fill.style.width = '0%'; }, 3000);
+      await postSignal({ type: 'sos', severity: 'critical' });
+      toast('SOS SENT', 'err', 8000);
+    } catch { toast('SOS FAILED', 'err'); }
+    setTimeout(() => { _sosBtn.classList.remove('fired'); fill.style.transition='none'; fill.style.width='0%'; }, 3000);
   }, 2000);
 });
-function _sosRelease() {
-  if (_sosTimer2) { clearTimeout(_sosTimer2); _sosTimer2 = null; }
+['pointerup','pointerleave','pointercancel'].forEach(ev => _sosBtn.addEventListener(ev, () => {
+  if (_sosTimer) { clearTimeout(_sosTimer); _sosTimer = null; }
   const fill = document.getElementById('sosFill');
   fill.style.transition = 'none'; fill.style.width = '0%';
-}
-_sosBtnEl.addEventListener('pointerup', _sosRelease);
-_sosBtnEl.addEventListener('pointerleave', _sosRelease);
-_sosBtnEl.addEventListener('contextmenu', e => e.preventDefault());
+}));
+_sosBtn.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── Capture ──
 function sendCapture() { document.getElementById('captureInput').click(); }
 async function uploadCapture(input) {
   const file = input.files[0]; if (!file) return;
-  const btn = document.getElementById('btnCapture');
-  btn.classList.add('sending');
-  toast('[…] uploading', 'warn', 10000);
+  const tile = document.getElementById('tileCapture');
+  tile.classList.add('sending');
+  toast('Uploading…', 'warn', 15000);
   try {
-    const mime = file.type || 'image/jpeg';
     const buf = await file.arrayBuffer();
-    const res = await fetch('/v1/upload/capture', { method: 'POST', credentials: 'include', headers: {'Content-Type': mime}, body: buf });
-    const data = await res.json();
-    if (!res.ok) throw new Error();
-    await fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ type: 'capture', source: 'phone', device_id: deviceId(), url: data.url, lat: _lastPos?.lat, lng: _lastPos?.lng }) });
-    toast('[▣] Photo sent', 'ok');
-  } catch { toast('[×] Upload failed', 'err'); }
-  btn.classList.remove('sending');
+    const mime = file.type || 'image/jpeg';
+    const uploadRes = await fetch('/v1/upload/capture', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': mime },
+      body: buf,
+    });
+    if (!uploadRes.ok) throw new Error('upload ' + uploadRes.status);
+    const { url } = await uploadRes.json();
+    await postSignal({ type: 'capture', url });
+    toast('Capture sent', 'ok');
+  } catch (e) {
+    console.error('capture error', e);
+    toast('Capture failed', 'err');
+  }
+  tile.classList.remove('sending');
   input.value = '';
 }
 
-// ── Status ping ──
-async function sendStatus() {
-  const btn = document.getElementById('btnStatus');
-  btn.classList.add('sending');
+// ── Check-in ──
+async function sendCheckin() {
+  const tile = document.getElementById('tileCheckin');
+  tile.classList.add('sending');
   try {
-    await fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ type: 'status_ok', source: 'phone', device_id: deviceId(), lat: _lastPos?.lat, lng: _lastPos?.lng }) });
-    toast('[✦] Status OK sent', 'ok');
-  } catch { toast('[×] Failed', 'err'); }
-  setTimeout(() => btn.classList.remove('sending'), 600);
+    await postSignal({ type: 'status_ok' });
+    toast('Check-in sent', 'ok');
+  } catch { toast('Check-in failed', 'err'); }
+  setTimeout(() => tile.classList.remove('sending'), 600);
 }
 
-// ── Live video ──
-let _stream = null, _recorder = null, _ws = null;
-async function openVideo() {
+// ── Note ──
+function sendNote() { document.getElementById('noteModal').style.display = 'flex'; document.getElementById('noteText').focus(); }
+function closeNote() { document.getElementById('noteModal').style.display = 'none'; document.getElementById('noteText').value = ''; }
+async function submitNote() {
+  const text = document.getElementById('noteText').value.trim();
+  if (!text) return;
+  closeNote();
   try {
-    _stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
-    document.getElementById('videoPreview').srcObject = _stream;
-    document.getElementById('videoOverlay').classList.add('open');
-    document.getElementById('videoStatus').textContent = 'preview';
-  } catch { toast('[×] Camera denied', 'err'); }
-}
-function closeVideo() {
-  stopRecord();
-  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
-  document.getElementById('videoOverlay').classList.remove('open');
-  document.getElementById('videoPreview').srcObject = null;
-}
-function toggleRecord() { _recorder ? stopRecord() : startRecord(); }
-function startRecord() {
-  if (!_stream) return;
-  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
-  _ws = new WebSocket(`${wsProto}://${location.host}/v1/signals/video-stream?device=${deviceId()}`);
-  _ws.onopen = () => {
-    _recorder = new MediaRecorder(_stream, { mimeType: 'video/webm;codecs=vp8,opus', videoBitsPerSecond: 500000 });
-    _recorder.ondataavailable = e => { if (_ws.readyState === 1 && e.data.size > 0) _ws.send(e.data); };
-    _recorder.start(500);
-    document.getElementById('recordBtn').classList.add('recording');
-    document.getElementById('recordBtn').textContent = '⏹ STOP';
-    document.getElementById('videoStatus').textContent = '⏺ live';
-    toast('[⏺] Streaming', 'ok');
-  };
-  _ws.onerror = () => { toast('[×] Stream failed', 'err'); stopRecord(); };
-}
-function stopRecord() {
-  if (_recorder) { _recorder.stop(); _recorder = null; }
-  if (_ws) { _ws.close(); _ws = null; }
-  document.getElementById('recordBtn').classList.remove('recording');
-  document.getElementById('recordBtn').textContent = '⏺ REC';
-  document.getElementById('videoStatus').textContent = 'stopped';
+    await postSignal({ type: 'note', note: text });
+    toast('Note sent', 'ok');
+  } catch { toast('Note failed', 'err'); }
 }
 
 // ── NOAA ──
@@ -599,49 +628,42 @@ async function loadNOAA() {
   const feed = document.getElementById('noaaFeed');
   feed.innerHTML = '<div class="noaa-empty">loading…</div>';
   try {
-    let url = 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=10';
+    let url = 'https://api.weather.gov/alerts/active?status=actual&limit=10';
     if (_lastPos) url = `https://api.weather.gov/alerts/active?point=${_lastPos.lat.toFixed(4)},${_lastPos.lng.toFixed(4)}&status=actual&limit=10`;
     const res = await fetch(url, { headers: { 'User-Agent': 'SchedKit-Beacon/1.0 (ceo@schedkit.net)' } });
-    const data = await res.json();
-    const alerts = data.features || [];
-    if (!alerts.length) { feed.innerHTML = '<div class="noaa-empty">[✓] No active alerts</div>'; return; }
-    feed.innerHTML = alerts.map(a => {
+    const { features = [] } = await res.json();
+    if (!features.length) { feed.innerHTML = '<div class="noaa-empty">✓ No active alerts</div>'; return; }
+    feed.innerHTML = features.map(a => {
       const p = a.properties;
       const sev = (p.severity || 'minor').toLowerCase();
-      const area = p.areaDesc ? p.areaDesc.split(';')[0].trim() : '—';
-      return `<div class="alert-card ${sev}" onclick="injectNOAASignal(${JSON.stringify(JSON.stringify(p))})">
+      const area = (p.areaDesc || '').split(';')[0].trim();
+      return `<div class="alert-card ${sev}" onclick='injectNOAA(${JSON.stringify(JSON.stringify({ event: p.event, headline: p.headline, areaDesc: p.areaDesc, severity: p.severity, onset: p.onset, expires: p.expires, id: p.id }))})'>
         <div class="alert-event">${p.event || 'Weather Alert'}<span class="alert-sev">[${sev}]</span></div>
         <div class="alert-area">${area}</div>
       </div>`;
     }).join('');
-  } catch { feed.innerHTML = '<div class="noaa-empty">[×] Could not load alerts</div>'; }
+  } catch { feed.innerHTML = '<div class="noaa-empty">× Could not load alerts</div>'; }
 }
 
-async function injectNOAASignal(propsJson) {
-  const p = JSON.parse(propsJson);
+async function injectNOAA(json) {
+  const p = JSON.parse(json);
   try {
-    await fetch('/v1/signals', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ type: 'noaa_alert', source: 'noaa', severity: p.severity?.toLowerCase() || 'minor',
-        title: p.event, description: p.headline || p.description?.slice(0,300), area: p.areaDesc,
-        onset: p.onset, expires: p.expires, noaa_id: p.id }) });
-    toast('[✓] Alert → signal', 'ok');
-  } catch { toast('[×] Failed', 'err'); }
+    await postSignal({ type: 'noaa_alert', severity: (p.severity||'minor').toLowerCase(), title: p.event, description: p.headline, area: p.areaDesc, onset: p.onset, expires: p.expires, noaa_id: p.id });
+    toast('Alert → war room', 'ok');
+  } catch { toast('Failed', 'err'); }
 }
 
 // ── Wake Lock ──
 let _wakeLock = null;
 async function requestWakeLock() {
   if (!('wakeLock' in navigator)) return;
-  try { _wakeLock = await navigator.wakeLock.request('screen'); _wakeLock.addEventListener('release', () => { _wakeLock = null; }); } catch {}
+  try { _wakeLock = await navigator.wakeLock.request('screen'); } catch {}
 }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && _beaconActive) requestWakeLock();
-});
 
 // ── PWA install ──
 let _deferredInstall = null;
-function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
-function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = () => window.matchMedia('(display-mode:standalone)').matches || navigator.standalone === true;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); _deferredInstall = e;
   if (!isStandalone() && !localStorage.getItem('signals-install-dismissed')) showInstallBar();
@@ -649,12 +671,10 @@ window.addEventListener('beforeinstallprompt', e => {
 window.addEventListener('load', () => {
   if (isIos() && !isStandalone() && !localStorage.getItem('signals-install-dismissed')) showInstallBar(true);
 });
-function showInstallBar(iosMode = false) {
-  document.getElementById('signals-install-bar').style.display = 'flex';
-  if (iosMode) {
-    document.getElementById('signals-install-btn').textContent = 'HOW TO INSTALL';
-    document.getElementById('signals-install-desc').textContent = 'Open in Safari to install as app';
-  }
+function showInstallBar(ios = false) {
+  const bar = document.getElementById('signals-install-bar');
+  bar.style.display = 'flex';
+  if (ios) { document.getElementById('signals-install-btn').textContent = 'HOW TO INSTALL'; }
 }
 function hideInstallBar() {
   document.getElementById('signals-install-bar').style.display = 'none';
@@ -664,11 +684,10 @@ async function handleInstall() {
   if (isIos() || !_deferredInstall) {
     document.getElementById('signals-ios-steps').style.display = 'flex';
     document.getElementById('signals-install-btn').style.display = 'none';
-    document.getElementById('signals-install-desc').textContent = 'Follow steps below:';
     return;
   }
   _deferredInstall.prompt();
-  const { outcome } = await _deferredInstall.userChoice;
+  await _deferredInstall.userChoice;
   _deferredInstall = null;
   hideInstallBar();
 }

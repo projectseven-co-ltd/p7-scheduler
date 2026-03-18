@@ -1841,6 +1841,8 @@ body::after {
       addFeedItem('capture', \`[▲] Capture · \${shortId}\${coords}\`, clickHandler);
     } else if (type === 'signal.note') {
       addFeedItem('muted', '[~] Note · ' + shortId + ' · ' + (payload.note || '').slice(0, 60));
+    } else if (type === 'signal.status_ok') {
+      addFeedItem('ok', '[✓] Check-in · ' + shortId + (payload.lat ? ' · ' + (+payload.lat).toFixed(4) + ', ' + (+payload.lng).toFixed(4) : ''));
     }
   }
 

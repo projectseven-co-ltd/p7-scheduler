@@ -1720,6 +1720,14 @@ function sitrepHandleSSE(type, payload) {
     const dev2 = payload.device_id || (payload.meta ? (JSON.parse(payload.meta||'{}').device_id || null) : null) || `user-${payload.user_id}`;
     sitrepPushFeed('alert', `[!] Alert · ${dev2}${payload.note ? ` · ${payload.note}` : ''}${payload.lat ? ` · ${Number(payload.lat).toFixed(4)}, ${Number(payload.lng).toFixed(4)}` : ''}`, payload.created_at);
   }
+  if (type === 'signal.status_ok') {
+    const dev3 = payload.device_id || `user-${payload.user_id}`;
+    sitrepPushFeed('ok', `[✓] Check-in · ${dev3.slice(-8)}${payload.lat ? ` · ${Number(payload.lat).toFixed(4)}, ${Number(payload.lng).toFixed(4)}` : ''}`, payload.created_at);
+  }
+  if (type === 'signal.note') {
+    const dev4 = payload.device_id || `user-${payload.user_id}`;
+    sitrepPushFeed('muted', `[~] Note · ${dev4.slice(-8)}${payload.note ? ' · ' + payload.note.slice(0,80) : ''}`, payload.created_at);
+  }
 }
 
 // ── Kit Config tabs ───────────────────────────────────

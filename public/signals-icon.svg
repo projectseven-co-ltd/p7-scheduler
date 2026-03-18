@@ -1,6 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#070e0d"/>
-  <!-- Two vertical bars, teal — mirrors the acid green SchedKit dashboard icon -->
-  <rect x="158" y="128" width="72" height="256" rx="20" fill="#00ffcc"/>
-  <rect x="282" y="128" width="72" height="256" rx="20" fill="#00ffcc"/>
+  <rect width="512" height="512" rx="96" fill="#0a0a0b"/>
+  <rect x="158" y="128" width="72" height="256" rx="20" fill="#DFFF00"/>
+  <rect x="282" y="128" width="72" height="256" rx="20" fill="#DFFF00"/>
 </svg>
