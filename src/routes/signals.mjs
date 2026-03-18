@@ -1,6 +1,6 @@
 import { db } from '../lib/noco.mjs';
 import { tables } from '../lib/tables.mjs';
-import { requireSession } from '../lib/auth.mjs';
+import { requireSession } from '../middleware/session.mjs';
 
 const SIGNAL_TYPES = ['beacon', 'beacon_off', 'capture', 'status_ok', 'sos', 'noaa_alert', 'webhook', 'scheduled'];
 const SEVERITIES = ['info', 'minor', 'moderate', 'severe', 'critical'];
@@ -102,19 +102,13 @@ export default async function signalsRoutes(fastify) {
 
   // GET /v1/signals/stream — SSE stream for signals (used by dashboard)
   fastify.get('/signals/stream', {
+    preHandler: requireSession,
     config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     schema: {
       tags: ['Signals'],
       summary: 'SSE stream for live signals',
-      hide: false,
     },
   }, async (req, reply) => {
-    const userId = req.user?.Id ? String(req.user.Id) : null;
-    if (!userId) {
-      // Try session auth
-      const sessionToken = req.cookies?.sk_session || req.headers['x-session-token'];
-      if (!sessionToken) return reply.code(401).send({ error: 'unauthorized' });
-    }
 
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
